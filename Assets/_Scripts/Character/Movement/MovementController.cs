@@ -51,10 +51,21 @@ public class MovementController : MonoBehaviour
         CheckGround();
 
         _characterFSM.ProcessFixedUpdate();
+
+        DebugResetPosition();
     }
 
     public void CheckGround()
     {
         IsOnGround = _characterController.isGrounded && VerticalVelocity <= 0f;
+    }
+
+    //TODO da rimuovere quando non serve più
+    private void DebugResetPosition()
+    {
+        if (Input.debugResetPos)
+        {
+            transform.position = Vector3.up;
+        }
     }
 }

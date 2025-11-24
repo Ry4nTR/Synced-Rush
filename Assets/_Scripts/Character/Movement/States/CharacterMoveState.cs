@@ -15,10 +15,10 @@ namespace SyncedRush.Character.Movement
             if (!CheckGround())
                 return MovementState.Air;
 
-            Walk();
-
             if (character.Input.jump)
                 return MovementState.Jump;
+
+            Walk();
 
             ProcessMovement();
             return MovementState.None;
@@ -37,19 +37,22 @@ namespace SyncedRush.Character.Movement
 
         private void Walk()
         {
-            if (character.Input.move.magnitude > 0f)
-            {
-                Vector3 motion = character.Orientation.transform.forward * character.Input.move.y
-                    + character.Orientation.transform.right * character.Input.move.x;
-                motion.y = 0f;
-                motion.Normalize();
+            Vector3 motion = character.Orientation.transform.forward * character.Input.move.y
+                + character.Orientation.transform.right * character.Input.move.x;
+            motion.y = 0f;
+            motion.Normalize();
 
-                character.HorizontalVelocity = new Vector2(motion.x, motion.z) * character.Stats.WalkSpeed;
-            }
+            if (character.Input.sprint && character.Input.move.y > 0f )
+                character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity,
+                    new Vector2(motion.x, motion.z) * character.Stats.RunSpeed,
+                    Time.fixedDeltaTime * character.Stats.RunSpeed * 10);
             else
-            {
-                character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, 2f * Time.fixedDeltaTime);
-            }
+                character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity,
+                    new Vector2(motion.x, motion.z) * character.Stats.WalkSpeed,
+                    Time.fixedDeltaTime * character.Stats.RunSpeed * 10);
+            //character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, 
+            //    new Vector2(motion.x, motion.z) * character.Stats.WalkSpeed, 
+            //    Time.fixedDeltaTime * 10f);
         }
 
 	}

@@ -26,6 +26,9 @@ public class PlayerInputHandler : MonoBehaviour
     public bool aim;
     public float scroll;
 
+    //TODO da rimuovere quando non serve più
+    public bool debugResetPos;
+
     // 3) Campi privati
     private PlayerInput _playerInput;
     private PlayerInputSystem _controls;
@@ -71,6 +74,9 @@ public class PlayerInputHandler : MonoBehaviour
         fire = false;
         aim = false;
         scroll = 0f;
+
+        //TODO da rimuovere quando non serve più
+        debugResetPos = false;
     }
 
     private void OnDisable()
@@ -116,6 +122,12 @@ public class PlayerInputHandler : MonoBehaviour
     public void OnScroll(InputAction.CallbackContext context)
     {
         ScrollInput(context.ReadValue<float>());
+    }
+
+    //TODO da rimuovere quando non serve più
+    public void OnDebugResetPos(InputAction.CallbackContext context)
+    {
+        debugResetPos = context.performed;
     }
 #endif
 
@@ -185,6 +197,10 @@ public class PlayerInputHandler : MonoBehaviour
 
         //_playerInput.Player.Scroll.performed += OnScroll;
         //_playerInput.Player.Scroll.canceled += OnScroll;
+
+        //TODO da rimuovere quando non serve più
+        _controls.Player.DebugResetPos.performed += OnDebugResetPos;
+        _controls.Player.DebugResetPos.canceled += OnDebugResetPos;
     }
     private void UnsubscribeAllInputs()
     {
@@ -208,5 +224,9 @@ public class PlayerInputHandler : MonoBehaviour
 
         //_playerInput.Player.Scroll.performed -= OnScroll;
         //_playerInput.Player.Scroll.canceled -= OnScroll;
+
+        //TODO da rimuovere quando non serve più
+        _controls.Player.DebugResetPos.performed -= OnDebugResetPos;
+        _controls.Player.DebugResetPos.canceled -= OnDebugResetPos;
     }
 }

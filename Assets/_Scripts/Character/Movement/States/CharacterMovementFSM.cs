@@ -11,6 +11,7 @@ namespace SyncedRush.Character.Movement
 		Air = 2,
         Jump = 3,
 	}
+
     [RequireComponent(typeof(MovementController))]
     public class CharacterMovementFSM : BaseStateMachine<MovementState, CharacterMovementState>
 	{

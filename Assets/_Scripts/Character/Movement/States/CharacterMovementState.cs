@@ -12,6 +12,12 @@ namespace SyncedRush.Character.Movement
             character = movementComponentReference;
         }
 
+        public override void ExitState()
+        {
+            base.ExitState();
+            ProcessMovement();
+        }
+
         protected void ProcessMovement()
         {
             Vector3 _velocity = new Vector3(character.HorizontalVelocity.x, character.VerticalVelocity, character.HorizontalVelocity.y);
