@@ -1,6 +1,5 @@
 using SyncedRush.Character.Movement;
 using UnityEngine;
-using UnityEngine.TextCore.Text;
 
 [RequireComponent (typeof(CharacterController))]
 [RequireComponent (typeof(CharacterStats))]
