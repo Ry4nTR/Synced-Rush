@@ -31,6 +31,27 @@ namespace SyncedRush.Character.Movement
                 Jump();
         }
 
+        public override void ProcessCollision(ControllerColliderHit hit)
+        {
+            if (hit.normal.y > 0.7f)
+                return;
+
+            if (hit.normal.y <= -0.95f && character.VerticalVelocity > 0f)
+            {
+                character.VerticalVelocity = -.1f;
+                return;
+            }
+
+            Vector3 wallNormal = hit.normal;
+
+            Vector3 currentVelocity = new Vector3(character.HorizontalVelocity.x, character.VerticalVelocity, character.HorizontalVelocity.y);
+
+            Vector3 projectedVelocity = Vector3.ProjectOnPlane(currentVelocity, wallNormal);
+
+            character.HorizontalVelocity = new Vector2(projectedVelocity.x, projectedVelocity.z);
+
+        }
+
         private bool CheckGround()
         {
             if (character.Controller.isGrounded && character.VerticalVelocity <= 0f)

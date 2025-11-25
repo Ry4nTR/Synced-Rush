@@ -18,7 +18,21 @@ namespace SyncedRush.Character.Movement
             ProcessMovement();
         }
 
-        protected void ProcessMovement()
+        public virtual void ProcessCollision(ControllerColliderHit hit)
+        {
+            if (character.Controller.isGrounded && hit.normal.y > 0.7f)
+                return;
+
+            Vector3 wallNormal = hit.normal;
+
+            Vector3 currentVelocity = new Vector3(character.HorizontalVelocity.x, 0, character.HorizontalVelocity.y);
+
+            Vector3 projectedVelocity = Vector3.ProjectOnPlane(currentVelocity, wallNormal);
+
+            character.HorizontalVelocity = new Vector2(projectedVelocity.x, projectedVelocity.z);
+        }
+
+        protected virtual void ProcessMovement()
         {
             Vector3 _velocity = new Vector3(character.HorizontalVelocity.x, character.VerticalVelocity, character.HorizontalVelocity.y);
             character.Controller.Move(_velocity * Time.fixedDeltaTime);

@@ -60,6 +60,11 @@ public class MovementController : MonoBehaviour
         IsOnGround = _characterController.isGrounded && VerticalVelocity <= 0f;
     }
 
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        _characterFSM.ProcessCollision(hit);
+    }
+
     //TODO da rimuovere quando non serve più
     private void DebugResetPosition()
     {

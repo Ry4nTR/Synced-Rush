@@ -34,5 +34,10 @@ namespace SyncedRush.Character.Movement
 
             Initialize(states, MovementState.Move);
         }
+
+        public void ProcessCollision(ControllerColliderHit hit)
+        {
+            CurrentState.ProcessCollision(hit);
+        }
     }
 }
