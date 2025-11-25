@@ -94,6 +94,7 @@ MonoBehaviour:
   fire: 0
   aim: 0
   scroll: 0
+  debugResetPos: 0
 --- !u!114 &5319410118133494551
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -138,7 +139,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
   _walkSpeed: 2
+  _runSpeed: 5.25
   _jumpHeight: 4
+  _jumpCoyoteTime: 0.25
   _gravity: 9.81
 --- !u!114 &245510072461140579
 MonoBehaviour:
@@ -261,7 +264,7 @@ CharacterController:
   m_Enabled: 1
   serializedVersion: 3
   m_Height: 2
-  m_Radius: 0.5
+  m_Radius: 0.3
   m_SlopeLimit: 45
   m_StepOffset: 0.3
   m_SkinWidth: 0.08

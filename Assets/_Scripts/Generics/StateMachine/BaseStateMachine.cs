@@ -16,20 +16,36 @@ namespace SyncedRush.Generics
         [SerializeField] private TStateEnum _startingState;
         [SerializeField] private Dictionary<TStateEnum, TState> _states = new();
 
+        private bool _forcedEnterRequested = false;
+
         public TState CurrentState { get; private set; }
         public TStateEnum CurrentStateEnum { get; private set; }
-        /// <summary> Il QueuedState serve agli stati in uscita per capire qual'è il prossimo stato </summary>
+        /// <summary> Serve agli stati in uscita per capire qual'è il prossimo stato </summary>
         public TStateEnum QueuedStateEnum { get; private set; }
+        public bool IsInitialized { get; private set; }
 
+        protected void OnDestroy()
+        {
+            UnsubscribeEvents();
+        }
 
         public void Initialize(Dictionary<TStateEnum, TState> allStates, TStateEnum initialState)
         {
+            if (IsInitialized)
+            {
+                Debug.LogError("State machine already initialized!");
+                return;
+            }
             _states = allStates;
+
+            SubscribeEvents();
+
+            IsInitialized = true;
 
             ChangeState(initialState);
         }
 
-        public void ChangeState(TStateEnum state, bool forceRenter = false)
+        public void ChangeState(TStateEnum state, bool forceEnter = false)
         {
             if (_states.TryGetValue(state, out TState newState))
             {
@@ -43,8 +59,11 @@ namespace SyncedRush.Generics
                 CurrentStateEnum = state;
                 CurrentState = newState;
 
-                if (forceRenter || !sameState)
+                if (forceEnter || !sameState)
+                {
                     CurrentState.EnterState();
+                    _forcedEnterRequested = false;
+                }
             }
             else
                 Debug.LogError("Stato non trovato!");
@@ -54,7 +73,28 @@ namespace SyncedRush.Generics
         {
             TStateEnum newState = CurrentState.ProcessFixedUpdate();
             if (newState != null && !newState.Equals(default(TStateEnum)))
-                ChangeState(newState);
+                ChangeState(newState, _forcedEnterRequested);
+        }
+
+        public void RequestForcedEnter()
+        {
+            _forcedEnterRequested = true;
+        }
+
+        protected void SubscribeEvents()
+        {
+            foreach (TState state in _states.Values)
+            {
+                state.RequestForcedEnter += RequestForcedEnter;
+            }
+        }
+
+        protected void UnsubscribeEvents()
+        {
+            foreach (TState state in _states.Values)
+            {
+                state.RequestForcedEnter -= RequestForcedEnter;
+            }
         }
     }
 }

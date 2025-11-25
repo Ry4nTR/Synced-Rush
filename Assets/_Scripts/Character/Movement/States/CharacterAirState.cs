@@ -4,6 +4,10 @@ namespace SyncedRush.Character.Movement
 {
 	public class CharacterAirState : CharacterMovementState
     {
+        private bool _usedDoubleJump = false;
+        private bool _previousJumpInput = true;
+        private float _coyoteTimer = 0f;
+
         public CharacterAirState(MovementController movementComponentReference) : base(movementComponentReference)
         {
         }
@@ -16,9 +20,29 @@ namespace SyncedRush.Character.Movement
                 return MovementState.Move;
 
             AirMove();
+
+            if (!character.Input.Jump)
+            {
+                _previousJumpInput = false;
+            }
+            else if (!_previousJumpInput && !_usedDoubleJump)
+            {
+                if (_coyoteTimer > 0f)
+                {
+                    RequestForcedStateEnter();
+                    return MovementState.Jump;
+                }
+
+                _usedDoubleJump = true;
+                _previousJumpInput = true;
+                Jump();
+            }
+
             Fall();
 
             ProcessMovement();
+
+            _coyoteTimer = Mathf.MoveTowards(_coyoteTimer, 0f, Time.fixedDeltaTime);
 
             return MovementState.None;
         }
@@ -27,8 +51,16 @@ namespace SyncedRush.Character.Movement
         {
             base.EnterState();
 
+            _previousJumpInput = true;
+            _usedDoubleJump = false;
+
             if (character.State == MovementState.Jump)
+            {
+                _coyoteTimer = 0f;
                 Jump();
+            }
+            else
+                _coyoteTimer = character.Stats.JumpCoyoteTime;
         }
 
         public override void ProcessCollision(ControllerColliderHit hit)
@@ -44,12 +76,11 @@ namespace SyncedRush.Character.Movement
 
             Vector3 wallNormal = hit.normal;
 
-            Vector3 currentVelocity = new Vector3(character.HorizontalVelocity.x, character.VerticalVelocity, character.HorizontalVelocity.y);
+            Vector3 currentVelocity = new(character.HorizontalVelocity.x, character.VerticalVelocity, character.HorizontalVelocity.y);
 
             Vector3 projectedVelocity = Vector3.ProjectOnPlane(currentVelocity, wallNormal);
 
             character.HorizontalVelocity = new Vector2(projectedVelocity.x, projectedVelocity.z);
-
         }
 
         private bool CheckGround()
@@ -65,13 +96,10 @@ namespace SyncedRush.Character.Movement
 
         private void AirMove()
         {
-            Vector3 motion = character.Orientation.transform.forward * character.Input.move.y
-                + character.Orientation.transform.right * character.Input.move.x;
-            motion.y = 0f;
-            motion.Normalize();
+            Vector3 moveDir = character.MoveDirection;
 
             character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity,
-                new Vector2(motion.x, motion.z) * character.Stats.RunSpeed,
+                new Vector2(moveDir.x, moveDir.z) * character.Stats.RunSpeed,
                 Time.fixedDeltaTime * character.Stats.RunSpeed * 1);
 
             //if (character.HorizontalVelocity.magnitude > character.Stats.RunSpeed)

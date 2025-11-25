@@ -33,6 +33,15 @@ public class PlayerInputHandler : MonoBehaviour
     private PlayerInput _playerInput;
     private PlayerInputSystem _controls;
 
+    // Proprietà campi input (usare queste al di fuori di questa classe)
+    public Vector2 Move => move;
+    public Vector2 Look => Look;
+    public bool Jump => jump;
+    public bool Sprint => sprint;
+    public bool Fire => fire;
+    public bool Aim => aim;
+    public float Scroll => scroll;
+
     // 4) Event facoltativi
     public event Action<Vector2> OnLookEvent = delegate { };
 

@@ -1,5 +1,6 @@
 using SyncedRush.Character.Movement;
 using UnityEngine;
+using UnityEngine.TextCore.Text;
 
 [RequireComponent (typeof(CharacterController))]
 [RequireComponent (typeof(CharacterStats))]
@@ -29,6 +30,18 @@ public class MovementController : MonoBehaviour
 
     public MovementState State => _characterFSM.CurrentStateEnum;
     public bool IsOnGround { get; private set; }
+    public Vector3 MoveDirection
+    { 
+        get
+        {
+            Vector3 motion = Orientation.transform.forward * Input.Move.y
+            + Orientation.transform.right * Input.Move.x;
+            motion.y = 0f;
+            motion.Normalize();
+
+            return motion;
+        }
+    }
 
     private void Awake()
     {

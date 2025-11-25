@@ -25,7 +25,7 @@ namespace SyncedRush.Character.Movement
 
             Vector3 wallNormal = hit.normal;
 
-            Vector3 currentVelocity = new Vector3(character.HorizontalVelocity.x, 0, character.HorizontalVelocity.y);
+            Vector3 currentVelocity = new(character.HorizontalVelocity.x, 0, character.HorizontalVelocity.y);
 
             Vector3 projectedVelocity = Vector3.ProjectOnPlane(currentVelocity, wallNormal);
 
@@ -34,7 +34,7 @@ namespace SyncedRush.Character.Movement
 
         protected virtual void ProcessMovement()
         {
-            Vector3 _velocity = new Vector3(character.HorizontalVelocity.x, character.VerticalVelocity, character.HorizontalVelocity.y);
+            Vector3 _velocity = new(character.HorizontalVelocity.x, character.VerticalVelocity, character.HorizontalVelocity.y);
             character.Controller.Move(_velocity * Time.fixedDeltaTime);
         }
     }

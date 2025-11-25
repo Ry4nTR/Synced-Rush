@@ -8,9 +8,11 @@ namespace SyncedRush.Generics
 
         protected BaseStateMachine<TStateEnum, BaseState<TStateEnum>> ParentStateMachine => _parentStateMachine;
 
+        public event Action RequestForcedEnter;
+
         public void SetParentStateMachine(BaseStateMachine<TStateEnum, BaseState<TStateEnum>> parentStateMachine)
         {
-            if (parentStateMachine == null)
+            if (_parentStateMachine == null)
                 _parentStateMachine = parentStateMachine;
         }
 
@@ -22,6 +24,11 @@ namespace SyncedRush.Generics
         public virtual TStateEnum ProcessUpdate() => default;
 
         public virtual TStateEnum ProcessFixedUpdate() => default;
+
+        protected void RequestForcedStateEnter()
+        {
+            RequestForcedEnter?.Invoke();
+        }
 
     }
 }
