@@ -57,7 +57,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.PlayerInput
   m_Actions: {fileID: -944628639613478452, guid: ba699f85d4cdecf499a983150b9bc31c, type: 3}
-  m_NotificationBehavior: 0
+  m_NotificationBehavior: 3
   m_UIInputModule: {fileID: 0}
   m_DeviceLostEvent:
     m_PersistentCalls:
@@ -125,7 +125,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: beeeae82359524f408836a3063325d96, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterController
-  _orientation: {fileID: 0}
+  _orientation: {fileID: 5302962826593933888}
 --- !u!114 &2476011265268299710
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -138,9 +138,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a113e74235ae9ae4098a8dcac6eb6478, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
-  _walkSpeed: 2
+  _walkSpeed: 3
   _runSpeed: 5.25
-  _jumpHeight: 4
+  _jumpHeight: 2
   _jumpCoyoteTime: 0.25
   _gravity: 9.81
 --- !u!114 &245510072461140579
@@ -194,7 +194,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ClientPlayerMove
   ShowTopMostFoldoutHeaderGroup: 1
-  stopDisablingComponentsPlease: 0
+  stopDisablingComponentsPlease: 1
   playerInput: {fileID: 5363198753706274393}
   inputHandler: {fileID: 831554826967024705}
   lookController: {fileID: 5319410118133494551}
@@ -263,11 +263,11 @@ CharacterController:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Height: 2
+  m_Height: 1.75
   m_Radius: 0.3
   m_SlopeLimit: 45
   m_StepOffset: 0.3
-  m_SkinWidth: 0.08
+  m_SkinWidth: 0.01
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &5302962826593933888
@@ -498,7 +498,7 @@ Transform:
   m_GameObject: {fileID: 8774927925553066462}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.6070639, z: 0.01683301}
+  m_LocalPosition: {x: 0, y: 0.7400638, z: 0.016833067}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -579,7 +579,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4311652260893728935, guid: 9bd72731ebe2248478ba4849c274a43b, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -0.867
       objectReference: {fileID: 0}
     - target: {fileID: 4311652260893728935, guid: 9bd72731ebe2248478ba4849c274a43b, type: 3}
       propertyPath: m_LocalPosition.z
