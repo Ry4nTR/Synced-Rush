@@ -5,7 +5,7 @@
 /// Nessuno smoothing: raw look * sensitivity per massima reattività.
 /// </summary>
 [DisallowMultipleComponent]
-public class CharacterLookController : MonoBehaviour
+public class LookController : MonoBehaviour
 {
     // 1) Statici / costanti
     private const float DEFAULT_MAX_PITCH = 90f;

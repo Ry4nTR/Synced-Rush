@@ -1,3 +1,4 @@
+using Unity.Cinemachine;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -7,43 +8,43 @@ using UnityEngine.InputSystem;
 /// <!--/summary>-->
 public class ClientComponentSwitcher : NetworkBehaviour
 {
-    //TODO Questa roba serve per testare più velocemente il character. Da rimuovere quando non serve più
-    [SerializeField] private bool stopDisablingComponentsPlease = false;
-
-
+    [Header("Input")]
     [SerializeField] private PlayerInput playerInput;
     [SerializeField] private PlayerInputHandler inputHandler;
-    [SerializeField] private CharacterLookController lookController;
+
+    [Header("Character Components")]
+    [SerializeField] private LookController lookController;
     [SerializeField] private MovementController characterController;
+
+    [Header("Camera")]
+    [SerializeField] private CinemachineCamera CinemachineCamera;
+
 
     private void Awake()
     {
-        if (!stopDisablingComponentsPlease)
-        {
-            playerInput.enabled = false;
-            inputHandler.enabled = false;
-            lookController.enabled = false;
-            characterController.enabled = false;
-        }
+        playerInput.enabled = false; // PlayerInput
+        inputHandler.enabled = false; // PlayerInputHandler
+        lookController.enabled = false; // CharacterLookController
+        characterController.enabled = false; // MovementController
+        CinemachineCamera.enabled = false; // Camera
     }
 
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
 
-        if (stopDisablingComponentsPlease)
+        if (IsOwner)
         {
-            if (IsOwner)
-            {
-                playerInput.enabled = true;
-                inputHandler.enabled = true;
-            }
+            playerInput.enabled = true;
+            inputHandler.enabled = true;
 
-            if (IsServer)
-            {
-                lookController.enabled = true;
-                characterController.enabled = true;
-            }
+            CinemachineCamera.enabled = true;
+        }
+
+        if (IsServer)
+        {
+            lookController.enabled = true;
+            characterController.enabled = true;
         }
     }
 
