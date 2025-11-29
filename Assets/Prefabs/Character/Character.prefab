@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 5363198753706274393}
   - component: {fileID: 831554826967024705}
   - component: {fileID: -4718773345927608370}
+  - component: {fileID: 7833491191506042902}
   - component: {fileID: -2986967647247276543}
   - component: {fileID: 2476011265268299710}
   - component: {fileID: 245510072461140579}
@@ -39,7 +40,9 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1433706994888914912}
+  - {fileID: 6586182560886131289}
+  - {fileID: 5076277776288473167}
+  - {fileID: 2692328554321709810}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1006538556253672887
@@ -54,7 +57,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1048122931
+  GlobalObjectIdHash: 611482336
   InScenePlacedSourceGlobalObjectIdHash: 1514268395
   DeferredDespawnTick: 0
   Ownership: 1
@@ -82,11 +85,10 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   playerInput: {fileID: 5363198753706274393}
   inputHandler: {fileID: 831554826967024705}
-  lookController: {fileID: 7803783105962291889}
+  lookController: {fileID: 7833491191506042902}
   moveController: {fileID: -2986967647247276543}
   movementFSM: {fileID: 245510072461140579}
   cinemachineCamera: {fileID: 1191002731392592227}
-  audioListener: {fileID: 0}
 --- !u!114 &5363198753706274393
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -151,6 +153,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkPlayerInput
   ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &7833491191506042902
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2338101018676570622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a5d679a0fa28964c976afa0e983fd67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LookController
+  ShowTopMostFoldoutHeaderGroup: 1
+  inputHandler: {fileID: 831554826967024705}
+  cameraHolder: {fileID: 6586182560886131289}
+  sensitivity: 5
+  invertY: 0
+  maxPitch: 90
+  minPitch: -90
 --- !u!114 &-2986967647247276543
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -265,7 +286,7 @@ CharacterController:
   m_StepOffset: 0.3
   m_SkinWidth: 0.01
   m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0.87, z: 0}
 --- !u!1 &5302962826593933888
 GameObject:
   m_ObjectHideFlags: 0
@@ -295,62 +316,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1433706994888914912}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &7421991699218605247
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1433706994888914912}
-  - component: {fileID: 7803783105962291889}
-  m_Layer: 0
-  m_Name: 'YawPivot        '
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1433706994888914912
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7421991699218605247}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 6586182560886131289}
-  - {fileID: 5076277776288473167}
-  - {fileID: 2692328554321709810}
   m_Father: {fileID: 8202321523229073469}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &7803783105962291889
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7421991699218605247}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4a5d679a0fa28964c976afa0e983fd67, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LookController
-  ShowTopMostFoldoutHeaderGroup: 1
-  inputHandler: {fileID: 831554826967024705}
-  cameraHolder: {fileID: 6586182560886131289}
-  sensitivity: 5
-  invertY: 0
-  maxPitch: 90
-  minPitch: -90
 --- !u!1 &8774927925553066462
 GameObject:
   m_ObjectHideFlags: 0
@@ -382,7 +349,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1433706994888914912}
+  m_Father: {fileID: 8202321523229073469}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1191002731392592227
 MonoBehaviour:
@@ -446,7 +413,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 1433706994888914912}
+    m_TransformParent: {fileID: 8202321523229073469}
     m_Modifications:
     - target: {fileID: 3503167532966410781, guid: 9bd72731ebe2248478ba4849c274a43b, type: 3}
       propertyPath: m_Name
