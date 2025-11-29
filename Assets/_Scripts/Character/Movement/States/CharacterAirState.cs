@@ -21,7 +21,7 @@ namespace SyncedRush.Character.Movement
 
             AirMove();
 
-            if (!character.Input.Jump)
+            if (!Input.Jump)
             {
                 _previousJumpInput = false;
             }

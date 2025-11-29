@@ -1,17 +1,18 @@
 using SyncedRush.Character.Movement;
+using Unity.Netcode;
 using UnityEngine;
 
 [RequireComponent (typeof(CharacterController))]
 [RequireComponent (typeof(CharacterStats))]
 [RequireComponent (typeof(CharacterMovementFSM))]
-public class MovementController : MonoBehaviour
+public class MovementController : NetworkBehaviour
 {
     [SerializeField] private GameObject _orientation;
 
-    private PlayerInputHandler _playerInputHandler;
     private CharacterController _characterController;
     private CharacterStats _characterStats;
     private CharacterMovementFSM _characterFSM;
+    private NetworkPlayerInput _netInput;
 
     /// <summary>
     /// Il vettore di movimento orizzontale del character. Indica lo spostamento orizzontale ad ogni frame del FixedUpdate
@@ -22,13 +23,33 @@ public class MovementController : MonoBehaviour
     /// </summary>
     public float VerticalVelocity { get; set; }
 
-    public PlayerInputHandler Input => _playerInputHandler;
     public CharacterController Controller => _characterController;
     public CharacterStats Stats => _characterStats;
     public GameObject Orientation => _orientation;
 
     public MovementState State => _characterFSM.CurrentStateEnum;
     public bool IsOnGround { get; private set; }
+
+    public MovementInputData InputData => _netInput.ServerInput;
+
+    public Vector3 MoveDirection
+    {
+        get
+        {
+            MovementInputData input = _netInput.ServerInput;
+
+            Vector3 motion =
+                Orientation.transform.forward * input.Move.y +
+                Orientation.transform.right * input.Move.x;
+
+            motion.y = 0f;
+            motion.Normalize();
+            return motion;
+        }
+    }
+    /*
+    VECCHIO METODO SENZA NETWORKING, TE LO LASCIO PER RIFERIMENTO CANCELLA APPENA CAPISCI CAMBIAMENTI CHE HO FATTO
+
     public Vector3 MoveDirection
     { 
         get
@@ -41,12 +62,10 @@ public class MovementController : MonoBehaviour
             return motion;
         }
     }
+    */
 
     private void Awake()
     {
-        if (_playerInputHandler == null)
-            _playerInputHandler = GetComponent<PlayerInputHandler>();
-
         if (_characterController == null)
             _characterController = GetComponent<CharacterController>();
 
@@ -55,11 +74,18 @@ public class MovementController : MonoBehaviour
 
         if (_characterFSM == null)
             _characterFSM = GetComponent<CharacterMovementFSM>();
+
+        if (_netInput == null)
+            _netInput = GetComponent<NetworkPlayerInput>();
     }
 
 
     private void FixedUpdate()
     {
+        // *** Only server simulates movement ***
+        if (!IsServer)
+            return;
+
         CheckGround();
 
         _characterFSM.ProcessFixedUpdate();
@@ -80,7 +106,7 @@ public class MovementController : MonoBehaviour
     //TODO da rimuovere quando non serve più
     private void DebugResetPosition()
     {
-        if (Input.debugResetPos)
+        if (_netInput.ServerInput.DebugResetPos)
         {
             transform.position = Vector3.up;
         }

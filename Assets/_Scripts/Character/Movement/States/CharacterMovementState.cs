@@ -7,6 +7,11 @@ namespace SyncedRush.Character.Movement
 	{
 		protected MovementController character;
 
+        /// <summary>
+        /// Shortcut to SERVER-SIDE input.
+        /// </summary>
+        protected MovementInputData Input => character.InputData;
+
         protected CharacterMovementState(MovementController movementComponentReference)
         {
             character = movementComponentReference;

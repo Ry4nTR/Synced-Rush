@@ -15,7 +15,7 @@ namespace SyncedRush.Character.Movement
             if (!CheckGround())
                 return MovementState.Air;
 
-            if (character.Input.Jump)
+            if (Input.Jump)
                 return MovementState.Jump;
 
             Walk();
@@ -39,7 +39,7 @@ namespace SyncedRush.Character.Movement
         {
             Vector3 moveDir = character.MoveDirection;
 
-            if (character.Input.Sprint && character.Input.Move.y > 0f )
+            if (Input.Sprint && Input.Move.y > 0f )
                 character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity,
                     new Vector2(moveDir.x, moveDir.z) * character.Stats.RunSpeed,
                     Time.fixedDeltaTime * character.Stats.RunSpeed * 10);
