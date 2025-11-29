@@ -2,120 +2,73 @@
 using Unity.Netcode;
 
 /// <summary>
-/// Client-side Look Controller.
-/// Rotates the local player's camera & body using owner-only input.
+/// Client-side camera rotation controller.
+/// Attach this to the YawPivot object (child of Character).
+/// - Horizontal rotation (Yaw) happens on the Pivot.
+/// - Vertical rotation (Pitch) happens on the CameraHolder.
+/// - Only the owner runs this script.
 /// </summary>
-[DisallowMultipleComponent]
 public class LookController : NetworkBehaviour
 {
-    private const float DEFAULT_MAX_PITCH = 90f;
-    private const float DEFAULT_MIN_PITCH = -90f;
-
-    [Header("References")]
+    [Header("Input")]
     [SerializeField] private PlayerInputHandler inputHandler;
-    [SerializeField] private Transform cameraHolder;
+
+    [Header("Camera")]
+    [SerializeField] private Transform cameraHolder;     // The object that pitches up/down
 
     [Header("Settings")]
     [SerializeField] private float sensitivity = 5f;
     [SerializeField] private bool invertY = false;
-    [SerializeField] private float maxPitch = DEFAULT_MAX_PITCH;
-    [SerializeField] private float minPitch = DEFAULT_MIN_PITCH;
+    [SerializeField] private float minPitch = -80f;
+    [SerializeField] private float maxPitch = 80f;
 
-    private float pitch;
-    private float yaw;
+    private float pitch;    // Vertical
+    private float yaw;      // Horizontal
 
-    // Properties
-    public float Pitch
+    private void Start()
     {
-        get => pitch;
-        private set => pitch = Mathf.Clamp(value, minPitch, maxPitch);
-    }
-
-    public float Yaw
-    {
-        get => yaw;
-        private set => yaw = value;
-    }
-
-    private void Awake()
-    {
-        Vector3 e = transform.eulerAngles;
-        Yaw = e.y;
-
-        if (cameraHolder != null)
+        // Disable on non-owner
+        if (!IsOwner)
         {
-            float localPitch = cameraHolder.localEulerAngles.x;
-            if (localPitch > 180f) localPitch -= 360f;
-            Pitch = localPitch;
+            enabled = false;
+            return;
         }
-        else
-        {
-            Pitch = 0f;
-        }
-    }
 
-    private void OnEnable()
-    {
-        if (IsOwner && inputHandler != null)
-            inputHandler.SetCursorLocked(true);
+        // Initialize yaw with pivot rotation
+        yaw = transform.localEulerAngles.y;
+
+        // Initialize pitch with camera holder angle
+        float rawPitch = cameraHolder.localEulerAngles.x;
+        if (rawPitch > 180f) rawPitch -= 360f;
+        pitch = rawPitch;
+
+        // Lock cursor
+        inputHandler.SetCursorLocked(true);
     }
 
     private void OnDisable()
     {
-        if (IsOwner && inputHandler != null)
+        if (IsOwner)
             inputHandler.SetCursorLocked(false);
     }
 
     private void Update()
     {
-        // IMPORTANT: Only the owner rotates the camera.
         if (!IsOwner) return;
 
-        HandleLook();
-    }
+        Vector2 look = inputHandler.look;
 
-    private void HandleLook()
-    {
-        if (inputHandler == null) return;
+        // Sensitivity scaling
+        float deltaX = look.x * sensitivity * 0.01f;
+        float deltaY = look.y * sensitivity * 0.01f;
 
-        Vector2 rawDelta = inputHandler.look;
+        // YAW: rotate pivot (horizontal)
+        yaw += deltaX;
+        transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
 
-        if (invertY)
-            rawDelta.y = -rawDelta.y;
-
-        float deltaYaw = rawDelta.x * sensitivity * 0.01f;
-        float deltaPitch = rawDelta.y * sensitivity * 0.01f;
-
-        Yaw += deltaYaw;
-        Pitch += deltaPitch;
-        Pitch = Mathf.Clamp(Pitch, minPitch, maxPitch);
-
-        transform.rotation = Quaternion.Euler(0f, Yaw, 0f);
-
-        if (cameraHolder != null)
-        {
-            cameraHolder.localRotation = Quaternion.Euler(-Pitch, 0f, 0f);
-        }
-    }
-
-    public void ResetView()
-    {
-        Yaw = 0f;
-        Pitch = 0f;
-        ApplyRotationInstant();
-    }
-
-    public void SetView(Vector2 yawPitch)
-    {
-        Yaw = yawPitch.x;
-        Pitch = yawPitch.y;
-        ApplyRotationInstant();
-    }
-
-    private void ApplyRotationInstant()
-    {
-        transform.rotation = Quaternion.Euler(0f, Yaw, 0f);
-        if (cameraHolder != null)
-            cameraHolder.localRotation = Quaternion.Euler(Pitch, 0f, 0f);
+        // PITCH: rotate camera holder (vertical)
+        pitch += invertY ? deltaY : -deltaY;
+        pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
+        cameraHolder.localRotation = Quaternion.Euler(pitch, 0f, 0f);
     }
 }
