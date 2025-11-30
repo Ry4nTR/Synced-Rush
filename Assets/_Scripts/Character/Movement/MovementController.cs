@@ -13,6 +13,7 @@ public class MovementController : NetworkBehaviour
     private CharacterStats _characterStats;
     private CharacterMovementFSM _characterFSM;
     private NetworkPlayerInput _netInput;
+    private Animator _animator;
 
     /// <summary>
     /// Il vettore di movimento orizzontale del character. Indica lo spostamento orizzontale ad ogni frame del FixedUpdate
@@ -31,6 +32,8 @@ public class MovementController : NetworkBehaviour
     public bool IsOnGround { get; private set; }
 
     public MovementInputData InputData => _netInput.ServerInput;
+
+    public Animator Anim => _animator;
 
     public Vector3 MoveDirection
     {
@@ -77,6 +80,9 @@ public class MovementController : NetworkBehaviour
 
         if (_netInput == null)
             _netInput = GetComponent<NetworkPlayerInput>();
+
+        if (_animator == null)
+            _animator = GetComponentInChildren<Animator>();
     }
 
 
@@ -91,6 +97,20 @@ public class MovementController : NetworkBehaviour
         _characterFSM.ProcessFixedUpdate();
 
         DebugResetPosition();
+
+        UpdateAnimator();
+    }
+
+    private void UpdateAnimator()
+    {
+        Anim.SetBool("IsGrounded", IsOnGround);
+
+        float speed = new Vector2(HorizontalVelocity.x, HorizontalVelocity.y).magnitude;
+        Anim.SetFloat("MoveSpeed", speed);
+
+        Anim.SetFloat("VerticalVelocity", VerticalVelocity);
+
+        Anim.SetBool("IsSprinting", InputData.Sprint);
     }
 
     public void CheckGround()
