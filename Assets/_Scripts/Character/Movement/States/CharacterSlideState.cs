@@ -2,15 +2,15 @@ using UnityEngine;
 
 namespace SyncedRush.Character.Movement
 {
-	public class CharacterMoveState : CharacterMovementState
-	{
-        public CharacterMoveState(MovementController movementComponentReference) : base(movementComponentReference)
+	public class CharacterSlideState : CharacterMovementState
+    {
+        public CharacterSlideState(MovementController movementComponentReference) : base(movementComponentReference)
         {
         }
 
         public override string ToString()
         {
-            return "MoveState";
+            return "SlideState";
         }
 
         public override MovementState ProcessFixedUpdate()
@@ -23,10 +23,10 @@ namespace SyncedRush.Character.Movement
             if (Input.Jump)
                 return MovementState.Jump;
 
-            if (Input.Crouch && Input.Sprint && character.HorizontalVelocity.magnitude > 1f)
-                return MovementState.Slide;
+            if (!Input.Crouch || character.HorizontalVelocity.magnitude < 1f)
+                return MovementState.Move;
 
-            Walk();
+            Slide();
 
             ProcessMovement();
             return MovementState.None;
@@ -75,18 +75,26 @@ namespace SyncedRush.Character.Movement
                 return false;
         }
 
-        private void Walk()
+        private void Slide()
         {
             Vector3 inputDir = character.MoveDirection;
 
-            if (Input.Sprint && Input.Move.y > 0f )
-                character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity,
-                    new Vector2(inputDir.x, inputDir.z) * character.Stats.RunSpeed,
-                    Time.fixedDeltaTime * character.Stats.RunSpeed * 10);
-            else
-                character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity,
-                    new Vector2(inputDir.x, inputDir.z) * character.Stats.WalkSpeed,
-                    Time.fixedDeltaTime * character.Stats.RunSpeed * 10);
+            if (character.TryGetGroundInfo(out RaycastHit gndInfo))
+            {
+                if (Input.Move.y > 0f)
+                    character.HorizontalVelocity += character.Stats.SlideMoveInfluence * Time.fixedDeltaTime * new Vector2(inputDir.x, inputDir.z);
+
+                character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideDeceleration * Time.fixedDeltaTime);
+
+                Vector2 slopeDir = new(gndInfo.normal.x, gndInfo.normal.z);
+                if (!(Mathf.Approximately(slopeDir.x, 0f) && Mathf.Approximately(slopeDir.y, 0f)))
+                {
+                    slopeDir.Normalize();
+                    float n = Mathf.Abs(gndInfo.normal.y - 1);
+                    character.HorizontalVelocity += character.Stats.Gravity * n * 5 * Time.fixedDeltaTime * slopeDir; //TODO rimpiazzare l'operando 5 (è un valore hardcodato)
+                }
+            }
         }
-	}
+
+    }
 }

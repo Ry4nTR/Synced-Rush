@@ -36,6 +36,7 @@ public class NetworkPlayerInput : NetworkBehaviour
             Look = _inputHandler.look,
             Jump = _inputHandler.jump,
             Sprint = _inputHandler.sprint,
+            Crouch = _inputHandler.crouch,
             Fire = _inputHandler.fire,
             Aim = _inputHandler.aim,
             Scroll = _inputHandler.scroll,

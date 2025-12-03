@@ -134,16 +134,6 @@ public class MovementController : NetworkBehaviour
 
     public void CheckGround()
     {
-        //IsOnGround = _characterController.isGrounded && VerticalVelocity <= 0f;
-
-        //Vector3 centerPosition = _characterController.transform.position +
-        //                 _characterController.transform.up * (_characterController.height / 2f) +
-        //                 _characterController.center;
-
-        //IsOnGround = Physics.Raycast(centerPosition, Vector3.down, out RaycastHit hit, (_characterController.height / 2f) + 0.1f, _groundLayerMask)
-        //    && VerticalVelocity <= 0f;
-
-
         float skinWidth = _characterController.skinWidth;
         float rayLength = 0.1f + skinWidth;
         Vector3 startPosition = _characterController.transform.position +
@@ -159,6 +149,7 @@ public class MovementController : NetworkBehaviour
             _groundLayerMask
         );
 
+        //TODO da rimuovere quando non serve più
         Color rayColor = hasHit ? Color.green : Color.red;
         Debug.DrawRay(startPosition, Vector3.down * rayLength, rayColor, Time.fixedDeltaTime);
 

@@ -106,13 +106,6 @@ namespace SyncedRush.Character.Movement
             character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity,
                 new Vector2(moveDir.x, moveDir.z) * character.Stats.RunSpeed,
                 Time.fixedDeltaTime * character.Stats.RunSpeed * 1);
-
-            //if (character.HorizontalVelocity.magnitude > character.Stats.RunSpeed)
-            //{
-            //    character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity,
-            //        character.HorizontalVelocity.normalized * character.Stats.RunSpeed,
-            //        Time.fixedDeltaTime * 10);
-            //}
         }
 
         private void Fall()

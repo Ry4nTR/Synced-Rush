@@ -11,6 +11,7 @@ public struct MovementInputData : INetworkSerializable
     public Vector2 Look;
     public bool Jump;
     public bool Sprint;
+    public bool Crouch;
     public bool Fire;
     public bool Aim;
     public float Scroll;
@@ -24,6 +25,7 @@ public struct MovementInputData : INetworkSerializable
         serializer.SerializeValue(ref Look);
         serializer.SerializeValue(ref Jump);
         serializer.SerializeValue(ref Sprint);
+        serializer.SerializeValue(ref Crouch);
         serializer.SerializeValue(ref Fire);
         serializer.SerializeValue(ref Aim);
         serializer.SerializeValue(ref Scroll);

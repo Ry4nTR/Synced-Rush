@@ -15,6 +15,11 @@ public class CharacterStats : MonoBehaviour
     [SerializeField] private float _jumpHeight = 2f;
     /// <summary>Tempo (in secondi) permesso al giocatore di saltare anche dopo aver perso conttato con il terreno </summary>
     [SerializeField] private float _jumpCoyoteTime = 0.25f;
+    //TODO _slideMoveInfluence e _slideDecelleration sono da definire meglio
+    /// <summary> </summary>
+    [SerializeField] private float _slideMoveInfluence = 1f;
+    /// <summary> </summary>
+    [SerializeField] private float _slideDecelleration = 1f;
     /// <summary>Accelerazione di gravità (m/s^2)</summary>
     [SerializeField] private float _gravity = 9.81f;
 
@@ -23,5 +28,7 @@ public class CharacterStats : MonoBehaviour
     public float RunSpeed => _runSpeed;
     public float JumpHeight => _jumpHeight;
     public float JumpCoyoteTime => _jumpCoyoteTime;
+    public float SlideMoveInfluence => _slideMoveInfluence;
+    public float SlideDeceleration => _slideDecelleration;
     public float Gravity => _gravity;
 }

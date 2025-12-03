@@ -22,6 +22,7 @@ public class PlayerInputHandler : MonoBehaviour
     public Vector2 look;
     public bool jump;
     public bool sprint;
+    public bool crouch; // è usato anche per lo slide
     public bool fire;
     public bool aim;
     public float scroll;
@@ -38,6 +39,7 @@ public class PlayerInputHandler : MonoBehaviour
     public Vector2 Look => Look;
     public bool Jump => jump;
     public bool Sprint => sprint;
+    public bool Crouch => crouch;
     public bool Fire => fire;
     public bool Aim => aim;
     public float Scroll => scroll;
@@ -118,6 +120,11 @@ public class PlayerInputHandler : MonoBehaviour
         SprintInput(context.performed);
     }
 
+    public void OnCrouch(InputAction.CallbackContext context)
+    {
+        CrouchInput(context.performed);
+    }
+
     public void OnFire(InputAction.CallbackContext context)
     {
         FireInput(context.performed);
@@ -162,6 +169,11 @@ public class PlayerInputHandler : MonoBehaviour
         sprint = newSprint;
     }
 
+    public void CrouchInput(bool newCrouch)
+    {
+        crouch = newCrouch;
+    }
+
     public void FireInput(bool newFire)
     {
         fire = newFire;
@@ -198,6 +210,9 @@ public class PlayerInputHandler : MonoBehaviour
         _controls.Player.Sprint.performed += OnSprint;
         _controls.Player.Sprint.canceled += OnSprint;
 
+        _controls.Player.Crouch.performed += OnCrouch;
+        _controls.Player.Crouch.canceled += OnCrouch;
+
         _controls.Player.Fire.performed += OnFire;
         _controls.Player.Fire.canceled += OnFire;
 
@@ -224,6 +239,9 @@ public class PlayerInputHandler : MonoBehaviour
 
         _controls.Player.Sprint.performed -= OnSprint;
         _controls.Player.Sprint.canceled -= OnSprint;
+
+        _controls.Player.Crouch.performed -= OnCrouch;
+        _controls.Player.Crouch.canceled -= OnCrouch;
 
         _controls.Player.Fire.performed -= OnFire;
         _controls.Player.Fire.canceled -= OnFire;
