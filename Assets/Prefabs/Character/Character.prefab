@@ -22,7 +22,7 @@ GameObject:
   - component: {fileID: 6271765114103876001}
   - component: {fileID: 3812799252896454869}
   - component: {fileID: 1452198538130081999}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Character
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -57,7 +57,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3354322385
+  GlobalObjectIdHash: 2877608786
   InScenePlacedSourceGlobalObjectIdHash: 1514268395
   DeferredDespawnTick: 0
   Ownership: 1
@@ -182,6 +182,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CharacterController
   ShowTopMostFoldoutHeaderGroup: 1
   _orientation: {fileID: 5302962826593933888}
+  _groundLayerMask:
+    serializedVersion: 2
+    m_Bits: 1
 --- !u!114 &2476011265268299710
 MonoBehaviour:
   m_ObjectHideFlags: 0

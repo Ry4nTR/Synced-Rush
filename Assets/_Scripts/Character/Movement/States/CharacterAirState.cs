@@ -12,6 +12,11 @@ namespace SyncedRush.Character.Movement
         {
         }
 
+        public override string ToString()
+        {
+            return "AirState";
+        }
+
         public override MovementState ProcessFixedUpdate()
         {
             base.ProcessFixedUpdate();
@@ -65,7 +70,7 @@ namespace SyncedRush.Character.Movement
 
         public override void ProcessCollision(ControllerColliderHit hit)
         {
-            if (hit.normal.y > 0.7f)
+            if (hit.normal.y > 0.999f)
                 return;
 
             if (hit.normal.y <= -0.95f && character.VerticalVelocity > 0f)
@@ -85,7 +90,7 @@ namespace SyncedRush.Character.Movement
 
         private bool CheckGround()
         {
-            if (character.Controller.isGrounded && character.VerticalVelocity <= 0f)
+            if (character.IsOnGround && character.VerticalVelocity <= 0f)
             {
                 character.VerticalVelocity = -.1f;
                 return true;

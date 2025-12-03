@@ -8,6 +8,7 @@ using UnityEngine;
 public class MovementController : NetworkBehaviour
 {
     [SerializeField] private GameObject _orientation;
+    [SerializeField] private LayerMask _groundLayerMask;
 
     private CharacterController _characterController;
     private CharacterStats _characterStats;
@@ -15,14 +16,32 @@ public class MovementController : NetworkBehaviour
     private NetworkPlayerInput _netInput;
     private Animator _animator;
 
+    private RaycastHit _groundInfo;
+
     /// <summary>
-    /// Il vettore di movimento orizzontale del character. Indica lo spostamento orizzontale ad ogni frame del FixedUpdate
+    /// Vettore di movimento orizzontale del character. Indica lo spostamento orizzontale ad ogni frame del FixedUpdate
     /// </summary>
     public Vector2 HorizontalVelocity { get; set; }
     /// <summary>
     /// Valore di movimento verticale del character. Indica lo spostamento verticale ad ogni frame del FixedUpdate
     /// </summary>
     public float VerticalVelocity { get; set; }
+    /// <summary>
+    /// Vettore di movimento tridimensionale del character. Indica lo spostamento orizzontale e verticale ad ogni frame del FixedUpdate.<br/>
+    /// Internamente la velocity rimane comunque divisa fra <seealso cref="HorizontalVelocity"/> e <seealso cref="VerticalVelocity"/>.
+    /// </summary>
+    public Vector3 TotalVelocity
+    {
+        get
+        {
+            return new(HorizontalVelocity.x, VerticalVelocity, HorizontalVelocity.y);
+        }
+        set
+        {
+            HorizontalVelocity = new(value.x, value.z);
+            VerticalVelocity = value.y;
+        }
+    }
 
     public CharacterController Controller => _characterController;
     public CharacterStats Stats => _characterStats;
@@ -115,7 +134,47 @@ public class MovementController : NetworkBehaviour
 
     public void CheckGround()
     {
-        IsOnGround = _characterController.isGrounded && VerticalVelocity <= 0f;
+        //IsOnGround = _characterController.isGrounded && VerticalVelocity <= 0f;
+
+        //Vector3 centerPosition = _characterController.transform.position +
+        //                 _characterController.transform.up * (_characterController.height / 2f) +
+        //                 _characterController.center;
+
+        //IsOnGround = Physics.Raycast(centerPosition, Vector3.down, out RaycastHit hit, (_characterController.height / 2f) + 0.1f, _groundLayerMask)
+        //    && VerticalVelocity <= 0f;
+
+
+        float skinWidth = _characterController.skinWidth;
+        float rayLength = 0.1f + skinWidth;
+        Vector3 startPosition = _characterController.transform.position +
+                                 Vector3.down * (_characterController.height / 2f) +
+                                 _characterController.center;
+
+        RaycastHit hit;
+        bool hasHit = Physics.Raycast(
+            startPosition,
+            Vector3.down,
+            out hit,
+            rayLength,
+            _groundLayerMask
+        );
+
+        Color rayColor = hasHit ? Color.green : Color.red;
+        Debug.DrawRay(startPosition, Vector3.down * rayLength, rayColor, Time.fixedDeltaTime);
+
+        _groundInfo = hit;
+        IsOnGround = hasHit;
+    }
+
+    /// <summary>
+    /// Ritorna vero se il raycast che controlla il terreno ha avuto contatto.<br/>
+    /// Nel caso ritorna falso, non bisogna usare <paramref name="info"/>.
+    /// </summary>
+    public bool TryGetGroundInfo(out RaycastHit info)
+    {
+        info = _groundInfo;
+
+        return IsOnGround;
     }
 
     private void OnControllerColliderHit(ControllerColliderHit hit)
