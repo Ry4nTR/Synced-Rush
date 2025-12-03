@@ -20,9 +20,12 @@ public class ClientComponentSwitcher : NetworkBehaviour
     [SerializeField] private MovementController moveController;
     [SerializeField] private CharacterMovementFSM movementFSM;
 
-    [Header("Camera")]
-    [SerializeField] private CinemachineCamera cinemachineCamera;
-    //[SerializeField] private AudioListener audioListener;
+    [Header("Camera System")]
+    [SerializeField] private Camera mainCamera;
+    [SerializeField] private CinemachineBrain brain;
+    [SerializeField] private CinemachineCamera cineCam;
+    [SerializeField] private AudioListener audioListener;
+
 
     private void Awake()
     {
@@ -31,8 +34,11 @@ public class ClientComponentSwitcher : NetworkBehaviour
         if (inputHandler != null) inputHandler.enabled = false;
 
         if (lookController != null) lookController.enabled = false;
-        if (cinemachineCamera != null) cinemachineCamera.enabled = false;
-        //if (audioListener != null) audioListener.enabled = false;
+        if (mainCamera != null) mainCamera.enabled = false;
+        if (brain != null) brain.enabled = false;
+        if (cineCam != null) cineCam.enabled = false;
+        if (audioListener != null) audioListener.enabled = false;
+
 
         if (moveController != null) moveController.enabled = false;
         if (movementFSM != null) movementFSM.enabled = false;
@@ -50,8 +56,10 @@ public class ClientComponentSwitcher : NetworkBehaviour
         if (inputHandler != null) inputHandler.enabled = isOwner;
         if (lookController != null) lookController.enabled = isOwner;
 
-        if (cinemachineCamera != null) cinemachineCamera.enabled = isOwner;
-        //if (audioListener != null) audioListener.enabled = isOwner;
+        if (mainCamera != null) mainCamera.enabled = isOwner;
+        if (brain != null) brain.enabled = isOwner;
+        if (cineCam != null) cineCam.enabled = isOwner;
+        if (audioListener != null) audioListener.enabled = isOwner;
 
         // SERVER-ONLY components (movement simulation)
         if (moveController != null) moveController.enabled = isServer;
