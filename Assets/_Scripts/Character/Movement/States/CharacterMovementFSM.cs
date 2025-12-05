@@ -29,13 +29,15 @@ namespace SyncedRush.Character.Movement
             CharacterMoveState moveState = new(_movementComponent);
             CharacterAirState airState = new(_movementComponent);
             CharacterSlideState slideState = new(_movementComponent);
+            CharacterWallRunState wallRunState = new(_movementComponent);
 
             Dictionary<MovementState, CharacterMovementState> states = new()
             {
                 { MovementState.Move, moveState },
                 { MovementState.Air, airState },
                 { MovementState.Jump, airState },
-                { MovementState.Slide, slideState }
+                { MovementState.Slide, slideState },
+                { MovementState.WallRun, wallRunState }
             };
 
             Initialize(states, MovementState.Move);
