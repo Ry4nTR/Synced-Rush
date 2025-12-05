@@ -116,7 +116,7 @@ public class MovementController : NetworkBehaviour
 
         _characterFSM.ProcessFixedUpdate();
 
-        Debug.Log(HorizontalVelocity.magnitude);
+        //Debug.Log(HorizontalVelocity.magnitude);
 
         DebugResetPosition();
 

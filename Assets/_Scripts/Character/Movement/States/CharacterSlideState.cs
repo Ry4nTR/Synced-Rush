@@ -51,7 +51,7 @@ namespace SyncedRush.Character.Movement
             _isEnding = false;
 
             _startSpeed = character.HorizontalVelocity.magnitude;
-            _endSpeed = _startSpeed / character.Stats.SlideIncreasedDecelerationThreshold * 100;
+            _endSpeed = (_startSpeed / 100) * character.Stats.SlideIncreasedDecelerationThreshold;
         }
 
         public override void ProcessCollision(ControllerColliderHit hit)
