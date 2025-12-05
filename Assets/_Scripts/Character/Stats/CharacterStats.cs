@@ -17,9 +17,15 @@ public class CharacterStats : MonoBehaviour
     [SerializeField] private float _jumpCoyoteTime = 0.25f;
     //TODO _slideMoveInfluence e _slideDecelleration sono da definire meglio
     /// <summary> </summary>
-    [SerializeField] private float _slideMoveInfluence = 1f;
+    [SerializeField] private float _slideStartBoost = 100f;
     /// <summary> </summary>
-    [SerializeField] private float _slideDecelleration = 1f;
+    [SerializeField] private float _slideMoveInfluence = 4f;
+    /// <summary> </summary>
+    [SerializeField] private float _slideDecelleration = 5f;
+    /// <summary> </summary>
+    [SerializeField] private float _slideIncreasedDecelleration = 10f;
+    /// <summary> </summary>
+    [SerializeField] private float _slideIncreasedDecellerationThreshold = 5f;
     /// <summary>Accelerazione di gravità (m/s^2)</summary>
     [SerializeField] private float _gravity = 9.81f;
 
@@ -28,7 +34,10 @@ public class CharacterStats : MonoBehaviour
     public float RunSpeed => _runSpeed;
     public float JumpHeight => _jumpHeight;
     public float JumpCoyoteTime => _jumpCoyoteTime;
+    public float SlideStartBoost => _slideStartBoost;
     public float SlideMoveInfluence => _slideMoveInfluence;
     public float SlideDeceleration => _slideDecelleration;
+    public float SlideIncreasedDeceleration => _slideIncreasedDecelleration;
+    public float SlideIncreasedDecelerationThreshold => _slideIncreasedDecellerationThreshold;
     public float Gravity => _gravity;
 }

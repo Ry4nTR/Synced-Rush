@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace SyncedRush.Character.Movement
@@ -5,6 +6,7 @@ namespace SyncedRush.Character.Movement
 	public class CharacterAirState : CharacterMovementState
     {
         private bool _usedDoubleJump = false;
+        private bool _canWallRun = false;
         private bool _previousJumpInput = true;
         private float _coyoteTimer = 0f;
 
@@ -43,6 +45,9 @@ namespace SyncedRush.Character.Movement
                 Jump();
             }
 
+            if (_canWallRun)
+                return MovementState.WallRun;
+
             Fall();
 
             ProcessMovement();
@@ -56,8 +61,7 @@ namespace SyncedRush.Character.Movement
         {
             base.EnterState();
 
-            _previousJumpInput = true;
-            _usedDoubleJump = false;
+            ResetFlags();
 
             if (character.State == MovementState.Jump)
             {
@@ -86,6 +90,11 @@ namespace SyncedRush.Character.Movement
             Vector3 projectedVelocity = Vector3.ProjectOnPlane(currentVelocity, wallNormal);
 
             character.HorizontalVelocity = new Vector2(projectedVelocity.x, projectedVelocity.z);
+
+            //if (hit.normal.y < 0.1f || hit.normal.y > -0.1f)
+            //{
+            //    _canWallRun = true;
+            //}
         }
 
         private bool CheckGround()
@@ -117,6 +126,13 @@ namespace SyncedRush.Character.Movement
         {
             float jumpSpeed = Mathf.Sqrt(2 * character.Stats.Gravity * character.Stats.JumpHeight);
             character.VerticalVelocity = jumpSpeed;
+        }
+
+        private void ResetFlags()
+        {
+            _usedDoubleJump = false;
+            _canWallRun = false;
+            _previousJumpInput = true;
         }
 
     }

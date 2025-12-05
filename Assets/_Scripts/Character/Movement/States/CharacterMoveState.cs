@@ -79,7 +79,9 @@ namespace SyncedRush.Character.Movement
         {
             Vector3 inputDir = character.MoveDirection;
 
-            if (Input.Sprint && Input.Move.y > 0f )
+            if (Input.Sprint
+                && !(Mathf.Approximately(Input.Move.x, -1) && Mathf.Approximately(Input.Move.x, 0))
+                )
                 character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity,
                     new Vector2(inputDir.x, inputDir.z) * character.Stats.RunSpeed,
                     Time.fixedDeltaTime * character.Stats.RunSpeed * 10);

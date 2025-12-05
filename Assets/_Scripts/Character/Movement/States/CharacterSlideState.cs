@@ -4,6 +4,10 @@ namespace SyncedRush.Character.Movement
 {
 	public class CharacterSlideState : CharacterMovementState
     {
+        private float _startSpeed = 0f;
+        private float _endSpeed = 0f;
+        private bool _isEnding = false;
+
         public CharacterSlideState(MovementController movementComponentReference) : base(movementComponentReference)
         {
         }
@@ -28,8 +32,26 @@ namespace SyncedRush.Character.Movement
 
             Slide();
 
+            if (character.HorizontalVelocity.magnitude <= _endSpeed)
+                _isEnding = true;
+
             ProcessMovement();
             return MovementState.None;
+        }
+
+        public override void EnterState()
+        {
+            base.EnterState();
+
+            if (!Mathf.Approximately(character.HorizontalVelocity.magnitude, 0))
+            {
+                character.HorizontalVelocity += character.HorizontalVelocity.normalized * character.Stats.SlideStartBoost;
+            }
+
+            _isEnding = false;
+
+            _startSpeed = character.HorizontalVelocity.magnitude;
+            _endSpeed = _startSpeed / character.Stats.SlideIncreasedDecelerationThreshold * 100;
         }
 
         public override void ProcessCollision(ControllerColliderHit hit)
@@ -81,17 +103,20 @@ namespace SyncedRush.Character.Movement
 
             if (character.TryGetGroundInfo(out RaycastHit gndInfo))
             {
-                if (Input.Move.y > 0f)
+                if (Input.Move.magnitude > 0f)
                     character.HorizontalVelocity += character.Stats.SlideMoveInfluence * Time.fixedDeltaTime * new Vector2(inputDir.x, inputDir.z);
 
-                character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideDeceleration * Time.fixedDeltaTime);
+                if (!_isEnding)
+                    character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideDeceleration * Time.fixedDeltaTime);
+                else
+                    character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideIncreasedDeceleration * Time.fixedDeltaTime);
 
                 Vector2 slopeDir = new(gndInfo.normal.x, gndInfo.normal.z);
                 if (!(Mathf.Approximately(slopeDir.x, 0f) && Mathf.Approximately(slopeDir.y, 0f)))
                 {
                     slopeDir.Normalize();
                     float n = Mathf.Abs(gndInfo.normal.y - 1);
-                    character.HorizontalVelocity += character.Stats.Gravity * n * 5 * Time.fixedDeltaTime * slopeDir; //TODO rimpiazzare l'operando 5 (è un valore hardcodato)
+                    character.HorizontalVelocity += character.Stats.Gravity * n * 15 * Time.fixedDeltaTime * slopeDir; //TODO rimpiazzare l'operando 5 (è un valore hardcodato)
                 }
             }
         }

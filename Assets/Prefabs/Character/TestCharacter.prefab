@@ -56,7 +56,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1048122931
+  GlobalObjectIdHash: 611482336
   InScenePlacedSourceGlobalObjectIdHash: 1514268395
   DeferredDespawnTick: 0
   Ownership: 1
@@ -87,7 +87,10 @@ MonoBehaviour:
   lookController: {fileID: 7529996170362948438}
   moveController: {fileID: -2986967647247276543}
   movementFSM: {fileID: 245510072461140579}
-  cinemachineCamera: {fileID: 1191002731392592227}
+  mainCamera: {fileID: 0}
+  brain: {fileID: 0}
+  cineCam: {fileID: 0}
+  audioListener: {fileID: 0}
 --- !u!114 &5363198753706274393
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -135,6 +138,7 @@ MonoBehaviour:
   look: {x: 0, y: 0}
   jump: 0
   sprint: 0
+  crouch: 0
   fire: 0
   aim: 0
   scroll: 0
@@ -166,6 +170,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CharacterController
   ShowTopMostFoldoutHeaderGroup: 1
   _orientation: {fileID: 5302962826593933888}
+  _groundLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!114 &2476011265268299710
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -182,6 +189,11 @@ MonoBehaviour:
   _runSpeed: 5.25
   _jumpHeight: 2
   _jumpCoyoteTime: 0.25
+  _slideStartBoost: 100
+  _slideMoveInfluence: 4
+  _slideDecelleration: 5
+  _slideIncreasedDecelleration: 10
+  _slideIncreasedDecellerationThreshold: 5
   _gravity: 9.81
 --- !u!114 &245510072461140579
 MonoBehaviour:

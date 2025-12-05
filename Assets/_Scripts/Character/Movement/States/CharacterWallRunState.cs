@@ -75,6 +75,30 @@ namespace SyncedRush.Character.Movement
                 return false;
         }
 
+        private void CheckWall()
+        {
+            float skinWidth = character.Controller.skinWidth;
+            float rayLength = 0.1f + skinWidth;
+            Vector3 startPosition = character.Controller.transform.position + character.Controller.center;
+
+            RaycastHit hit;
+            bool hasHit = Physics.Raycast(
+                startPosition,
+                //Vector3.down,
+                character.Orientation.transform.forward,
+                out hit,
+                rayLength,
+                character.LayerMask
+            );
+
+            //TODO da rimuovere quando non serve più
+            Color rayColor = hasHit ? Color.green : Color.red;
+            Debug.DrawRay(startPosition, Vector3.down * rayLength, rayColor, Time.fixedDeltaTime);
+
+            //_groundInfo = hit;
+            //IsOnGround = hasHit;
+        }
+
         private void Slide()
         {
             Vector3 inputDir = character.MoveDirection;

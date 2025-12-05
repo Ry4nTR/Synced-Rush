@@ -46,6 +46,7 @@ public class MovementController : NetworkBehaviour
     public CharacterController Controller => _characterController;
     public CharacterStats Stats => _characterStats;
     public GameObject Orientation => _orientation;
+    public LayerMask LayerMask => _groundLayerMask;
 
     public MovementState State => _characterFSM.CurrentStateEnum;
     public bool IsOnGround { get; private set; }
@@ -114,6 +115,8 @@ public class MovementController : NetworkBehaviour
         CheckGround();
 
         _characterFSM.ProcessFixedUpdate();
+
+        Debug.Log(HorizontalVelocity.magnitude);
 
         DebugResetPosition();
 
