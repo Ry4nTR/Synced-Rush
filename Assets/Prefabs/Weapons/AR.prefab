@@ -814,7 +814,6 @@ GameObject:
   - component: {fileID: 4644036703033442515}
   - component: {fileID: 4964807028446090940}
   - component: {fileID: 1299891406424674121}
-  - component: {fileID: 7485206369444528249}
   m_Layer: 0
   m_Name: AR
   m_TagString: Untagged
@@ -911,18 +910,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponNetworkHandler
   ShowTopMostFoldoutHeaderGroup: 1
---- !u!114 &7485206369444528249
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7907567775967570144}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f51d7ca1dbb23f04eb4aaa65881252d8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
 --- !u!1 &8540855330252511450
 GameObject:
   m_ObjectHideFlags: 0

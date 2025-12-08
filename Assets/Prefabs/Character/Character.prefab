@@ -228,7 +228,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3354322385
+  GlobalObjectIdHash: 2877608786
   InScenePlacedSourceGlobalObjectIdHash: 1514268395
   DeferredDespawnTick: 0
   Ownership: 1
@@ -786,10 +786,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7499371450532252927}
     m_Modifications:
-    - target: {fileID: 5476120343074542335, guid: 3ffba53454f86e24bb5b1df58bdbcd96, type: 3}
-      propertyPath: m_Name
-      value: WeaponSocket_FP
-      objectReference: {fileID: 0}
     - target: {fileID: 7489136438518658825, guid: 3ffba53454f86e24bb5b1df58bdbcd96, type: 3}
       propertyPath: m_Name
       value: Arms

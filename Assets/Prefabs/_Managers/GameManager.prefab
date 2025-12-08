@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1599430277
+  GlobalObjectIdHash: 2911366952
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -71,5 +71,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponLoadoutManager
   ShowTopMostFoldoutHeaderGroup: 1
+  weaponFolderPath: Assets/Prefabs/Weapons
+  selectedWeaponIndex: 0
   weaponPrefab: {fileID: 7907567775967570144, guid: edf56bdf02545334f9fa70e38915fb07, type: 3}
-  weaponData: {fileID: 0}
+  weaponData: {fileID: 11400000, guid: 47876a37f0c9bbd4d93b129e51a85071, type: 2}
