@@ -1,96 +1,91 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "WeaponData", menuName = "Weapons/WeaponData")]
+/// <summary>
+/// ScriptableObject containing all of the static data for a weapon.
+/// This data does not change at runtime and therefore is not synchronized
+/// over the network. Each client must have an identical copy of this asset.
+/// </summary>
+[CreateAssetMenu(fileName = "New Weapon", menuName = "Weapons/Weapon Data")]
 public class WeaponData : ScriptableObject
 {
-    [Header("General Info")]
-
-    [Tooltip("Name of the weapon. Used for UI, logging, etc.")]
+    [Header("Identification")]
     public string weaponName;
+    public WeaponType weaponType; // AR, SMG, Sniper, Pistol, etc.
+    public int weaponID; // Unique ID used for network synchronization
 
-    [Tooltip("Type/category of the weapon (Rifle, SMG, etc.).")]
-    public WeaponType weaponType;
+    [Header("Combat Stats")]
+    public float damage; // Base damage per shot
+    public float fireRate; // Shots per second
+    public float range; // Maximum effective range
+    public float criticalMultiplier = 1.5f; // Multiplier for critical hits
 
-    [Tooltip("First-person weapon model, attached to the FP Arms rig. Only visible to the local player.")]
-    public GameObject viewModelPrefab;
+    [Header("Damage Falloff")]
+    /// <summary>
+    /// Distance in meters from the shooter at which damage begins to fall off.
+    /// Up to this distance the weapon deals its full base damage.
+    /// </summary>
+    public float falloffStartDistance;
 
-    [Tooltip("Third-person weapon model, attached to the character’s hand bone. Visible to all other players.")]
-    public GameObject worldModelPrefab;
+    /// <summary>
+    /// Distance in meters at which damage falloff reaches its minimum value.
+    /// Beyond this distance the weapon will not deal less than minimumDamage.
+    /// </summary>
+    public float falloffEndDistance;
 
+    /// <summary>
+    /// The minimum damage this weapon can deal at extreme range. This value is
+    /// applied once the target is beyond falloffEndDistance.
+    /// </summary>
+    public float minimumDamage;
 
-    [Header("Base Stats")]
+    [Header("Ammo")]
+    public int magazineSize; // Number of bullets per magazine
+    public int maxAmmo; // Maximum ammo reserve
+    public float reloadTime; // Time required to reload in seconds
 
-    [Tooltip("Base damage dealt on body shots.")]
-    public float damage = 20f;
+    [Header("Accuracy")]
+    public float baseSpread; // Base spread when idle/walking
+    public float sprintSpread; // Spread when sprinting
+    public float jumpSpread; // Spread when jumping
+    public float crouchSpreadMultiplier = 0.7f; // Multiplier applied to spread while crouching
+    public float aimSpreadMultiplier = 0.5f; // Multiplier applied to spread while aiming
+    public float spreadRecoveryRate; // How quickly the spread recovers over time
+    public float spreadIncreasePerShot; // Spread added with each shot
+    public float maxSpread; // Maximum spread value
 
-    [Tooltip("Multiplier applied when hitting the head hitbox.")]
-    public float headshotMultiplier = 2.0f;
+    [Header("Recoil")]
+    public Vector2 recoilPattern; // X = horizontal recoil, Y = vertical recoil
+    public float recoilRecoverySpeed; // Speed at which recoil recovers
 
-    [Tooltip("Time between shots in seconds (1 / rounds per minute).")]
-    public float fireRate = 0.1f;
+    [Header("Visual & Audio")]
+    public GameObject weaponPrefab; // Prefab for the weapon (client only)
+    public AudioClip shootSound;
+    public AudioClip reloadSound;
+    public AudioClip emptySound;
+    public GameObject muzzleFlashPrefab;
+    public GameObject bulletTracerPrefab;
+    public GameObject impactEffectPrefab;
 
-    [Tooltip("Maximum hitscan distance.")]
-    public float maxDistance = 300f;
+    [Header("Animation")]
+    public float aimSpeed; // Speed of transition to aiming
+    public string shootAnimationTrigger = "Shoot";
+    public string reloadAnimationTrigger = "Reload";
 
-    [Tooltip("LayerMask used for hitscan raycast (Players, World, etc.).")]
-    public LayerMask hitMask;
+    [Header("Models")]
+    public GameObject viewModelPrefab; // First-person model prefab
+    public GameObject worldModelPrefab; // Third-person model prefab
 
-
-    [Header("Ammo & Reload")]
-
-    [Tooltip("Number of bullets per magazine.")]
-    public int magazineSize = 30;
-
-    [Tooltip("Maximum ammo that the player can carry outside the magazine.")]
-    public int maxReserveAmmo = 90;
-
-    [Tooltip("Time needed to complete a reload.")]
-    public float reloadTime = 1.6f;
-
-
-    [Header("Spread & Recoil")]
-
-    [Tooltip("Bullet spread (in degrees) when not aiming.")]
-    public float hipfireSpread = 1.2f;
-
-    [Tooltip("Bullet spread (in degrees) when aiming down sights.")]
-    public float aimSpread = 0.3f;
-
-    [Tooltip("Amount of recoil added per shot.")]
-    public float recoilPerShot = 1.5f;
-
-    [Tooltip("Speed at which recoil returns to neutral.")]
-    public float recoilRecovery = 8f;
-
-
-    [Header("FX & Audio")]
-
-    [Tooltip("Prefab for the muzzle flash effect (local player only).")]
-    public ParticleSystem muzzleFlashPrefab;
-
-    [Tooltip("Prefab spawned when a bullet hits a surface.")]
-    public GameObject hitEffectPrefab;
-
-    [Tooltip("Sound played when firing.")]
-    public AudioClip fireSFX;
-
-    [Tooltip("Sound played when reloading.")]
-    public AudioClip reloadSFX;
-
-
-    [Header("Camera Shake")]
-
-    [Tooltip("Intensity of the camera shake when firing.")]
-    public float shakeIntensity = 0.2f;
-
-    [Tooltip("Duration of the camera shake.")]
-    public float shakeDuration = 0.08f;
 }
 
+/// <summary>
+/// Enumeration of possible weapon categories. Additional types can be added as needed.
+/// </summary>
 public enum WeaponType
 {
+    AR,
+    SMG,
+    Sniper,
     Pistol,
-    Rifle,
     Shotgun,
-    SMG
+    Other
 }

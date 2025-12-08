@@ -26,6 +26,14 @@ public class ClientComponentSwitcher : NetworkBehaviour
     [SerializeField] private CinemachineCamera cineCam;
     [SerializeField] private AudioListener audioListener;
 
+    [Header("Weapon Components (Owner Only)")]
+    [SerializeField] private WeaponController weaponController;
+    [SerializeField] private ShootingSystem shootingSystem;
+
+    [Header("Weapon Components (Server Only)")]
+    [SerializeField] private HealthSystem healthSystem;
+    [SerializeField] private WeaponNetworkHandler weaponNetworkHandler;
+
 
     private void Awake()
     {
@@ -42,6 +50,12 @@ public class ClientComponentSwitcher : NetworkBehaviour
 
         if (moveController != null) moveController.enabled = false;
         if (movementFSM != null) movementFSM.enabled = false;
+
+        // Weapon components
+        if (weaponController != null) weaponController.enabled = false;
+        if (shootingSystem != null) shootingSystem.enabled = false;
+        if (healthSystem != null) healthSystem.enabled = false;
+        if (weaponNetworkHandler != null) weaponNetworkHandler.enabled = false;
     }
 
     public override void OnNetworkSpawn()
@@ -64,5 +78,11 @@ public class ClientComponentSwitcher : NetworkBehaviour
         // SERVER-ONLY components (movement simulation)
         if (moveController != null) moveController.enabled = isServer;
         if (movementFSM != null) movementFSM.enabled = isServer;
+
+        // Enable weapon systems for owner and server appropriately
+        if (weaponController != null) weaponController.enabled = isOwner;
+        if (shootingSystem != null) shootingSystem.enabled = isOwner;
+        if (weaponNetworkHandler != null) weaponNetworkHandler.enabled = isServer || isOwner;
+        if (healthSystem != null) healthSystem.enabled = isServer;
     }
 }
