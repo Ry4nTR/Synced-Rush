@@ -4,9 +4,15 @@ namespace SyncedRush.Character.Movement
 {
 	public class CharacterSlideState : CharacterMovementState
     {
-        private float _startSpeed = 0f;
-        private float _endSpeed = 0f;
+        private float _currentEndSpeed = 0f;
         private bool _isEnding = false;
+
+        private float EndSpeed {
+            get
+            {
+                return (character.HorizontalVelocity.magnitude / 100) * character.Stats.SlideIncreasedDecelerationThreshold;
+            }
+        }
 
         public CharacterSlideState(MovementController movementComponentReference) : base(movementComponentReference)
         {
@@ -32,7 +38,10 @@ namespace SyncedRush.Character.Movement
 
             Slide();
 
-            if (character.HorizontalVelocity.magnitude <= _endSpeed)
+            if (EndSpeed > _currentEndSpeed)
+                _currentEndSpeed = EndSpeed;
+
+            if (character.HorizontalVelocity.magnitude <= _currentEndSpeed)
                 _isEnding = true;
 
             ProcessMovement();
@@ -50,8 +59,7 @@ namespace SyncedRush.Character.Movement
 
             _isEnding = false;
 
-            _startSpeed = character.HorizontalVelocity.magnitude;
-            _endSpeed = (_startSpeed / 100) * character.Stats.SlideIncreasedDecelerationThreshold;
+            _currentEndSpeed = EndSpeed;
         }
 
         public override void ProcessCollision(ControllerColliderHit hit)
@@ -116,7 +124,7 @@ namespace SyncedRush.Character.Movement
                 {
                     slopeDir.Normalize();
                     float n = Mathf.Abs(gndInfo.normal.y - 1);
-                    character.HorizontalVelocity += character.Stats.Gravity * n * 15 * Time.fixedDeltaTime * slopeDir; //TODO rimpiazzare l'operando 5 (è un valore hardcodato)
+                    character.HorizontalVelocity += character.Stats.Gravity * n * 15 * Time.fixedDeltaTime * slopeDir; //TODO rimpiazzare l'operando 15 (è un valore hardcodato)
                 }
             }
         }
