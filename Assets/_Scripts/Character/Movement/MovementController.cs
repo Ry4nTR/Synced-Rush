@@ -47,10 +47,12 @@ public class MovementController : NetworkBehaviour
     public CharacterStats Stats => _characterStats;
     public GameObject Orientation => _orientation;
     public LayerMask LayerMask => _groundLayerMask;
-
     public MovementState State => _characterFSM.CurrentStateEnum;
     public bool IsOnGround { get; private set; }
-
+    /// <summary>
+    /// Posizione centrale della capsula del character in world space
+    /// </summary>
+    public Vector3 CenterPosition => _characterController.transform.position + _characterController.center;
     public MovementInputData InputData => _netInput.ServerInput;
 
     public Animator Anim => _animator;
@@ -123,25 +125,11 @@ public class MovementController : NetworkBehaviour
         UpdateAnimator();
     }
 
-    private void UpdateAnimator()
-    {
-        Anim.SetBool("IsGrounded", IsOnGround);
-
-        float speed = new Vector2(HorizontalVelocity.x, HorizontalVelocity.y).magnitude;
-        Anim.SetFloat("MoveSpeed", speed);
-
-        Anim.SetFloat("VerticalVelocity", VerticalVelocity);
-
-        Anim.SetBool("IsSprinting", InputData.Sprint);
-    }
-
     public void CheckGround()
     {
         float skinWidth = _characterController.skinWidth;
         float rayLength = 0.1f + skinWidth;
-        Vector3 startPosition = _characterController.transform.position +
-                                 Vector3.down * (_characterController.height / 2f) +
-                                 _characterController.center;
+        Vector3 startPosition = CenterPosition + Vector3.down * (_characterController.height / 2f);
 
         RaycastHit hit;
         bool hasHit = Physics.Raycast(
@@ -174,6 +162,18 @@ public class MovementController : NetworkBehaviour
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
         _characterFSM.ProcessCollision(hit);
+    }
+
+    private void UpdateAnimator()
+    {
+        Anim.SetBool("IsGrounded", IsOnGround);
+
+        float speed = new Vector2(HorizontalVelocity.x, HorizontalVelocity.y).magnitude;
+        Anim.SetFloat("MoveSpeed", speed);
+
+        Anim.SetFloat("VerticalVelocity", VerticalVelocity);
+
+        Anim.SetBool("IsSprinting", InputData.Sprint);
     }
 
     //TODO da rimuovere quando non serve più

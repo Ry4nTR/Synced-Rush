@@ -29,6 +29,13 @@ namespace SyncedRush.Character.Movement
             return MovementState.None;
         }
 
+        public override void EnterState()
+        {
+            base.EnterState();
+
+
+        }
+
         public override void ProcessCollision(ControllerColliderHit hit)
         {
             base.ProcessCollision(hit);

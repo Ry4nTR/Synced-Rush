@@ -4,6 +4,8 @@ namespace SyncedRush.Character.Movement
 {
 	public class CharacterMoveState : CharacterMovementState
 	{
+        private Vector3 _previousGroundNormal = Vector3.zero;
+
         public CharacterMoveState(MovementController movementComponentReference) : base(movementComponentReference)
         {
         }
@@ -24,9 +26,27 @@ namespace SyncedRush.Character.Movement
                 return MovementState.Slide;
 
             Walk();
+            SnapToGround();
 
             ProcessMovement();
             return MovementState.None;
+        }
+
+        public override void EnterState()
+        {
+            base.EnterState();
+
+            SnapToGround();
+            _previousGroundNormal = Vector3.zero;
+        }
+        public override void ExitState()
+        {
+            if (_previousGroundNormal != Vector3.zero)
+            {
+                character.TotalVelocity = Vector3.ProjectOnPlane(character.TotalVelocity, _previousGroundNormal);
+            }
+
+            base.ExitState();
         }
 
         public override void ProcessCollision(ControllerColliderHit hit)
@@ -45,7 +65,7 @@ namespace SyncedRush.Character.Movement
             character.HorizontalVelocity = new Vector2(projectedVelocity.x, projectedVelocity.z);
         }
 
-        protected override void ProcessMovement()
+        protected new void ProcessMovement()
         {
             Vector3 desiredHorizontalMove = new(character.HorizontalVelocity.x, 0, character.HorizontalVelocity.y);
 
@@ -66,10 +86,21 @@ namespace SyncedRush.Character.Movement
             if (character.IsOnGround)
             {
                 character.VerticalVelocity = -.1f;
+
+                character.TryGetGroundInfo(out RaycastHit gndInfo);
+                _previousGroundNormal = gndInfo.normal;
                 return true;
             }
             else
                 return false;
+        }
+
+        private void SnapToGround()
+        {
+            if (character.TryGetGroundInfo(out RaycastHit gndInfo))
+            {
+                character.Controller.Move(Vector3.down * gndInfo.distance);
+            }
         }
 
         private void Walk()
