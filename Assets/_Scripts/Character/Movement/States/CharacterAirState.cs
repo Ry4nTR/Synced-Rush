@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace SyncedRush.Character.Movement
@@ -14,10 +13,7 @@ namespace SyncedRush.Character.Movement
         {
         }
 
-        public override string ToString()
-        {
-            return "AirState";
-        }
+        public override string ToString() { return "AirState"; }
 
         public override MovementState ProcessFixedUpdate()
         {
@@ -91,10 +87,14 @@ namespace SyncedRush.Character.Movement
 
             character.HorizontalVelocity = new Vector2(projectedVelocity.x, projectedVelocity.z);
 
-            //if (hit.normal.y < 0.1f || hit.normal.y > -0.1f)
-            //{
-            //    _canWallRun = true;
-            //}
+            if (
+                hit.normal.y < 0.1f
+                && hit.normal.y > -0.1f
+                && hit.point.y > character.CenterPosition.y
+                )
+            {
+                _canWallRun = true;
+            }
         }
 
         private bool CheckGround()
