@@ -6,6 +6,7 @@ namespace SyncedRush.Character.Movement
     {
         private float _currentEndSpeed = 0f;
         private bool _isEnding = false;
+        private Vector3 _previousGroundNormal = Vector3.zero;
 
         private float EndSpeed {
             get
@@ -18,10 +19,7 @@ namespace SyncedRush.Character.Movement
         {
         }
 
-        public override string ToString()
-        {
-            return "SlideState";
-        }
+        public override string ToString() { return "SlideState"; }
 
         public override MovementState ProcessFixedUpdate()
         {
@@ -59,7 +57,19 @@ namespace SyncedRush.Character.Movement
 
             _isEnding = false;
 
+            _previousGroundNormal = Vector3.zero;
+
             _currentEndSpeed = EndSpeed;
+        }
+
+        public override void ExitState()
+        {
+            if (_previousGroundNormal != Vector3.zero)
+            {
+                character.TotalVelocity = Vector3.ProjectOnPlane(character.TotalVelocity, _previousGroundNormal);
+            }
+
+            base.ExitState();
         }
 
         public override void ProcessCollision(ControllerColliderHit hit)
@@ -78,7 +88,7 @@ namespace SyncedRush.Character.Movement
             character.HorizontalVelocity = new Vector2(projectedVelocity.x, projectedVelocity.z);
         }
 
-        protected override void ProcessMovement()
+        protected new void ProcessMovement()
         {
             Vector3 desiredHorizontalMove = new(character.HorizontalVelocity.x, 0, character.HorizontalVelocity.y);
 
@@ -99,6 +109,10 @@ namespace SyncedRush.Character.Movement
             if (character.IsOnGround)
             {
                 character.VerticalVelocity = -.1f;
+
+                character.TryGetGroundInfo(out RaycastHit gndInfo);
+                _previousGroundNormal = gndInfo.normal;
+
                 return true;
             }
             else

@@ -8,10 +8,7 @@ namespace SyncedRush.Character.Movement
         {
         }
 
-        public override string ToString()
-        {
-            return "MoveState";
-        }
+        public override string ToString() { return "MoveState"; }
 
         public override MovementState ProcessFixedUpdate()
         {
