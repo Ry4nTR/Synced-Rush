@@ -4,6 +4,18 @@ namespace SyncedRush.Character.Movement
 {
 	public class CharacterWallRunState : CharacterMovementState
     {
+        private float _stepDistance = 0.1f;
+        private float _wallSnapLength = 1.0f;
+
+        /// <summary>
+        /// Posizione del muro in world space
+        /// </summary>
+        private Vector3 _wallPosition = Vector3.zero;
+        private Vector3 _wallDir = Vector3.zero;
+
+        private ControllerColliderHit _wallRunStartInfo;
+        private bool _isWallRunInvalid = false;
+
         public CharacterWallRunState(MovementController movementComponentReference) : base(movementComponentReference)
         {
         }
@@ -14,18 +26,18 @@ namespace SyncedRush.Character.Movement
         {
             base.ProcessFixedUpdate();
 
-            //if (!CheckGround())
-            //    return MovementState.Air;
+            if (_isWallRunInvalid)
+                return MovementState.Air;
 
-            //if (Input.Jump)
-            //    return MovementState.Jump;
+            if (CheckGround())
+                return MovementState.Move;
 
-            //if (!Input.Crouch || character.HorizontalVelocity.magnitude < 1f)
-            //    return MovementState.Move;
+            if (Input.Jump)
+                return MovementState.Jump;
 
-            //Slide();
+            
+            ProcessMovement();
 
-            //ProcessMovement();
             return MovementState.None;
         }
 
@@ -33,39 +45,102 @@ namespace SyncedRush.Character.Movement
         {
             base.EnterState();
 
+            ResetFlags();
 
-        }
-
-        public override void ProcessCollision(ControllerColliderHit hit)
-        {
-            base.ProcessCollision(hit);
-
-            if (hit.normal.y >= 0.5f)
-                return;
-
-            Vector3 wallNormal = hit.normal;
-
-            Vector3 currentVelocity = new(character.HorizontalVelocity.x, 0, character.HorizontalVelocity.y);
-
-            Vector3 projectedVelocity = Vector3.ProjectOnPlane(currentVelocity, wallNormal);
-
-            character.HorizontalVelocity = new Vector2(projectedVelocity.x, projectedVelocity.z);
-        }
-
-        protected override void ProcessMovement()
-        {
-            Vector3 desiredHorizontalMove = new(character.HorizontalVelocity.x, 0, character.HorizontalVelocity.y);
-
-            Vector3 finalMoveVector = desiredHorizontalMove;
-
-            if (character.TryGetGroundInfo(out RaycastHit gndInfo))
+            if (character.WallRunStartInfo != null)
             {
-                Vector3 projectedHorizontalMove = Vector3.ProjectOnPlane(desiredHorizontalMove, gndInfo.normal);
+                _wallRunStartInfo = character.WallRunStartInfo;
+                _wallPosition = character.WallRunStartInfo.point;
+                _wallDir = _wallPosition - character.CenterPosition;
+                character.WallRunStartInfo = null;
+            }
+            else
+                _isWallRunInvalid = true;
+        }
 
-                finalMoveVector = projectedHorizontalMove + Vector3.up * character.VerticalVelocity;
+        //public override void ProcessCollision(ControllerColliderHit hit)
+        //{
+        //    base.ProcessCollision(hit);
+
+        //    if (hit.normal.y >= 0.5f)
+        //        return;
+
+        //    Vector3 wallNormal = hit.normal;
+
+        //    Vector3 currentVelocity = new(character.HorizontalVelocity.x, 0, character.HorizontalVelocity.y);
+
+        //    Vector3 projectedVelocity = Vector3.ProjectOnPlane(currentVelocity, wallNormal);
+
+        //    character.HorizontalVelocity = new Vector2(projectedVelocity.x, projectedVelocity.z);
+        //}
+
+        protected new void ProcessMovement()
+        {
+            Vector3 moveDir = new(character.HorizontalVelocity.x, 0, character.HorizontalVelocity.y);
+            if (Mathf.Approximately(moveDir.magnitude, 0f))
+            {
+                _isWallRunInvalid = true;
+                base.ProcessMovement();
+                return;
+            }
+            moveDir.Normalize();
+
+            float frameMovement = (character.HorizontalVelocity * Time.fixedDeltaTime).magnitude;
+
+            int totalSteps = (int)(frameMovement / _stepDistance);
+            float remaingDistance = frameMovement % _stepDistance;
+
+            int stepCounter = 0;
+            bool interrupt = false;
+            while (stepCounter < totalSteps)
+            {
+                if (CheckWall(out RaycastHit hit))
+                {
+                    moveDir = Vector3.ProjectOnPlane(moveDir, hit.normal);
+                    moveDir.Normalize();
+
+                    Vector3 oldPos = character.CenterPosition;
+
+                    //character.Controller.Move(moveDir * _stepDistance);
+                    character.Controller.Move((moveDir * _stepDistance) + hit.point - character.CenterPosition);
+
+                    _wallDir = Vector3.ProjectOnPlane(_wallDir, moveDir);
+
+                    //_wallPosition += character.CenterPosition - oldPos;
+                }
+                else
+                {
+                    interrupt = true;
+                    break;
+                }
+
+                ++stepCounter;
             }
 
-            character.Controller.Move(finalMoveVector * Time.fixedDeltaTime);
+            if (remaingDistance > 0f && !interrupt)
+            {
+                if (CheckWall(out RaycastHit hit))
+                {
+                    moveDir = Vector3.ProjectOnPlane(moveDir, hit.normal);
+                    moveDir.Normalize();
+
+                    Vector3 oldPos = character.CenterPosition;
+
+                    //character.Controller.Move(moveDir * remaingDistance);
+                    character.Controller.Move((moveDir * remaingDistance) + hit.point - character.CenterPosition);
+
+                    _wallDir = Vector3.ProjectOnPlane(_wallDir, moveDir);
+
+                    //_wallPosition += character.CenterPosition - oldPos;
+                }
+            }
+
+            if (interrupt)
+            {
+                float totalDistance = (_stepDistance * (totalSteps - stepCounter)) + remaingDistance;
+                character.Controller.Move(moveDir * totalDistance);
+                _isWallRunInvalid = true;
+            }
         }
 
         private bool CheckGround()
@@ -79,49 +154,66 @@ namespace SyncedRush.Character.Movement
                 return false;
         }
 
-        private void CheckWall()
+        //private bool WallRun()
+        //{
+        //    float frameMovement = character.HorizontalVelocity.magnitude;
+
+        //    if (CheckWall(out RaycastHit hit))
+        //    {
+        //        Vector3 projectedVelocity = Vector3.ProjectOnPlane(character.HorizontalVelocity, hit.normal);
+
+        //        character.HorizontalVelocity = new Vector2(projectedVelocity.x, projectedVelocity.z);
+        //    }
+        //    else
+        //        return false;
+        //}
+
+        private bool CheckWall(out RaycastHit rayHit)
         {
+            rayHit = new RaycastHit();
+
             float skinWidth = character.Controller.skinWidth;
-            float rayLength = 0.1f + skinWidth;
-            Vector3 startPosition = character.Controller.transform.position + character.Controller.center;
+            float rayLength = _wallSnapLength + skinWidth;
+
+            //_wallDir = _wallPosition - character.CenterPosition;
+            _wallDir.y = 0f;
+
+            if (Mathf.Approximately(_wallDir.magnitude, 0))
+                return false;
+            
+            _wallDir.Normalize();
+
+            Vector3 startPosition = character.CenterPosition + _wallDir * (character.Controller.radius / 2f);
 
             RaycastHit hit;
             bool hasHit = Physics.Raycast(
                 startPosition,
-                //Vector3.down,
-                character.Orientation.transform.forward,
+                _wallDir,
                 out hit,
                 rayLength,
                 character.LayerMask
             );
 
+            rayHit = hit;
+
             //TODO da rimuovere quando non serve più
             Color rayColor = hasHit ? Color.green : Color.red;
-            Debug.DrawRay(startPosition, Vector3.down * rayLength, rayColor, Time.fixedDeltaTime);
+            Debug.DrawRay(startPosition, _wallDir * rayLength, rayColor, Time.fixedDeltaTime);
 
-            //_groundInfo = hit;
-            //IsOnGround = hasHit;
+            if (hasHit
+                && hit.normal.y < 0.1f
+                && hit.normal.y > -0.1f)
+            {
+                //_wallDir = hit.point - character.CenterPosition;
+                return true;
+            }
+
+            return false;
         }
 
-        private void Slide()
+        private void ResetFlags()
         {
-            Vector3 inputDir = character.MoveDirection;
-
-            if (character.TryGetGroundInfo(out RaycastHit gndInfo))
-            {
-                if (Input.Move.y > 0f)
-                    character.HorizontalVelocity += character.Stats.SlideMoveInfluence * Time.fixedDeltaTime * new Vector2(inputDir.x, inputDir.z);
-
-                character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideDeceleration * Time.fixedDeltaTime);
-
-                Vector2 slopeDir = new(gndInfo.normal.x, gndInfo.normal.z);
-                if (!(Mathf.Approximately(slopeDir.x, 0f) && Mathf.Approximately(slopeDir.y, 0f)))
-                {
-                    slopeDir.Normalize();
-                    float n = Mathf.Abs(gndInfo.normal.y - 1);
-                    character.HorizontalVelocity += character.Stats.Gravity * n * 5 * Time.fixedDeltaTime * slopeDir; //TODO rimpiazzare l'operando 5 (è un valore hardcodato)
-                }
-            }
+            _isWallRunInvalid = false;
         }
 
     }

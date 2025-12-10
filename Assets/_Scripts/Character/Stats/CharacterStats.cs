@@ -17,7 +17,7 @@ public class CharacterStats : MonoBehaviour
     [SerializeField] private float _jumpCoyoteTime = 0.25f;
     //TODO _slideMoveInfluence e _slideDecelleration sono da definire meglio
     /// <summary> </summary>
-    [SerializeField] private float _slideStartBoost = 100f;
+    [SerializeField] private float _slideStartBoost = 7.5f;
     /// <summary> </summary>
     [SerializeField] private float _slideMoveInfluence = 4f;
     /// <summary> </summary>

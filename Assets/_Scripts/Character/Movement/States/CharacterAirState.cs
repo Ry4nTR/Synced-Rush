@@ -79,11 +79,9 @@ namespace SyncedRush.Character.Movement
                 return;
             }
 
-            Vector3 wallNormal = hit.normal;
-
             Vector3 currentVelocity = new(character.HorizontalVelocity.x, character.VerticalVelocity, character.HorizontalVelocity.y);
 
-            Vector3 projectedVelocity = Vector3.ProjectOnPlane(currentVelocity, wallNormal);
+            Vector3 projectedVelocity = Vector3.ProjectOnPlane(currentVelocity, hit.normal);
 
             character.HorizontalVelocity = new Vector2(projectedVelocity.x, projectedVelocity.z);
 
@@ -93,6 +91,7 @@ namespace SyncedRush.Character.Movement
                 && hit.point.y > character.CenterPosition.y
                 )
             {
+                character.WallRunStartInfo = hit;
                 _canWallRun = true;
             }
         }

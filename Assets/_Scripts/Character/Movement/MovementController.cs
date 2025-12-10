@@ -72,6 +72,17 @@ public class MovementController : NetworkBehaviour
             return motion;
         }
     }
+
+    // Lista di proprietà messe "nel posto sbagliato"
+
+    // Non trovo un modo per passare questo parametro dall'AirState al WallRunState senza refactorare la state machine
+    /// <summary>
+    /// Parametro nel posto sbagliato. DA NON TOCCARE SE NON SAI A COSA SERVE
+    /// </summary>
+    public ControllerColliderHit WallRunStartInfo { get; set; }
+
+
+
     /*
     VECCHIO METODO SENZA NETWORKING, TE LO LASCIO PER RIFERIMENTO CANCELLA APPENA CAPISCI CAMBIAMENTI CHE HO FATTO
 
