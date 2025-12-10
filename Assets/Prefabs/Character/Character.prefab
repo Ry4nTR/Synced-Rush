@@ -66,9 +66,9 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.3
+  near clip plane: 0.01
   far clip plane: 1000
-  field of view: 60.000004
+  field of view: 90
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
@@ -280,7 +280,7 @@ MonoBehaviour:
   audioListener: {fileID: 2746145554710722952}
   weaponController: {fileID: 0}
   shootingSystem: {fileID: 0}
-  healthSystem: {fileID: 0}
+  healthSystem: {fileID: 3329557527991648870}
   weaponNetworkHandler: {fileID: 0}
 --- !u!114 &5363198753706274393
 MonoBehaviour:
@@ -554,6 +554,38 @@ Transform:
   m_Children: []
   m_Father: {fileID: 7499371450532252927}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6016068056616336110
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5770881224741166688}
+  m_Layer: 0
+  m_Name: ArmsOffset
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5770881224741166688
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6016068056616336110}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 8977971552389256044}
+  m_Father: {fileID: 5208723101291922215}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6143435315103270440
 GameObject:
   m_ObjectHideFlags: 0
@@ -585,6 +617,7 @@ Transform:
   m_Children:
   - {fileID: 6586182560886131289}
   - {fileID: 8468174742791689619}
+  - {fileID: 5770881224741166688}
   m_Father: {fileID: 7499371450532252927}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7235606184766109600
@@ -621,7 +654,6 @@ Transform:
   - {fileID: 5208723101291922215}
   - {fileID: 5076277776288473167}
   - {fileID: 811473960634992080}
-  - {fileID: 8977971552389256044}
   m_Father: {fileID: 8202321523229073469}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &7529996170362948438
@@ -639,6 +671,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   inputHandler: {fileID: 831554826967024705}
   cameraHolder: {fileID: 6586182560886131289}
+  armsRoot: {fileID: 5770881224741166688}
   sensitivity: 5
   invertY: 0
   minPitch: -90
@@ -746,9 +779,9 @@ MonoBehaviour:
     LookAtTarget: {fileID: 0}
     CustomLookAtTarget: 0
   Lens:
-    FieldOfView: 60.000004
+    FieldOfView: 90
     OrthographicSize: 5
-    NearClipPlane: 0.3
+    NearClipPlane: 0.01
     FarClipPlane: 1000
     Dutch: 0
     ModeOverride: 0
@@ -784,8 +817,12 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 7499371450532252927}
+    m_TransformParent: {fileID: 5770881224741166688}
     m_Modifications:
+    - target: {fileID: 3559663625760582335, guid: 3ffba53454f86e24bb5b1df58bdbcd96, type: 3}
+      propertyPath: m_UpdateWhenOffscreen
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7489136438518658825, guid: 3ffba53454f86e24bb5b1df58bdbcd96, type: 3}
       propertyPath: m_Name
       value: Arms
@@ -796,7 +833,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7828682519580437939, guid: 3ffba53454f86e24bb5b1df58bdbcd96, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -1.7
       objectReference: {fileID: 0}
     - target: {fileID: 7828682519580437939, guid: 3ffba53454f86e24bb5b1df58bdbcd96, type: 3}
       propertyPath: m_LocalPosition.z

@@ -61,6 +61,10 @@ PrefabInstance:
       value: Arms
       objectReference: {fileID: 0}
     - target: {fileID: 5866666021909216657, guid: 858106e1c789b6041a60a2dcb10d1d53, type: 3}
+      propertyPath: m_Avatar
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: 858106e1c789b6041a60a2dcb10d1d53, type: 3}
       propertyPath: m_Controller
       value: 
       objectReference: {fileID: 9100000, guid: 62570f51804c77d44ab6457621829ba2, type: 2}

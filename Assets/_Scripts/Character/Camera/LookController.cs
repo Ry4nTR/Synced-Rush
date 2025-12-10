@@ -16,6 +16,10 @@ public class LookController : NetworkBehaviour
     [Header("Camera")]
     [SerializeField] private Transform cameraHolder;     // The object that pitches up/down
 
+    [Header("Arms")]
+    [Tooltip("Optional reference to the root of the first‑person arms. If assigned, the arms will follow the camera's vertical rotation.")]
+    [SerializeField] private Transform armsRoot;
+
     [Header("Settings")]
     [SerializeField] private float sensitivity = 5f;
     [SerializeField] private bool invertY = false;
@@ -70,5 +74,14 @@ public class LookController : NetworkBehaviour
         pitch += invertY ? deltaY : -deltaY;
         pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
         cameraHolder.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+
+        // Rotate arms  if assigned
+        if (armsRoot != null)
+        {
+            Vector3 currentEuler = armsRoot.localEulerAngles;
+            float correctedYaw = currentEuler.y;
+            float correctedRoll = currentEuler.z;
+            armsRoot.localRotation = Quaternion.Euler(pitch, correctedYaw, correctedRoll);
+        }
     }
 }
