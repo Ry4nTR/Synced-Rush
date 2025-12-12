@@ -12,6 +12,7 @@ namespace SyncedRush.Character.Movement
         /// </summary>
         private Vector3 _wallPosition = Vector3.zero;
         private Vector3 _wallDir = Vector3.zero;
+        private Vector3 _expectedWallDir = Vector3.zero;
 
         private ControllerColliderHit _wallRunStartInfo;
         private bool _isWallRunInvalid = false;
@@ -52,6 +53,7 @@ namespace SyncedRush.Character.Movement
                 _wallRunStartInfo = character.WallRunStartInfo;
                 _wallPosition = character.WallRunStartInfo.point;
                 _wallDir = _wallPosition - character.CenterPosition;
+                _expectedWallDir = _wallDir;
                 character.WallRunStartInfo = null;
             }
             else
@@ -77,7 +79,8 @@ namespace SyncedRush.Character.Movement
         protected new void ProcessMovement()
         {
             Vector3 moveDir = new(character.HorizontalVelocity.x, 0, character.HorizontalVelocity.y);
-            if (Mathf.Approximately(moveDir.magnitude, 0f))
+            float speed = moveDir.magnitude;
+            if (Mathf.Approximately(speed, 0f))
             {
                 _isWallRunInvalid = true;
                 base.ProcessMovement();
@@ -102,9 +105,9 @@ namespace SyncedRush.Character.Movement
                     Vector3 oldPos = character.CenterPosition;
 
                     //character.Controller.Move(moveDir * _stepDistance);
-                    character.Controller.Move((moveDir * _stepDistance) + hit.point - character.CenterPosition);
+                    character.Controller.Move(moveDir * _stepDistance);
 
-                    _wallDir = Vector3.ProjectOnPlane(_wallDir, moveDir);
+                    //_expectedWallDir = Vector3.ProjectOnPlane(_expectedWallDir, moveDir);
 
                     //_wallPosition += character.CenterPosition - oldPos;
                 }
@@ -127,9 +130,9 @@ namespace SyncedRush.Character.Movement
                     Vector3 oldPos = character.CenterPosition;
 
                     //character.Controller.Move(moveDir * remaingDistance);
-                    character.Controller.Move((moveDir * remaingDistance) + hit.point - character.CenterPosition);
+                    character.Controller.Move(moveDir * remaingDistance);
 
-                    _wallDir = Vector3.ProjectOnPlane(_wallDir, moveDir);
+                    //_expectedWallDir = Vector3.ProjectOnPlane(_expectedWallDir, moveDir);
 
                     //_wallPosition += character.CenterPosition - oldPos;
                 }
@@ -141,6 +144,9 @@ namespace SyncedRush.Character.Movement
                 character.Controller.Move(moveDir * totalDistance);
                 _isWallRunInvalid = true;
             }
+
+            moveDir *= speed;
+            character.HorizontalVelocity = new(moveDir.x, moveDir.z);
         }
 
         private bool CheckGround()
@@ -154,19 +160,6 @@ namespace SyncedRush.Character.Movement
                 return false;
         }
 
-        //private bool WallRun()
-        //{
-        //    float frameMovement = character.HorizontalVelocity.magnitude;
-
-        //    if (CheckWall(out RaycastHit hit))
-        //    {
-        //        Vector3 projectedVelocity = Vector3.ProjectOnPlane(character.HorizontalVelocity, hit.normal);
-
-        //        character.HorizontalVelocity = new Vector2(projectedVelocity.x, projectedVelocity.z);
-        //    }
-        //    else
-        //        return false;
-        //}
 
         private bool CheckWall(out RaycastHit rayHit)
         {
@@ -200,11 +193,45 @@ namespace SyncedRush.Character.Movement
             Color rayColor = hasHit ? Color.green : Color.red;
             Debug.DrawRay(startPosition, _wallDir * rayLength, rayColor, Time.fixedDeltaTime);
 
-            if (hasHit
-                && hit.normal.y < 0.1f
-                && hit.normal.y > -0.1f)
+            if (hasHit)
+                //&& hit.normal.y < 0.1f
+                //&& hit.normal.y > -0.1f)
+            {
+                _expectedWallDir = -hit.normal;
+                return true;
+            }
+
+            _expectedWallDir.y = 0f;
+
+            if (Mathf.Approximately(_expectedWallDir.magnitude, 0))
+                return false;
+
+            _expectedWallDir.Normalize();
+
+            startPosition = character.CenterPosition + _expectedWallDir * (character.Controller.radius / 2f);
+
+            RaycastHit hit2;
+            hasHit = Physics.Raycast(
+                startPosition,
+                _expectedWallDir,
+                out hit2,
+                rayLength,
+                character.LayerMask
+            );
+
+            rayHit = hit2;
+
+            //TODO da rimuovere quando non serve più
+            rayColor = hasHit ? Color.green : Color.red;
+            Debug.DrawRay(startPosition, _expectedWallDir * rayLength, rayColor, Time.fixedDeltaTime);
+
+            if (hasHit)
+                //&& hit2.normal.y < 0.1f
+                //&& hit2.normal.y > -0.1f)
             {
                 //_wallDir = hit.point - character.CenterPosition;
+                _wallPosition = hit2.point;
+                _wallDir = _wallPosition - character.CenterPosition;
                 return true;
             }
 
