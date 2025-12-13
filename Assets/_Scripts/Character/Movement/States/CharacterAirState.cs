@@ -85,11 +85,7 @@ namespace SyncedRush.Character.Movement
 
             character.HorizontalVelocity = new Vector2(projectedVelocity.x, projectedVelocity.z);
 
-            if (
-                hit.normal.y < 0.1f
-                && hit.normal.y > -0.1f
-                && hit.point.y > character.CenterPosition.y
-                )
+            if (CheckWallRunCondition(hit))
             {
                 character.WallRunStartInfo = hit;
                 _canWallRun = true;
@@ -105,6 +101,51 @@ namespace SyncedRush.Character.Movement
             }
             else
                 return false;
+        }
+
+        private bool CheckWallRunCondition(ControllerColliderHit hit)
+        {
+            if (
+                hit.normal.y < 0.1f
+                && hit.normal.y > -0.1f
+                )
+            {
+
+                float skinWidth = character.Controller.skinWidth;
+                float rayLength = 1f + skinWidth;
+
+                Vector3 _wallDir = hit.point - character.CenterPosition;
+
+                _wallDir.y = 0f;
+
+                if (Mathf.Approximately(_wallDir.magnitude, 0))
+                    return false;
+
+                _wallDir.Normalize();
+
+                Vector3 startPosition = character.CenterPosition + _wallDir * (character.Controller.radius / 2f);
+
+                RaycastHit rayHit;
+                bool hasHit = Physics.Raycast(
+                    startPosition,
+                    _wallDir,
+                    out rayHit,
+                    rayLength,
+                    character.LayerMask
+                );
+
+                //TODO da rimuovere quando non serve più
+                Color rayColor = hasHit ? Color.green : Color.red;
+                Debug.DrawRay(startPosition, _wallDir * rayLength, rayColor, Time.fixedDeltaTime);
+
+                if (hasHit
+                    && rayHit.normal.y < 0.1f
+                    && rayHit.normal.y > -0.1f)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private void AirMove()

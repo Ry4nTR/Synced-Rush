@@ -97,21 +97,8 @@ namespace SyncedRush.Character.Movement
             bool interrupt = false;
             while (stepCounter < totalSteps)
             {
-                if (CheckWall(out RaycastHit hit))
-                {
-                    moveDir = Vector3.ProjectOnPlane(moveDir, hit.normal);
-                    moveDir.Normalize();
-
-                    Vector3 oldPos = character.CenterPosition;
-
-                    //character.Controller.Move(moveDir * _stepDistance);
-                    character.Controller.Move(moveDir * _stepDistance);
-
-                    //_expectedWallDir = Vector3.ProjectOnPlane(_expectedWallDir, moveDir);
-
-                    //_wallPosition += character.CenterPosition - oldPos;
-                }
-                else
+                bool hasMoved = MoveCharacter(ref moveDir, _stepDistance);
+                if (!hasMoved)
                 {
                     interrupt = true;
                     break;
@@ -121,22 +108,7 @@ namespace SyncedRush.Character.Movement
             }
 
             if (remaingDistance > 0f && !interrupt)
-            {
-                if (CheckWall(out RaycastHit hit))
-                {
-                    moveDir = Vector3.ProjectOnPlane(moveDir, hit.normal);
-                    moveDir.Normalize();
-
-                    Vector3 oldPos = character.CenterPosition;
-
-                    //character.Controller.Move(moveDir * remaingDistance);
-                    character.Controller.Move(moveDir * remaingDistance);
-
-                    //_expectedWallDir = Vector3.ProjectOnPlane(_expectedWallDir, moveDir);
-
-                    //_wallPosition += character.CenterPosition - oldPos;
-                }
-            }
+                MoveCharacter(ref moveDir, remaingDistance);
 
             if (interrupt)
             {
@@ -160,6 +132,19 @@ namespace SyncedRush.Character.Movement
                 return false;
         }
 
+        private bool MoveCharacter(ref Vector3 moveDirection, float distance)
+        {
+            if (CheckWall(out RaycastHit hit))
+            {
+                moveDirection = Vector3.ProjectOnPlane(moveDirection, hit.normal);
+                moveDirection.Normalize();
+
+                character.Controller.Move(moveDirection * distance);
+
+                return true;
+            }
+            return false;
+        }
 
         private bool CheckWall(out RaycastHit rayHit)
         {
@@ -168,7 +153,6 @@ namespace SyncedRush.Character.Movement
             float skinWidth = character.Controller.skinWidth;
             float rayLength = _wallSnapLength + skinWidth;
 
-            //_wallDir = _wallPosition - character.CenterPosition;
             _wallDir.y = 0f;
 
             if (Mathf.Approximately(_wallDir.magnitude, 0))
@@ -193,9 +177,9 @@ namespace SyncedRush.Character.Movement
             Color rayColor = hasHit ? Color.green : Color.red;
             Debug.DrawRay(startPosition, _wallDir * rayLength, rayColor, Time.fixedDeltaTime);
 
-            if (hasHit)
-                //&& hit.normal.y < 0.1f
-                //&& hit.normal.y > -0.1f)
+            if (hasHit
+                && hit.normal.y < 0.1f
+                && hit.normal.y > -0.1f)
             {
                 _expectedWallDir = -hit.normal;
                 return true;
@@ -225,11 +209,10 @@ namespace SyncedRush.Character.Movement
             rayColor = hasHit ? Color.green : Color.red;
             Debug.DrawRay(startPosition, _expectedWallDir * rayLength, rayColor, Time.fixedDeltaTime);
 
-            if (hasHit)
-                //&& hit2.normal.y < 0.1f
-                //&& hit2.normal.y > -0.1f)
+            if (hasHit
+                && hit2.normal.y < 0.1f
+                && hit2.normal.y > -0.1f)
             {
-                //_wallDir = hit.point - character.CenterPosition;
                 _wallPosition = hit2.point;
                 _wallDir = _wallPosition - character.CenterPosition;
                 return true;
