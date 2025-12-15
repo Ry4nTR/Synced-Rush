@@ -34,6 +34,9 @@ public class ClientComponentSwitcher : NetworkBehaviour
     [SerializeField] private HealthSystem healthSystem;
     [SerializeField] private WeaponNetworkHandler weaponNetworkHandler;
 
+    // Flag to indicate whether weapon components were registered dynamically
+    private bool weaponComponentsInitialized;
+
 
     private void Awake()
     {
@@ -79,10 +82,47 @@ public class ClientComponentSwitcher : NetworkBehaviour
         if (moveController != null) moveController.enabled = isServer;
         if (movementFSM != null) movementFSM.enabled = isServer;
 
-        // Enable weapon systems for owner and server appropriately
+        // Enable weapon systems for owner and server appropriately. If weapon
+        // components have not been registered yet (e.g. before a weapon is
+        // equipped), this call will not have any effect. When RegisterWeapon
+        // is invoked, these components will be enabled based on authority.
+        UpdateWeaponComponentState();
+        if (healthSystem != null) healthSystem.enabled = isServer;
+    }
+
+    /// <summary>
+    /// Registers weapon-related components when a weapon is spawned. The
+    /// inventory system should call this to wire up the runtime weapon scripts
+    /// to the component switcher. This allows the switcher to enable or
+    /// disable the weapon controller, shooting system and network handler
+    /// according to network authority.
+    /// </summary>
+    /// <param name="weaponCtrl">The weapon controller on the spawned view model.</param>
+    /// <param name="shootSys">The shooting system on the spawned view model.</param>
+    /// <param name="netHandler">The network handler on the spawned view model.</param>
+    public void RegisterWeapon(WeaponController weaponCtrl, ShootingSystem shootSys, WeaponNetworkHandler netHandler)
+    {
+        weaponController = weaponCtrl;
+        shootingSystem = shootSys;
+        weaponNetworkHandler = netHandler;
+        weaponComponentsInitialized = true;
+        UpdateWeaponComponentState();
+    }
+
+    /// <summary>
+    /// Enables or disables weapon components based on current ownership and
+    /// server status. Called from OnNetworkSpawn and after a weapon is
+    /// registered to ensure the correct state.
+    /// </summary>
+    private void UpdateWeaponComponentState()
+    {
+        if (!weaponComponentsInitialized)
+            return; // Skip updating if weapon components haven't been registered yet
+
+        bool isOwner = IsOwner;
+        bool isServer = IsServer;
         if (weaponController != null) weaponController.enabled = isOwner;
         if (shootingSystem != null) shootingSystem.enabled = isOwner;
         if (weaponNetworkHandler != null) weaponNetworkHandler.enabled = isServer || isOwner;
-        if (healthSystem != null) healthSystem.enabled = isServer;
     }
 }

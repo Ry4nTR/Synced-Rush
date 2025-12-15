@@ -1,7 +1,14 @@
 fileFormatVersion: 2
 guid: 6d8af962f516e734e8298a80832b3373
+AssetOrigin:
+  serializedVersion: 1
+  productId: 313750
+  packageName: Low Poly AR Weapon Pack 3
+  packageVersion: 1.0
+  assetPath: Assets/Low Poly AR Weapon Pack 3/Models/Weapons/AR_M.fbx
+  uploadId: 741608
 ModelImporter:
-  serializedVersion: 22200
+  serializedVersion: 24200
   internalIDToNameTable: []
   externalObjects: {}
   materials:
@@ -56,6 +63,9 @@ ModelImporter:
     maxBonesPerVertex: 4
     minBoneWeight: 0.001
     optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
     meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
@@ -105,10 +115,3 @@ ModelImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 313750
-  packageName: Low Poly AR Weapon Pack 3
-  packageVersion: 1.0
-  assetPath: Assets/Low Poly AR Weapon Pack 3/Models/Weapons/AR_M.fbx
-  uploadId: 741608
