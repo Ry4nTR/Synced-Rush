@@ -26,6 +26,10 @@ public class CharacterStats : MonoBehaviour
     [SerializeField] private float _slideIncreasedDecelleration = 10f;
     /// <summary> </summary>
     [SerializeField] private float _slideIncreasedDecellerationThreshold = 5f;
+    /// <summary>Velocità minima per correre su una parete</summary>
+    [SerializeField] private float _wallRunMinimumSpeed = 1f;
+    /// <summary>Angolazione massima per la visuale rispetto al muro consentita per correre su una parete</summary>
+    [SerializeField] private float _wallRunLookAngleLimit = 100f;
     /// <summary>Accelerazione di gravità (m/s^2)</summary>
     [SerializeField] private float _gravity = 9.81f;
 
@@ -39,5 +43,7 @@ public class CharacterStats : MonoBehaviour
     public float SlideDeceleration => _slideDecelleration;
     public float SlideIncreasedDeceleration => _slideIncreasedDecelleration;
     public float SlideIncreasedDecelerationThreshold => _slideIncreasedDecellerationThreshold;
+    public float WallRunMinSpeed => _wallRunMinimumSpeed;
+    public float WallRunLookAngleLimit => _wallRunLookAngleLimit;
     public float Gravity => _gravity;
 }
