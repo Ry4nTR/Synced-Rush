@@ -34,7 +34,10 @@ namespace SyncedRush.Character.Movement
                 return MovementState.Move;
 
             if (Input.Jump)
-                return MovementState.Jump;
+            {
+                WallJump();
+                return MovementState.Air;
+            }
 
             
             ProcessMovement();
@@ -46,7 +49,9 @@ namespace SyncedRush.Character.Movement
         {
             base.EnterState();
 
-            ResetFlags();
+            ResetValues();
+
+            character.VerticalVelocity = 0f;
 
             if (character.WallRunStartInfo != null)
             {
@@ -59,22 +64,6 @@ namespace SyncedRush.Character.Movement
             else
                 _isWallRunInvalid = true;
         }
-
-        //public override void ProcessCollision(ControllerColliderHit hit)
-        //{
-        //    base.ProcessCollision(hit);
-
-        //    if (hit.normal.y >= 0.5f)
-        //        return;
-
-        //    Vector3 wallNormal = hit.normal;
-
-        //    Vector3 currentVelocity = new(character.HorizontalVelocity.x, 0, character.HorizontalVelocity.y);
-
-        //    Vector3 projectedVelocity = Vector3.ProjectOnPlane(currentVelocity, wallNormal);
-
-        //    character.HorizontalVelocity = new Vector2(projectedVelocity.x, projectedVelocity.z);
-        //}
 
         protected new void ProcessMovement()
         {
@@ -108,7 +97,7 @@ namespace SyncedRush.Character.Movement
             }
 
             if (remaingDistance > 0f && !interrupt)
-                MoveCharacter(ref moveDir, remaingDistance);
+                _isWallRunInvalid = !MoveCharacter(ref moveDir, remaingDistance);
 
             if (interrupt)
             {
@@ -118,7 +107,9 @@ namespace SyncedRush.Character.Movement
             }
 
             moveDir *= speed;
-            character.HorizontalVelocity = new(moveDir.x, moveDir.z);
+
+            if (!Mathf.Approximately(character.HorizontalVelocity.magnitude, 0f))
+                character.HorizontalVelocity = new(moveDir.x, moveDir.z);
         }
 
         private bool CheckGround()
@@ -177,9 +168,16 @@ namespace SyncedRush.Character.Movement
             Color rayColor = hasHit ? Color.green : Color.red;
             Debug.DrawRay(startPosition, _wallDir * rayLength, rayColor, Time.fixedDeltaTime);
 
+            Vector2 hitN = new(rayHit.normal.x, rayHit.normal.z);
+            Vector2 lookDir = new(character.Orientation.transform.forward.x, character.Orientation.transform.forward.z);
+
+            float angle = Vector2.Angle(hitN, -lookDir);
+            Debug.Log("WRunState " + angle); //TODO
+
             if (hasHit
                 && hit.normal.y < 0.1f
-                && hit.normal.y > -0.1f)
+                && hit.normal.y > -0.1f
+                && angle < character.Stats.WallRunLookAngleLimit)
             {
                 _expectedWallDir = -hit.normal;
                 return true;
@@ -209,9 +207,16 @@ namespace SyncedRush.Character.Movement
             rayColor = hasHit ? Color.green : Color.red;
             Debug.DrawRay(startPosition, _expectedWallDir * rayLength, rayColor, Time.fixedDeltaTime);
 
+            hitN = new(rayHit.normal.x, rayHit.normal.z);
+            lookDir = new(character.Orientation.transform.forward.x, character.Orientation.transform.forward.z);
+
+            angle = Vector2.Angle(hitN, -lookDir);
+            Debug.Log("WRunState " + angle); //TODO
+
             if (hasHit
                 && hit2.normal.y < 0.1f
-                && hit2.normal.y > -0.1f)
+                && hit2.normal.y > -0.1f
+                && angle < character.Stats.WallRunLookAngleLimit)
             {
                 _wallPosition = hit2.point;
                 _wallDir = _wallPosition - character.CenterPosition;
@@ -221,8 +226,24 @@ namespace SyncedRush.Character.Movement
             return false;
         }
 
-        private void ResetFlags()
+        private void WallJump()
         {
+            CheckWall(out RaycastHit hit);
+
+            float jumpSpeed = Mathf.Sqrt(2 * character.Stats.Gravity * character.Stats.JumpHeight);
+            Vector3 jumpDir = new(hit.normal.x, 1f, hit.normal.z);
+
+            jumpDir = jumpDir.normalized * jumpSpeed;
+
+            character.TotalVelocity += jumpDir;
+        }
+
+        private void ResetValues()
+        {
+            _wallPosition = Vector3.zero;
+            _wallDir = Vector3.zero;
+            _expectedWallDir = Vector3.zero;
+            _wallRunStartInfo = null;
             _isWallRunInvalid = false;
         }
 

@@ -64,7 +64,7 @@ namespace SyncedRush.Generics
                     CurrentState.EnterState();
                     _forcedEnterRequested = false;
                 }
-                Debug.Log(CurrentState.ToString()); //TODO da rimuovere quando non serve più
+                //Debug.Log(CurrentState.ToString()); //TODO da rimuovere quando non serve più
             }
             else
                 Debug.LogError("Stato non trovato!");

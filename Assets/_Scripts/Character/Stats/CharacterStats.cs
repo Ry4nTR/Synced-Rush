@@ -29,7 +29,7 @@ public class CharacterStats : MonoBehaviour
     /// <summary>Velocità minima per correre su una parete</summary>
     [SerializeField] private float _wallRunMinimumSpeed = 1f;
     /// <summary>Angolazione massima per la visuale rispetto al muro consentita per correre su una parete</summary>
-    [SerializeField] private float _wallRunLookAngleLimit = 100f;
+    [SerializeField] private float _wallRunLookAngleLimit = 110f;
     /// <summary>Accelerazione di gravità (m/s^2)</summary>
     [SerializeField] private float _gravity = 9.81f;
 

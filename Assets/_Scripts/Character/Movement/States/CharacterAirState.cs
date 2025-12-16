@@ -138,9 +138,16 @@ namespace SyncedRush.Character.Movement
                 Color rayColor = hasHit ? Color.green : Color.red;
                 Debug.DrawRay(startPosition, _wallDir * rayLength, rayColor, Time.fixedDeltaTime);
 
+                Vector2 hitN = new(rayHit.normal.x, rayHit.normal.z);
+                Vector2 lookDir = new(character.Orientation.transform.forward.x, character.Orientation.transform.forward.z);
+
+                float angle = Vector2.Angle(hitN, -lookDir);
+                Debug.Log("AirState " + angle); //TODO
+
                 if (hasHit
                     && rayHit.normal.y < 0.1f
-                    && rayHit.normal.y > -0.1f)
+                    && rayHit.normal.y > -0.1f
+                    && angle < character.Stats.WallRunLookAngleLimit)
                 {
                     return true;
                 }
