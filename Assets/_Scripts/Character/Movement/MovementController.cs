@@ -57,6 +57,17 @@ public class MovementController : NetworkBehaviour
     [SerializeField, Tooltip("Distanza oltre la quale la posizione viene agganciata immediatamente alla posizione del server.")]
     private float reconciliationSnapDistance = 0.25f;
 
+    /// <summary>
+    /// Riferimento al nodo visuale (visual root) che contiene la camera, le braccia o qualsiasi
+    /// elemento visivo che deve essere interpolato durante la riconciliazione.  Questa
+    /// trasformazione viene spostata localmente rispetto al root del player per applicare
+    /// l'offset derivante dalla differenza tra la posizione predetta e quella autoritativa.
+    /// Assicurati di assegnare questo campo dal prefabs (es. il GameObject che contiene
+    /// CinemachineCamera e Arms) oppure crea un figlio dedicato chiamato VisualRoot.
+    /// </summary>
+    [Header("Visual Root")]
+    [SerializeField] private Transform _visualRoot;
+
     // Reference to the local input handler for client-side prediction.  This component
     // reads hardware input via the Input System and provides fields such as move,
     // jump, sprint and crouch.  It is only used on the owning client.  On the
@@ -191,7 +202,8 @@ public class MovementController : NetworkBehaviour
         if (IsServer)
         {
             // Debug: indicate server-side simulation.  Remove or comment out this line when testing is complete.
-            //UnityEngine.Debug.Log($"[MovementController] FixedUpdate server-side simulation for {gameObject.name}");
+            //Debug.Log($"[MovementController] FixedUpdate server-side simulation for {gameObject.name}");
+
             CheckGround();
             _characterFSM.ProcessFixedUpdate();
 
@@ -205,41 +217,68 @@ public class MovementController : NetworkBehaviour
         }
 
         // Predicted simulation on the owning client (when not also server).  This allows
-        // immediate response to input without waiting for a network roundtrip.
+        // immediate response to input without waiting for a network roundtrip.  Instead
+        // of moving the root transform directly during reconciliation, we apply any
+        // difference between the predicted position and the authoritative position
+        // as a local offset on the visual root.  This keeps the physics collider
+        // stable while still smoothing out visual jitter.
         if (IsOwner && !IsServer)
         {
             // Debug: indicate client-side prediction.  Remove or comment out this line when testing is complete.
-            //UnityEngine.Debug.Log($"[MovementController] FixedUpdate client-side prediction for {gameObject.name}");
+            //Debug.Log($"[MovementController] FixedUpdate client-side prediction for {gameObject.name}");
+
+            // Run ground check and state machine to produce a predicted position.  This
+            // modifies the character's root transform (physics) based on the local
+            // input from the PlayerInputHandler.
             CheckGround();
             _characterFSM.ProcessFixedUpdate();
 
-            // Riconciliazione: rimuove gli input che il server ha già processato.
-            // Il componente NetworkPlayerInput mantiene una lista di input pendenti.
+            // Remove inputs that the server has already processed.  NetworkPlayerInput
+            // maintains a list of pending inputs keyed by sequence number.
             _netInput.ConfirmInputUpTo(_lastProcessedSequence.Value);
 
-            // Calcola la distanza tra la posizione predetta (locale) e quella
-            // autoritativa del server.  Questa distanza viene usata per decidere
-            // se fare uno snap o applicare il smoothing.
+            // Compute the offset between the authoritative server position and the
+            // current predicted root position.  We do not move the root transform
+            // directly; instead we store this offset on the visual root.
             Vector3 authoritativePosition = _serverPosition.Value;
-            float distance = Vector3.Distance(transform.position, authoritativePosition);
+            Vector3 predictedPosition = transform.position;
+            Vector3 offset = authoritativePosition - predictedPosition;
 
-            // Log di debug per verificare la differenza e il comportamento della riconciliazione.
-            UnityEngine.Debug.Log($"[Reconciliation] sequence {_lastProcessedSequence.Value} distance {distance:0.000}");
+            float distance = offset.magnitude;
 
-            // Se la distanza supera la soglia di snapping, aggancia immediatamente
-            // la posizione predetta a quella del server per evitare lag evidenti.
-            if (distance > reconciliationSnapDistance)
+            // Log of the difference and reconciliation behaviour for debugging.
+            Debug.Log($"[Reconciliation] sequence {_lastProcessedSequence.Value} distance {distance:0.000}");
+
+            // If the offset exceeds the snap threshold, snap the visual root to the
+            // authoritative offset to avoid prolonged desynchronisation.  Otherwise
+            // interpolate the visual root's localPosition towards the offset using
+            // the smoothing factor.  This interpolation smooths out small network
+            // corrections without disturbing the physics collider.
+            if (_visualRoot != null)
             {
-                transform.position = authoritativePosition;
-                UnityEngine.Debug.Log($"[Reconciliation] Snap: distanza superiore a {reconciliationSnapDistance:0.000}, posizione corretta.");
+                if (distance > reconciliationSnapDistance)
+                {
+                    _visualRoot.localPosition = offset;
+                    Debug.Log($"[Reconciliation] Snap visual root: distanza superiore a {reconciliationSnapDistance:0.000}, offset applicato.");
+                }
+                else
+                {
+                    // Interpolate current local position to the desired offset
+                    Vector3 newLocalPos = Vector3.Lerp(_visualRoot.localPosition, offset, reconciliationSmoothing);
+                    _visualRoot.localPosition = newLocalPos;
+                    Debug.Log($"[Reconciliation] Smooth visual root: posizione interpolata.");
+                }
             }
-            else
+        }
+
+        // Ensure that on the server and on non-owning clients the visual root remains
+        // aligned with the physics root.  This prevents residual offsets when
+        // authority changes or when the same prefab is used for remote players.
+        if (!IsOwner || IsServer)
+        {
+            if (_visualRoot != null)
             {
-                // Altrimenti applica lo smoothing, interpolando la posizione corrente
-                // verso quella autoritativa secondo il fattore di smoothing.
-                Vector3 newPosition = Vector3.Lerp(transform.position, authoritativePosition, reconciliationSmoothing);
-                transform.position = newPosition;
-                UnityEngine.Debug.Log($"[Reconciliation] Smooth: posizione interpolata.");
+                _visualRoot.localPosition = Vector3.zero;
             }
         }
 
