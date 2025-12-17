@@ -63,6 +63,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b4e1f0a969b82e24dab7bf633a00fa5c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8554286027455094604}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b4e1f0a969b82e24dab7bf633a00fa5c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5847603671076392248}
   m_SourcePrefab: {fileID: 100100000, guid: b4e1f0a969b82e24dab7bf633a00fa5c, type: 3}
 --- !u!1 &7061044498557608712 stripped
 GameObject:
@@ -91,3 +94,18 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &5847603671076392248
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7061044498557608712}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8d0727d5ae3244e3b569694d3912374, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.Components.NetworkAnimator
+  ShowTopMostFoldoutHeaderGroup: 1
+  TransitionStateInfoList: []
+  m_Animator: {fileID: 8554286027455094604}

@@ -3415,10 +3415,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 1735192875}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -157.46036, y: 278.7625}
-  m_SizeDelta: {x: 709.0793, y: 52.4749}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 370, y: -46}
+  m_SizeDelta: {x: 709.0793, y: 52.474915}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &982130517
 MonoBehaviour:
@@ -6173,15 +6173,15 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 14
-  m_fontSizeBase: 14
+  m_fontSize: 30
+  m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 0
-  m_HorizontalAlignment: 1
-  m_VerticalAlignment: 256
+  m_fontStyle: 2
+  m_HorizontalAlignment: 2
+  m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_wordSpacing: 0
@@ -6590,7 +6590,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2520700430663800747, guid: e48e038af74c2e34ba4f173faaacb22b, type: 3}
       propertyPath: ConnectionData.Port
-      value: 8888
+      value: 7777
       objectReference: {fileID: 0}
     - target: {fileID: 2520700430663800747, guid: e48e038af74c2e34ba4f173faaacb22b, type: 3}
       propertyPath: ConnectionData.Address
