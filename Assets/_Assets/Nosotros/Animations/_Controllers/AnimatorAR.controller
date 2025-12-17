@@ -259,7 +259,7 @@ AnimatorController:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: AnimatorArms
+  m_Name: AnimatorAR
   serializedVersion: 5
   m_AnimatorParameters:
   - m_Name: Speed
@@ -519,7 +519,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: -623603649343465320, guid: ae46c438e4be70d478a7422efd523aff, type: 3}
+  m_Motion: {fileID: 7400000, guid: 49770f643dac722459d7719b444f0c74, type: 2}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 

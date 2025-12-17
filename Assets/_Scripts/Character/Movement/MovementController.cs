@@ -133,7 +133,7 @@ public class MovementController : NetworkBehaviour
 
         DebugResetPosition();
 
-        UpdateAnimator();
+        //UpdateAnimator();
     }
 
     public void CheckGround()
@@ -175,6 +175,7 @@ public class MovementController : NetworkBehaviour
         _characterFSM.ProcessCollision(hit);
     }
 
+    /*
     private void UpdateAnimator()
     {
         Anim.SetBool("IsGrounded", IsOnGround);
@@ -186,6 +187,7 @@ public class MovementController : NetworkBehaviour
 
         Anim.SetBool("IsSprinting", InputData.Sprint);
     }
+    */
 
     //TODO da rimuovere quando non serve più
     private void DebugResetPosition()
