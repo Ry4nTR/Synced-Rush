@@ -22,7 +22,7 @@ namespace SyncedRush.Character.Movement
             if (Input.Jump)
                 return MovementState.Jump;
 
-            if (Input.Crouch && Input.Sprint && character.HorizontalVelocity.magnitude > 1f)
+            if (CheckSlideConditions())
                 return MovementState.Slide;
 
             Walk();
@@ -93,6 +93,14 @@ namespace SyncedRush.Character.Movement
             }
             else
                 return false;
+        }
+
+        private bool CheckSlideConditions()
+        {
+            Vector3 inputDir = character.MoveDirection;
+            float dot = Vector3.Dot(inputDir, character.Orientation.transform.forward);
+
+            return Input.Crouch && Input.Sprint && dot > -0.1f;
         }
 
         private void SnapToGround()

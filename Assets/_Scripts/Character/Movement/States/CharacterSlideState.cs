@@ -50,9 +50,11 @@ namespace SyncedRush.Character.Movement
         {
             base.EnterState();
 
-            if (!Mathf.Approximately(character.HorizontalVelocity.magnitude, 0))
+            Vector2 inputDir = new(character.MoveDirection.x, character.MoveDirection.z);
+
+            if (!Mathf.Approximately(inputDir.magnitude, 0f))
             {
-                character.HorizontalVelocity += character.HorizontalVelocity.normalized * character.Stats.SlideStartBoost;
+                character.HorizontalVelocity += inputDir.normalized * character.Stats.SlideStartBoost;
             }
 
             _isEnding = false;
