@@ -20,7 +20,12 @@ namespace SyncedRush.Character.Movement
             base.ProcessFixedUpdate();
 
             if (CheckGround())
-                return MovementState.Move;
+            {
+                if (CheckSlideConditions())
+                    return MovementState.Slide;
+                else
+                    return MovementState.Move;
+            }
 
             AirMove();
 
@@ -85,7 +90,7 @@ namespace SyncedRush.Character.Movement
 
             character.HorizontalVelocity = new Vector2(projectedVelocity.x, projectedVelocity.z);
 
-            if (CheckWallRunCondition(hit))
+            if (CheckWallRunConditions(hit))
             {
                 character.WallRunStartInfo = hit;
                 _canWallRun = true;
@@ -96,14 +101,14 @@ namespace SyncedRush.Character.Movement
         {
             if (character.IsOnGround && character.VerticalVelocity <= 0f)
             {
-                character.VerticalVelocity = -.1f;
+                //character.VerticalVelocity = -.1f;
                 return true;
             }
             else
                 return false;
         }
 
-        private bool CheckWallRunCondition(ControllerColliderHit hit)
+        private bool CheckWallRunConditions(ControllerColliderHit hit)
         {
             if (
                 hit.normal.y < 0.1f
@@ -153,6 +158,14 @@ namespace SyncedRush.Character.Movement
                 }
             }
             return false;
+        }
+
+        private bool CheckSlideConditions()
+        {
+            Vector3 inputDir = character.MoveDirection;
+            float dot = Vector3.Dot(inputDir, character.Orientation.transform.forward);
+
+            return Input.Crouch && Input.Sprint && dot > -0.1f;
         }
 
         private void AirMove()
