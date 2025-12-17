@@ -8,9 +8,9 @@ public class CharacterStats : MonoBehaviour
 {
     // Campi privati
     /// <summary>Velocità di camminata in m/s</summary>
-    [SerializeField] private float _walkSpeed = 3.5f;
+    [SerializeField] private float _walkSpeed = 5f;
     /// <summary>Velocità di corsa in m/s</summary>
-    [SerializeField] private float _runSpeed = 5.25f;
+    [SerializeField] private float _runSpeed = 7.5f;
     /// <summary>L'altezza che viene raggiunta con un salto (indipendente dalla gravità)</summary>
     [SerializeField] private float _jumpHeight = 2f;
     /// <summary>Tempo (in secondi) permesso al giocatore di saltare anche dopo aver perso conttato con il terreno </summary>
@@ -21,11 +21,11 @@ public class CharacterStats : MonoBehaviour
     /// <summary> </summary>
     [SerializeField] private float _slideMoveInfluence = 4f;
     /// <summary> </summary>
-    [SerializeField] private float _slideDecelleration = 5f;
+    [SerializeField] private float _slideDecelleration = 10f;
     /// <summary> </summary>
-    [SerializeField] private float _slideIncreasedDecelleration = 10f;
+    [SerializeField] private float _slideIncreasedDecelleration = 20f;
     /// <summary> </summary>
-    [SerializeField] private float _slideIncreasedDecellerationThreshold = 5f;
+    [SerializeField] private float _slideIncreasedDecellerationThreshold = 70f;
     /// <summary>Velocità minima per correre su una parete</summary>
     [SerializeField] private float _wallRunMinimumSpeed = 1f;
     /// <summary>Angolazione massima per la visuale rispetto al muro consentita per correre su una parete</summary>
