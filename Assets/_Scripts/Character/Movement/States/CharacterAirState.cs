@@ -172,9 +172,21 @@ namespace SyncedRush.Character.Movement
         {
             Vector3 moveDir = character.MoveDirection;
 
+            if (character.HorizontalVelocity.magnitude > character.Stats.AirAcceleration)
+            {
+                character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity,
+                    new Vector2(moveDir.x, moveDir.z) * character.Stats.AirAcceleration,
+                    Time.fixedDeltaTime * -character.Stats.AirAcceleration * 1);
+            }
+
             character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity,
-                new Vector2(moveDir.x, moveDir.z) * character.Stats.RunSpeed,
-                Time.fixedDeltaTime * character.Stats.RunSpeed * 1);
+                new Vector2(moveDir.x, moveDir.z) * character.Stats.AirAcceleration,
+                Time.fixedDeltaTime * character.Stats.AirAcceleration * 1);
+
+            //if (Input.Move.magnitude > 0f)
+            //    character.HorizontalVelocity += character.Stats.AirAcceleration * Time.fixedDeltaTime * new Vector2(moveDir.x, moveDir.z);
+
+            //character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.AirDeceleration * Time.fixedDeltaTime);
         }
 
         private void Fall()
