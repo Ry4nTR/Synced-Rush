@@ -1,10 +1,10 @@
-using SyncedRush.Character.Movement;
+﻿using SyncedRush.Character.Movement;
 using Unity.Netcode;
 using UnityEngine;
 
-[RequireComponent (typeof(CharacterController))]
-[RequireComponent (typeof(CharacterStats))]
-[RequireComponent (typeof(CharacterMovementFSM))]
+[RequireComponent(typeof(CharacterController))]
+[RequireComponent(typeof(CharacterStats))]
+[RequireComponent(typeof(CharacterMovementFSM))]
 public class MovementController : NetworkBehaviour
 {
     [SerializeField] private GameObject _orientation;
@@ -15,6 +15,53 @@ public class MovementController : NetworkBehaviour
     private CharacterMovementFSM _characterFSM;
     private NetworkPlayerInput _netInput;
     private Animator _animator;
+
+    /// <summary>
+    /// Variabile di rete che memorizza la posizione autoritativa del server.  Il
+    /// server scrive la posizione corrente del character in questa variabile
+    /// ogni tick.  Il client proprietario legge questa posizione e si
+    /// riconcilia dolcemente verso di essa con la logica di predizione e
+    /// smoothing.  Non viene usata dai client non proprietari, che si
+    /// affidano alla replicazione di Netcode.
+    /// </summary>
+    private NetworkVariable<Vector3> _serverPosition = new NetworkVariable<Vector3>();
+
+    /// <summary>
+    /// Numero di sequenza dell'ultimo input processato dal server.  Il server
+    /// aggiorna questo valore dopo aver elaborato l'input ad ogni tick.  Il
+    /// client lo usa per rimuovere gli input pendenti già confermati.  Vedi
+    /// NetworkPlayerInput.  Questo aiuta nella riconciliazione lato client.
+    /// </summary>
+    private NetworkVariable<int> _lastProcessedSequence = new NetworkVariable<int>();
+
+    /// <summary>
+    /// Fattore di smoothing per riconciliare la posizione predetta verso
+    /// quella autoritativa del server.  Valori vicini a 1 applicano uno
+    /// scatto più aggressivo, mentre valori vicini a 0 applicano una
+    /// transizione più lenta.  Questo valore viene usato solo quando la
+    /// differenza è al di sotto della soglia di snapping (vedi
+    /// <see cref="reconciliationSnapDistance"/>).
+    /// </summary>
+    [Header("Reconciliation Settings")]
+    [SerializeField, Tooltip("Fattore di smoothing per la riconciliazione: 1 scatta subito, 0 scorre lentamente.")]
+    private float reconciliationSmoothing = 0.5f;
+
+    /// <summary>
+    /// Distanza soglia oltre la quale la posizione locale viene agganciata
+    /// direttamente alla posizione autoritativa.  Se la distanza tra la
+    /// posizione predetta e quella del server supera questa soglia, la
+    /// riconciliazione esegue uno snap per evitare che il character rimanga
+    /// disallineato troppo a lungo.  Al di sotto di questa distanza viene
+    /// applicato il smoothing.
+    /// </summary>
+    [SerializeField, Tooltip("Distanza oltre la quale la posizione viene agganciata immediatamente alla posizione del server.")]
+    private float reconciliationSnapDistance = 0.25f;
+
+    // Reference to the local input handler for client-side prediction.  This component
+    // reads hardware input via the Input System and provides fields such as move,
+    // jump, sprint and crouch.  It is only used on the owning client.  On the
+    // server or for remote players this will be null.
+    private PlayerInputHandler _inputHandler;
 
     private RaycastHit _groundInfo;
 
@@ -55,6 +102,13 @@ public class MovementController : NetworkBehaviour
     public Vector3 CenterPosition => _characterController.transform.position + _characterController.center;
     public MovementInputData InputData => _netInput.ServerInput;
 
+    /// <summary>
+    /// The local PlayerInputHandler component providing hardware input on the client.
+    /// It will be null on the server or on remote clients.  Movement states can use
+    /// this to access local input for prediction.
+    /// </summary>
+    public PlayerInputHandler LocalInputHandler => _inputHandler;
+
     public Animator Anim => _animator;
 
     public Vector3 MoveDirection
@@ -73,7 +127,7 @@ public class MovementController : NetworkBehaviour
         }
     }
 
-    // Lista di propriet� messe "nel posto sbagliato"
+    // Lista di proprietà messe "nel posto sbagliato"
 
     // Non trovo un modo per passare questo parametro dall'AirState al WallRunState senza refactorare la state machine
     /// <summary>
@@ -114,6 +168,12 @@ public class MovementController : NetworkBehaviour
         if (_netInput == null)
             _netInput = GetComponent<NetworkPlayerInput>();
 
+        // Acquire the PlayerInputHandler on the same GameObject.  It should be present
+        // alongside NetworkPlayerInput on the player.  On the server or for remote players
+        // this may be null, which is fine as we only use it on the owning client.
+        if (_inputHandler == null)
+            _inputHandler = GetComponent<PlayerInputHandler>();
+
         if (_animator == null)
             _animator = GetComponentInChildren<Animator>();
     }
@@ -121,16 +181,69 @@ public class MovementController : NetworkBehaviour
 
     private void FixedUpdate()
     {
-        // *** Only server simulates movement ***
-        if (!IsServer)
-            return;
+        // Simulate movement on both the authoritative server and the owning client for
+        // client-side prediction.  The server always performs the authoritative
+        // simulation.  The owning client performs a local predicted simulation using
+        // hardware input when it is not also the server.  Remote clients do not
+        // simulate movement and rely on the server's replication.
 
-        CheckGround();
+        // Authoritative simulation on the server
+        if (IsServer)
+        {
+            // Debug: indicate server-side simulation.  Remove or comment out this line when testing is complete.
+            //UnityEngine.Debug.Log($"[MovementController] FixedUpdate server-side simulation for {gameObject.name}");
+            CheckGround();
+            _characterFSM.ProcessFixedUpdate();
 
-        _characterFSM.ProcessFixedUpdate();
+            // After processing authoritative movement, update the server
+            // position and last processed sequence so that clients can
+            // reconcile.  We use the NetworkPlayerInput.ServerInput.Sequence
+            // property to determine which input was processed last.
+            _serverPosition.Value = transform.position;
+            // Store the last processed sequence number only on the server.
+            _lastProcessedSequence.Value = _netInput.ServerInput.Sequence;
+        }
 
-        //Debug.Log(HorizontalVelocity.magnitude);
+        // Predicted simulation on the owning client (when not also server).  This allows
+        // immediate response to input without waiting for a network roundtrip.
+        if (IsOwner && !IsServer)
+        {
+            // Debug: indicate client-side prediction.  Remove or comment out this line when testing is complete.
+            //UnityEngine.Debug.Log($"[MovementController] FixedUpdate client-side prediction for {gameObject.name}");
+            CheckGround();
+            _characterFSM.ProcessFixedUpdate();
 
+            // Riconciliazione: rimuove gli input che il server ha già processato.
+            // Il componente NetworkPlayerInput mantiene una lista di input pendenti.
+            _netInput.ConfirmInputUpTo(_lastProcessedSequence.Value);
+
+            // Calcola la distanza tra la posizione predetta (locale) e quella
+            // autoritativa del server.  Questa distanza viene usata per decidere
+            // se fare uno snap o applicare il smoothing.
+            Vector3 authoritativePosition = _serverPosition.Value;
+            float distance = Vector3.Distance(transform.position, authoritativePosition);
+
+            // Log di debug per verificare la differenza e il comportamento della riconciliazione.
+            UnityEngine.Debug.Log($"[Reconciliation] sequence {_lastProcessedSequence.Value} distance {distance:0.000}");
+
+            // Se la distanza supera la soglia di snapping, aggancia immediatamente
+            // la posizione predetta a quella del server per evitare lag evidenti.
+            if (distance > reconciliationSnapDistance)
+            {
+                transform.position = authoritativePosition;
+                UnityEngine.Debug.Log($"[Reconciliation] Snap: distanza superiore a {reconciliationSnapDistance:0.000}, posizione corretta.");
+            }
+            else
+            {
+                // Altrimenti applica lo smoothing, interpolando la posizione corrente
+                // verso quella autoritativa secondo il fattore di smoothing.
+                Vector3 newPosition = Vector3.Lerp(transform.position, authoritativePosition, reconciliationSmoothing);
+                transform.position = newPosition;
+                UnityEngine.Debug.Log($"[Reconciliation] Smooth: posizione interpolata.");
+            }
+        }
+
+        // Debug reset position for testing (optional)
         DebugResetPosition();
 
         //UpdateAnimator();
@@ -151,7 +264,7 @@ public class MovementController : NetworkBehaviour
             _groundLayerMask
         );
 
-        //TODO da rimuovere quando non serve pi�
+        //TODO da rimuovere quando non serve più
         Color rayColor = hasHit ? Color.green : Color.red;
         Debug.DrawRay(startPosition, Vector3.down * rayLength, rayColor, Time.fixedDeltaTime);
 
@@ -189,7 +302,7 @@ public class MovementController : NetworkBehaviour
     }
     */
 
-    //TODO da rimuovere quando non serve pi�
+    //TODO da rimuovere quando non serve più
     private void DebugResetPosition()
     {
         if (_netInput.ServerInput.DebugResetPos)

@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using Unity.Netcode;
 
 /// <summary>
 /// Legge gli input locali dal PlayerInputHandler (sul client owner)
 /// e li invia al server tramite ServerRpc, salvandoli in ServerInput.
-/// MovementController/server legger� solo ServerInput.
+/// MovementController/server leggerà solo ServerInput.
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(PlayerInputHandler))]
@@ -12,9 +12,37 @@ public class NetworkPlayerInput : NetworkBehaviour
 {
     private PlayerInputHandler _inputHandler;
 
+    // Sequence number for client-side prediction.  Incremented each time a new
+    // input is sent to the server.  Used to uniquely identify inputs so the
+    // server can acknowledge which inputs have been processed.  The client can
+    // remove acknowledged inputs from its pending list.
+    private int _sequenceNumber = 0;
+
+    // Pending inputs that have been sent to the server but not yet
+    // acknowledged by the authoritative simulation.  Each entry includes
+    // the input data along with its sequence number.  These are kept so
+    // that when the client receives an authoritative state from the server
+    // (with the last processed sequence), it can discard processed inputs
+    // and optionally replay the remaining ones for reconciliation.
+    private readonly System.Collections.Generic.List<MovementInputData> _pendingInputs = new System.Collections.Generic.List<MovementInputData>();
+
+    /// <summary>
+    /// A read‑only view of the pending input list.  Can be used by other
+    /// systems to inspect unacknowledged inputs for reconciliation.
+    /// </summary>
+    public System.Collections.Generic.IReadOnlyList<MovementInputData> PendingInputs => _pendingInputs;
+
+    /// <summary>
+    /// Aggiunge l'input corrente alla lista dei pacchetti pendenti, invia
+    /// l'input al server e incrementa il contatore di sequenza.  Questa
+    /// chiamata avviene ogni frame sul client proprietario.  Viene creato
+    /// un nuovo MovementInputData con un Sequence univoco.  Il valore
+    /// Sequence viene usato per la predizione e la riconciliazione.
+    /// </summary>
+
     /// <summary>
     /// Ultimo input ricevuto dal client, disponibile SOLO sul server.
-    /// MovementController legger� questa struct lato server.
+    /// MovementController leggerà questa struct lato server.
     /// </summary>
     public MovementInputData ServerInput { get; private set; }
 
@@ -40,11 +68,54 @@ public class NetworkPlayerInput : NetworkBehaviour
             Fire = _inputHandler.fire,
             Aim = _inputHandler.aim,
             Scroll = _inputHandler.scroll,
-            DebugResetPos = _inputHandler.debugResetPos // Solo per debug, non usato in produzione
+            DebugResetPos = _inputHandler.debugResetPos,
+            // Assign an incrementing sequence number for prediction/reconciliation
+            Sequence = ++_sequenceNumber
         };
+
+        // Keep track of the pending input for later reconciliation
+        _pendingInputs.Add(inputData);
+
+        // Log di debug per verificare gli input e la sequenza
+        //Debug.Log($"[NetworkPlayerInput] Send input seq {inputData.Sequence}");
 
         // Mandiamo l'input al server
         SendInputServerRpc(inputData);
+    }
+
+    /// <summary>
+    /// Chiamato sul client quando riceve la conferma dal server sul
+    /// numero di sequenza dell’ultimo input processato.  Rimuove tutti gli
+    /// input pendenti fino a questo numero (incluso).  Gli input rimanenti
+    /// sono ancora in attesa e potrebbero dover essere riapplicati durante
+    /// la riconciliazione.
+    /// </summary>
+    /// <param name="lastSequence">L’ultimo numero di sequenza processato dal server.</param>
+    public void ConfirmInputUpTo(int lastSequence)
+    {
+        // Remove pending inputs up to the last acknowledged sequence
+        int removeCount = 0;
+        for (int i = 0; i < _pendingInputs.Count; i++)
+        {
+            if (_pendingInputs[i].Sequence <= lastSequence)
+            {
+                removeCount++;
+            }
+            else
+            {
+                break;
+            }
+        }
+        if (removeCount > 0)
+        {
+            _pendingInputs.RemoveRange(0, removeCount);
+        }
+
+        // Log di debug per verificare quanti input sono stati confermati e rimossi
+        if (removeCount > 0)
+        {
+            UnityEngine.Debug.Log($"[NetworkPlayerInput] ConfirmInputUpTo {lastSequence}, removed {removeCount} inputs");
+        }
     }
 
     [ServerRpc]

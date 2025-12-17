@@ -2,13 +2,14 @@ using UnityEngine;
 
 namespace SyncedRush.Character.Movement
 {
-	public class CharacterSlideState : CharacterMovementState
+    public class CharacterSlideState : CharacterMovementState
     {
         private float _currentEndSpeed = 0f;
         private bool _isEnding = false;
         private Vector3 _previousGroundNormal = Vector3.zero;
 
-        private float EndSpeed {
+        private float EndSpeed
+        {
             get
             {
                 return (character.HorizontalVelocity.magnitude / 100) * character.Stats.SlideIncreasedDecelerationThreshold;
@@ -28,10 +29,21 @@ namespace SyncedRush.Character.Movement
             if (!CheckGround())
                 return MovementState.Air;
 
-            if (Input.Jump)
+            // Determine jump and crouch inputs based on context.  Use networked input on
+            // the server or when the local input handler is unavailable.  Otherwise use the
+            // values from the PlayerInputHandler.
+            bool jumpInput = (character.IsServer || character.LocalInputHandler == null)
+                ? Input.Jump
+                : character.LocalInputHandler.jump;
+            bool crouchInput = (character.IsServer || character.LocalInputHandler == null)
+                ? Input.Crouch
+                : character.LocalInputHandler.crouch;
+
+            if (jumpInput)
                 return MovementState.Jump;
 
-            if (!Input.Crouch || character.HorizontalVelocity.magnitude < 1f)
+            // Exit the slide if crouch is released or speed is too low.
+            if (!crouchInput || character.HorizontalVelocity.magnitude < 1f)
                 return MovementState.Move;
 
             Slide();
@@ -49,12 +61,27 @@ namespace SyncedRush.Character.Movement
         public override void EnterState()
         {
             base.EnterState();
-
-            Vector2 inputDir = new(character.MoveDirection.x, character.MoveDirection.z);
-
-            if (!Mathf.Approximately(inputDir.magnitude, 0f))
+            // When entering the slide state, apply an initial boost in the direction the
+            // player is moving.  On the server use the authoritative MoveDirection from
+            // the networked input; on the client use the local input from the
+            // PlayerInputHandler for prediction.  If the input direction has a non-zero
+            // magnitude, normalize it and apply the slide start boost.
+            Vector3 worldDir;
+            if (character.IsServer || character.LocalInputHandler == null)
             {
-                character.HorizontalVelocity += inputDir.normalized * character.Stats.SlideStartBoost;
+                worldDir = character.MoveDirection;
+            }
+            else
+            {
+                Vector2 localMove = character.LocalInputHandler.move;
+                worldDir = character.Orientation.transform.forward * localMove.y + character.Orientation.transform.right * localMove.x;
+                worldDir.y = 0f;
+            }
+
+            if (!Mathf.Approximately(worldDir.magnitude, 0f))
+            {
+                worldDir.Normalize();
+                character.HorizontalVelocity += new Vector2(worldDir.x, worldDir.z) * character.Stats.SlideStartBoost;
             }
 
             _isEnding = false;
@@ -123,24 +150,53 @@ namespace SyncedRush.Character.Movement
 
         private void Slide()
         {
-            Vector3 inputDir = character.MoveDirection;
-
+            // Apply movement influence and deceleration while sliding.  The player can
+            // influence the slide direction by holding movement input.  On the server
+            // use the networked input; on the client use the local input handler.
             if (character.TryGetGroundInfo(out RaycastHit gndInfo))
             {
-                if (Input.Move.magnitude > 0f)
-                    character.HorizontalVelocity += character.Stats.SlideMoveInfluence * Time.fixedDeltaTime * new Vector2(inputDir.x, inputDir.z);
-
-                if (!_isEnding)
-                    character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideDeceleration * Time.fixedDeltaTime);
+                if (character.IsServer || character.LocalInputHandler == null)
+                {
+                    // Use authoritative input.  Add slide influence only if there is non-zero
+                    // movement input.
+                    if (Input.Move.magnitude > 0f)
+                    {
+                        Vector3 inputDir = character.MoveDirection;
+                        character.HorizontalVelocity += character.Stats.SlideMoveInfluence * Time.fixedDeltaTime * new Vector2(inputDir.x, inputDir.z);
+                    }
+                }
                 else
-                    character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideIncreasedDeceleration * Time.fixedDeltaTime);
+                {
+                    // On the client, compute the input direction from the local input and
+                    // orientation.  Normalize the direction to avoid magnitude scaling.
+                    Vector2 localMove = character.LocalInputHandler.move;
+                    if (localMove.magnitude > 0f)
+                    {
+                        Vector3 dir = character.Orientation.transform.forward * localMove.y + character.Orientation.transform.right * localMove.x;
+                        if (dir.magnitude > 1f)
+                            dir.Normalize();
+                        character.HorizontalVelocity += character.Stats.SlideMoveInfluence * Time.fixedDeltaTime * new Vector2(dir.x, dir.z);
+                    }
+                }
 
+                // Apply deceleration while sliding.  When the slide is ending we use
+                // increased deceleration.
+                if (!_isEnding)
+                {
+                    character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideDeceleration * Time.fixedDeltaTime);
+                }
+                else
+                {
+                    character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideIncreasedDeceleration * Time.fixedDeltaTime);
+                }
+
+                // Add additional velocity in the direction of the slope when sliding down.
                 Vector2 slopeDir = new(gndInfo.normal.x, gndInfo.normal.z);
                 if (!(Mathf.Approximately(slopeDir.x, 0f) && Mathf.Approximately(slopeDir.y, 0f)))
                 {
                     slopeDir.Normalize();
                     float n = Mathf.Abs(gndInfo.normal.y - 1);
-                    character.HorizontalVelocity += character.Stats.Gravity * n * 15 * Time.fixedDeltaTime * slopeDir; //TODO rimpiazzare l'operando 15 (è un valore hardcodato)
+                    character.HorizontalVelocity += character.Stats.Gravity * n * 15 * Time.fixedDeltaTime * slopeDir; // TODO: replace 15 with a configurable multiplier if needed
                 }
             }
         }

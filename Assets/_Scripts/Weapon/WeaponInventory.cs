@@ -119,7 +119,7 @@ public class WeaponInventory : NetworkBehaviour
         if (IsOwner)
         {
             //spawn view model
-            Debug.Log($"WeaponInventory: Spawning view model for weapon '{data.weaponName}'");
+            //Debug.Log($"WeaponInventory: Spawning view model for weapon '{data.weaponName}'");
             currentViewModel = Instantiate(data.viewModelPrefab, fpsWeaponSocket, false);
             var wc = currentViewModel.GetComponent<WeaponController>();
             wc?.Initialize(data);
@@ -130,7 +130,7 @@ public class WeaponInventory : NetworkBehaviour
         else
         {
             // spawn world model on non‑owners
-            Debug.Log($"WeaponInventory: Spawning world model for weapon '{data.weaponName}'");
+            //Debug.Log($"WeaponInventory: Spawning world model for weapon '{data.weaponName}'");
             currentWorldModel = Instantiate(data.worldModelPrefab, thirdPersonWeaponSocket, false);
         }
     }

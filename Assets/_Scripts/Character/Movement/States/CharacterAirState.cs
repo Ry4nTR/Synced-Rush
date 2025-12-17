@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace SyncedRush.Character.Movement
 {
-	public class CharacterAirState : CharacterMovementState
+    public class CharacterAirState : CharacterMovementState
     {
         private bool _usedDoubleJump = false;
         private bool _canWallRun = false;
@@ -20,16 +20,23 @@ namespace SyncedRush.Character.Movement
             base.ProcessFixedUpdate();
 
             if (CheckGround())
-            {
-                if (CheckSlideConditions())
-                    return MovementState.Slide;
-                else
-                    return MovementState.Move;
-            }
+                return MovementState.Move;
 
             AirMove();
 
-            if (!Input.Jump)
+            // Determine the jump button state.  On the server use the networked value; on the
+            // client read from the PlayerInputHandler if available.
+            bool jumpInput;
+            if (character.IsServer || character.LocalInputHandler == null)
+            {
+                jumpInput = Input.Jump;
+            }
+            else
+            {
+                jumpInput = character.LocalInputHandler.jump;
+            }
+
+            if (!jumpInput)
             {
                 _previousJumpInput = false;
             }
@@ -90,7 +97,7 @@ namespace SyncedRush.Character.Movement
 
             character.HorizontalVelocity = new Vector2(projectedVelocity.x, projectedVelocity.z);
 
-            if (CheckWallRunConditions(hit))
+            if (CheckWallRunCondition(hit))
             {
                 character.WallRunStartInfo = hit;
                 _canWallRun = true;
@@ -101,14 +108,14 @@ namespace SyncedRush.Character.Movement
         {
             if (character.IsOnGround && character.VerticalVelocity <= 0f)
             {
-                //character.VerticalVelocity = -.1f;
+                character.VerticalVelocity = -.1f;
                 return true;
             }
             else
                 return false;
         }
 
-        private bool CheckWallRunConditions(ControllerColliderHit hit)
+        private bool CheckWallRunCondition(ControllerColliderHit hit)
         {
             if (
                 hit.normal.y < 0.1f
@@ -160,33 +167,29 @@ namespace SyncedRush.Character.Movement
             return false;
         }
 
-        private bool CheckSlideConditions()
-        {
-            Vector3 inputDir = character.MoveDirection;
-            float dot = Vector3.Dot(inputDir, character.Orientation.transform.forward);
-
-            return Input.Crouch && Input.Sprint && dot > -0.1f;
-        }
-
         private void AirMove()
         {
-            Vector3 moveDir = character.MoveDirection;
-
-            if (character.HorizontalVelocity.magnitude > character.Stats.AirAcceleration)
+            if (character.IsServer || character.LocalInputHandler == null)
             {
-                character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity,
-                    new Vector2(moveDir.x, moveDir.z) * character.Stats.AirAcceleration,
-                    Time.fixedDeltaTime * -character.Stats.AirAcceleration * 1);
+                // On the server use the networked input to compute the move direction.
+                Vector3 moveDir = character.MoveDirection;
+                character.HorizontalVelocity = Vector2.MoveTowards(
+                    character.HorizontalVelocity,
+                    new Vector2(moveDir.x, moveDir.z) * character.Stats.RunSpeed,
+                    Time.fixedDeltaTime * character.Stats.RunSpeed * 1);
             }
-
-            character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity,
-                new Vector2(moveDir.x, moveDir.z) * character.Stats.AirAcceleration,
-                Time.fixedDeltaTime * character.Stats.AirAcceleration * 1);
-
-            //if (Input.Move.magnitude > 0f)
-            //    character.HorizontalVelocity += character.Stats.AirAcceleration * Time.fixedDeltaTime * new Vector2(moveDir.x, moveDir.z);
-
-            //character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.AirDeceleration * Time.fixedDeltaTime);
+            else
+            {
+                // On the client compute the move direction from the local input for prediction.
+                Vector2 move = character.LocalInputHandler.move;
+                Vector3 moveDir = character.Orientation.transform.forward * move.y + character.Orientation.transform.right * move.x;
+                if (moveDir.magnitude > 1f)
+                    moveDir.Normalize();
+                character.HorizontalVelocity = Vector2.MoveTowards(
+                    character.HorizontalVelocity,
+                    new Vector2(moveDir.x, moveDir.z) * character.Stats.RunSpeed,
+                    Time.fixedDeltaTime * character.Stats.RunSpeed * 1);
+            }
         }
 
         private void Fall()

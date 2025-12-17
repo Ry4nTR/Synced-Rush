@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace SyncedRush.Character.Movement
 {
-	public class CharacterWallRunState : CharacterMovementState
+    public class CharacterWallRunState : CharacterMovementState
     {
         private float _stepDistance = 0.1f;
         private float _wallSnapLength = 1.0f;
@@ -33,13 +33,27 @@ namespace SyncedRush.Character.Movement
             if (CheckGround())
                 return MovementState.Move;
 
-            if (Input.Jump)
+            // Determine jump input based on context.  On the server use the authoritative
+            // networked input; on the client use the local PlayerInputHandler when
+            // available.  If the player presses jump while wall running, perform a
+            // wall jump and return to the Air state.
+            bool jumpInput;
+            if (character.IsServer || character.LocalInputHandler == null)
+            {
+                jumpInput = Input.Jump;
+            }
+            else
+            {
+                jumpInput = character.LocalInputHandler.jump;
+            }
+
+            if (jumpInput)
             {
                 WallJump();
                 return MovementState.Air;
             }
 
-            
+
             ProcessMovement();
 
             return MovementState.None;
@@ -148,7 +162,7 @@ namespace SyncedRush.Character.Movement
 
             if (Mathf.Approximately(_wallDir.magnitude, 0))
                 return false;
-            
+
             _wallDir.Normalize();
 
             Vector3 startPosition = character.CenterPosition + _wallDir * (character.Controller.radius / 2f);

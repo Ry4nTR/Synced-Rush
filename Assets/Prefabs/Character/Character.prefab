@@ -380,11 +380,13 @@ MonoBehaviour:
   _runSpeed: 5.25
   _jumpHeight: 2
   _jumpCoyoteTime: 0.25
+  _airAcceleration: 3
+  _airDeceleration: 3
   _slideStartBoost: 10
   _slideMoveInfluence: 4
-  _slideDecelleration: 5
-  _slideIncreasedDecelleration: 10
-  _slideIncreasedDecellerationThreshold: 5
+  _slideDeceleration: 10
+  _slideIncreasedDeceleration: 20
+  _slideIncreasedDecelerationThreshold: 70
   _wallRunMinimumSpeed: 1
   _wallRunLookAngleLimit: 110
   _gravity: 9.81
