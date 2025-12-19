@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Unity.Netcode;
+using System.Collections.Generic;
 
 /// <summary>
 /// Legge gli input locali dal PlayerInputHandler (sul client owner)
@@ -19,26 +20,17 @@ public class NetworkPlayerInput : NetworkBehaviour
     private int _sequenceNumber = 0;
 
     // Pending inputs that have been sent to the server but not yet
-    // acknowledged by the authoritative simulation.  Each entry includes
-    // the input data along with its sequence number.  These are kept so
+    // acknowledged by the authoritative simulation. Each entry includes
+    // the input data along with its sequence number. These are kept so
     // that when the client receives an authoritative state from the server
     // (with the last processed sequence), it can discard processed inputs
     // and optionally replay the remaining ones for reconciliation.
-    private readonly System.Collections.Generic.List<MovementInputData> _pendingInputs = new System.Collections.Generic.List<MovementInputData>();
+    private readonly List<MovementInputData> _pendingInputs = new System.Collections.Generic.List<MovementInputData>();
 
     /// <summary>
-    /// A read‑only view of the pending input list.  Can be used by other
-    /// systems to inspect unacknowledged inputs for reconciliation.
+    /// Can be used by other systems to inspect unacknowledged inputs for reconciliation.
     /// </summary>
-    public System.Collections.Generic.IReadOnlyList<MovementInputData> PendingInputs => _pendingInputs;
-
-    /// <summary>
-    /// Aggiunge l'input corrente alla lista dei pacchetti pendenti, invia
-    /// l'input al server e incrementa il contatore di sequenza.  Questa
-    /// chiamata avviene ogni frame sul client proprietario.  Viene creato
-    /// un nuovo MovementInputData con un Sequence univoco.  Il valore
-    /// Sequence viene usato per la predizione e la riconciliazione.
-    /// </summary>
+    public IReadOnlyList<MovementInputData> PendingInputs => _pendingInputs;
 
     /// <summary>
     /// Ultimo input ricevuto dal client, disponibile SOLO sul server.
@@ -69,6 +61,7 @@ public class NetworkPlayerInput : NetworkBehaviour
             Aim = _inputHandler.aim,
             Scroll = _inputHandler.scroll,
             DebugResetPos = _inputHandler.debugResetPos,
+
             // Assign an incrementing sequence number for prediction/reconciliation
             Sequence = ++_sequenceNumber
         };
@@ -76,19 +69,11 @@ public class NetworkPlayerInput : NetworkBehaviour
         // Keep track of the pending input for later reconciliation
         _pendingInputs.Add(inputData);
 
-        // Log di debug per verificare gli input e la sequenza
-        //Debug.Log($"[NetworkPlayerInput] Send input seq {inputData.Sequence}");
-
-        // Mandiamo l'input al server
         SendInputServerRpc(inputData);
     }
 
     /// <summary>
-    /// Chiamato sul client quando riceve la conferma dal server sul
-    /// numero di sequenza dell’ultimo input processato.  Rimuove tutti gli
-    /// input pendenti fino a questo numero (incluso).  Gli input rimanenti
-    /// sono ancora in attesa e potrebbero dover essere riapplicati durante
-    /// la riconciliazione.
+    /// Chiamato sul client quando riceve la conferma dal server sul numero di sequenza dell’ultimo input processato.
     /// </summary>
     /// <param name="lastSequence">L’ultimo numero di sequenza processato dal server.</param>
     public void ConfirmInputUpTo(int lastSequence)
@@ -111,11 +96,12 @@ public class NetworkPlayerInput : NetworkBehaviour
             _pendingInputs.RemoveRange(0, removeCount);
         }
 
-        // Log di debug per verificare quanti input sono stati confermati e rimossi
+        /* Log di debug per verificare quanti input sono stati confermati e rimossi
         if (removeCount > 0)
         {
             UnityEngine.Debug.Log($"[NetworkPlayerInput] ConfirmInputUpTo {lastSequence}, removed {removeCount} inputs");
         }
+        */
     }
 
     [ServerRpc]

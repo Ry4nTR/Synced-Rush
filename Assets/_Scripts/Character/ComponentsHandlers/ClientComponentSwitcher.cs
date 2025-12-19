@@ -51,7 +51,7 @@ public class ClientComponentSwitcher : NetworkBehaviour
         if (audioListener != null) audioListener.enabled = false;
 
 
-        if (moveController != null) moveController.enabled = false;
+        if (moveController != null) moveController.enabled = true;
         if (movementFSM != null) movementFSM.enabled = false;
 
         // Weapon components
