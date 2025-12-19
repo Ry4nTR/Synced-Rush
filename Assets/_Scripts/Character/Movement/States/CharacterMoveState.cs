@@ -12,9 +12,9 @@ namespace SyncedRush.Character.Movement
 
         public override string ToString() { return "MoveState"; }
 
-        public override MovementState ProcessFixedUpdate()
+        public override MovementState ProcessUpdate()
         {
-            base.ProcessFixedUpdate();
+            base.ProcessUpdate();
 
 
             if (!CheckGround())

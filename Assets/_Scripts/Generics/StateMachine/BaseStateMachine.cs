@@ -72,7 +72,7 @@ namespace SyncedRush.Generics
 
         public void ProcessUpdate()
         {
-            TStateEnum newState = CurrentState.ProcessFixedUpdate();
+            TStateEnum newState = CurrentState.ProcessUpdate();
             if (newState != null && !newState.Equals(default(TStateEnum)))
                 ChangeState(newState, _forcedEnterRequested);
         }

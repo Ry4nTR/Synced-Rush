@@ -23,9 +23,9 @@ namespace SyncedRush.Character.Movement
 
         public override string ToString() { return "WallRunState"; }
 
-        public override MovementState ProcessFixedUpdate()
+        public override MovementState ProcessUpdate()
         {
-            base.ProcessFixedUpdate();
+            base.ProcessUpdate();
 
             if (_isWallRunInvalid)
                 return MovementState.Air;
