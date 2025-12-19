@@ -86,7 +86,7 @@ namespace SyncedRush.Character.Movement
                 finalMoveVector = projectedHorizontalMove + Vector3.up * character.VerticalVelocity;
             }
 
-            character.Controller.Move(finalMoveVector * Time.fixedDeltaTime);
+            character.Controller.Move(finalMoveVector * Time.deltaTime);
         }
 
         private bool CheckGround()
@@ -151,7 +151,7 @@ namespace SyncedRush.Character.Movement
                 character.HorizontalVelocity = Vector2.MoveTowards(
                     character.HorizontalVelocity,
                     new Vector2(inputDir.x, inputDir.z) * targetSpeed,
-                    Time.fixedDeltaTime * character.Stats.RunSpeed * 10);
+                    Time.deltaTime * character.Stats.RunSpeed * 10);
             }
             else
             {
@@ -166,7 +166,7 @@ namespace SyncedRush.Character.Movement
                 character.HorizontalVelocity = Vector2.MoveTowards(
                     character.HorizontalVelocity,
                     new Vector2(inputDir.x, inputDir.z) * targetSpeed,
-                    Time.fixedDeltaTime * character.Stats.RunSpeed * 10);
+                    Time.deltaTime * character.Stats.RunSpeed * 10);
             }
         }
     }

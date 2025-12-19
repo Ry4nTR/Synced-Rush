@@ -91,7 +91,7 @@ namespace SyncedRush.Character.Movement
             }
             moveDir.Normalize();
 
-            float frameMovement = (character.HorizontalVelocity * Time.fixedDeltaTime).magnitude;
+            float frameMovement = (character.HorizontalVelocity * Time.deltaTime).magnitude;
 
             int totalSteps = (int)(frameMovement / _stepDistance);
             float remaingDistance = frameMovement % _stepDistance;
@@ -180,7 +180,7 @@ namespace SyncedRush.Character.Movement
 
             //TODO da rimuovere quando non serve più
             Color rayColor = hasHit ? Color.green : Color.red;
-            Debug.DrawRay(startPosition, _wallDir * rayLength, rayColor, Time.fixedDeltaTime);
+            Debug.DrawRay(startPosition, _wallDir * rayLength, rayColor, Time.deltaTime);
 
             Vector2 hitN = new(rayHit.normal.x, rayHit.normal.z);
             Vector2 lookDir = new(character.Orientation.transform.forward.x, character.Orientation.transform.forward.z);
@@ -219,7 +219,7 @@ namespace SyncedRush.Character.Movement
 
             //TODO da rimuovere quando non serve più
             rayColor = hasHit ? Color.green : Color.red;
-            Debug.DrawRay(startPosition, _expectedWallDir * rayLength, rayColor, Time.fixedDeltaTime);
+            Debug.DrawRay(startPosition, _expectedWallDir * rayLength, rayColor, Time.deltaTime);
 
             hitN = new(rayHit.normal.x, rayHit.normal.z);
             lookDir = new(character.Orientation.transform.forward.x, character.Orientation.transform.forward.z);

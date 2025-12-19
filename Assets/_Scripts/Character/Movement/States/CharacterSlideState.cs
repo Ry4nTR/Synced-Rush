@@ -130,7 +130,7 @@ namespace SyncedRush.Character.Movement
                 finalMoveVector = projectedHorizontalMove + Vector3.up * character.VerticalVelocity;
             }
 
-            character.Controller.Move(finalMoveVector * Time.fixedDeltaTime);
+            character.Controller.Move(finalMoveVector * Time.deltaTime);
         }
 
         private bool CheckGround()
@@ -162,7 +162,7 @@ namespace SyncedRush.Character.Movement
                     if (Input.Move.magnitude > 0f)
                     {
                         Vector3 inputDir = character.MoveDirection;
-                        character.HorizontalVelocity += character.Stats.SlideMoveInfluence * Time.fixedDeltaTime * new Vector2(inputDir.x, inputDir.z);
+                        character.HorizontalVelocity += character.Stats.SlideMoveInfluence * Time.deltaTime * new Vector2(inputDir.x, inputDir.z);
                     }
                 }
                 else
@@ -175,7 +175,7 @@ namespace SyncedRush.Character.Movement
                         Vector3 dir = character.Orientation.transform.forward * localMove.y + character.Orientation.transform.right * localMove.x;
                         if (dir.magnitude > 1f)
                             dir.Normalize();
-                        character.HorizontalVelocity += character.Stats.SlideMoveInfluence * Time.fixedDeltaTime * new Vector2(dir.x, dir.z);
+                        character.HorizontalVelocity += character.Stats.SlideMoveInfluence * Time.deltaTime * new Vector2(dir.x, dir.z);
                     }
                 }
 
@@ -183,11 +183,11 @@ namespace SyncedRush.Character.Movement
                 // increased deceleration.
                 if (!_isEnding)
                 {
-                    character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideDeceleration * Time.fixedDeltaTime);
+                    character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideDeceleration * Time.deltaTime);
                 }
                 else
                 {
-                    character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideIncreasedDeceleration * Time.fixedDeltaTime);
+                    character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideIncreasedDeceleration * Time.deltaTime);
                 }
 
                 // Add additional velocity in the direction of the slope when sliding down.
@@ -196,7 +196,7 @@ namespace SyncedRush.Character.Movement
                 {
                     slopeDir.Normalize();
                     float n = Mathf.Abs(gndInfo.normal.y - 1);
-                    character.HorizontalVelocity += character.Stats.Gravity * n * 15 * Time.fixedDeltaTime * slopeDir; // TODO: replace 15 with a configurable multiplier if needed
+                    character.HorizontalVelocity += character.Stats.Gravity * n * 15 * Time.deltaTime * slopeDir; // TODO: replace 15 with a configurable multiplier if needed
                 }
             }
         }

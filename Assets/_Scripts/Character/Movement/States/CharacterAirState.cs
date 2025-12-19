@@ -60,7 +60,7 @@ namespace SyncedRush.Character.Movement
 
             ProcessMovement();
 
-            _coyoteTimer = Mathf.MoveTowards(_coyoteTimer, 0f, Time.fixedDeltaTime);
+            _coyoteTimer = Mathf.MoveTowards(_coyoteTimer, 0f, Time.deltaTime);
 
             return MovementState.None;
         }
@@ -148,7 +148,7 @@ namespace SyncedRush.Character.Movement
 
                 //TODO da rimuovere quando non serve più
                 Color rayColor = hasHit ? Color.green : Color.red;
-                Debug.DrawRay(startPosition, _wallDir * rayLength, rayColor, Time.fixedDeltaTime);
+                Debug.DrawRay(startPosition, _wallDir * rayLength, rayColor, Time.deltaTime);
 
                 Vector2 hitN = new(rayHit.normal.x, rayHit.normal.z);
                 Vector2 lookDir = new(character.Orientation.transform.forward.x, character.Orientation.transform.forward.z);
@@ -176,7 +176,7 @@ namespace SyncedRush.Character.Movement
                 character.HorizontalVelocity = Vector2.MoveTowards(
                     character.HorizontalVelocity,
                     new Vector2(moveDir.x, moveDir.z) * character.Stats.RunSpeed,
-                    Time.fixedDeltaTime * character.Stats.RunSpeed * 1);
+                    Time.deltaTime * character.Stats.RunSpeed * 1);
             }
             else
             {
@@ -188,13 +188,13 @@ namespace SyncedRush.Character.Movement
                 character.HorizontalVelocity = Vector2.MoveTowards(
                     character.HorizontalVelocity,
                     new Vector2(moveDir.x, moveDir.z) * character.Stats.RunSpeed,
-                    Time.fixedDeltaTime * character.Stats.RunSpeed * 1);
+                    Time.deltaTime * character.Stats.RunSpeed * 1);
             }
         }
 
         private void Fall()
         {
-            character.VerticalVelocity -= (character.Stats.Gravity * Time.fixedDeltaTime);
+            character.VerticalVelocity -= (character.Stats.Gravity * Time.deltaTime);
         }
 
         private void Jump()

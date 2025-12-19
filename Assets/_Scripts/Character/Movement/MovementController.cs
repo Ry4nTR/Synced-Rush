@@ -144,7 +144,7 @@ public class MovementController : NetworkBehaviour
             _animator = GetComponentInChildren<Animator>();
     }
 
-    private void FixedUpdate()
+    private void Update()
     {
         if (!IsSpawned)
             return;
@@ -153,7 +153,7 @@ public class MovementController : NetworkBehaviour
         if (IsServer)
         {
             CheckGround();
-            _characterFSM.ProcessFixedUpdate();
+            _characterFSM.ProcessUpdate();
             _serverPosition.Value = transform.position;
             _lastProcessedSequence.Value = _netInput.ServerInput.Sequence;
             return;
@@ -163,7 +163,7 @@ public class MovementController : NetworkBehaviour
         if (IsOwner)
         {
             CheckGround();
-            _characterFSM.ProcessFixedUpdate();
+            _characterFSM.ProcessUpdate();
             _netInput.ConfirmInputUpTo(_lastProcessedSequence.Value);
 
             Vector3 authoritative = _serverPosition.Value;
@@ -212,7 +212,7 @@ public class MovementController : NetworkBehaviour
 
         //TODO da rimuovere quando non serve più
         Color rayColor = hasHit ? Color.green : Color.red;
-        Debug.DrawRay(startPosition, Vector3.down * rayLength, rayColor, Time.fixedDeltaTime);
+        Debug.DrawRay(startPosition, Vector3.down * rayLength, rayColor, Time.deltaTime);
 
         _groundInfo = hit;
         IsOnGround = hasHit;

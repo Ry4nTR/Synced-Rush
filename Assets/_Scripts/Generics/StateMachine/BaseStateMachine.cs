@@ -70,7 +70,7 @@ namespace SyncedRush.Generics
                 Debug.LogError("Stato non trovato!");
         }
 
-        public void ProcessFixedUpdate()
+        public void ProcessUpdate()
         {
             TStateEnum newState = CurrentState.ProcessFixedUpdate();
             if (newState != null && !newState.Equals(default(TStateEnum)))
