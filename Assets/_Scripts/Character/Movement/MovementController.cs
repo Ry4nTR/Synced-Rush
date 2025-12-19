@@ -59,15 +59,15 @@ public class MovementController : NetworkBehaviour
     private RaycastHit _groundInfo;
 
     /// <summary>
-    /// Vettore di movimento orizzontale del character. Indica lo spostamento orizzontale ad ogni frame del FixedUpdate
+    /// Vettore di movimento orizzontale del character.
     /// </summary>
     public Vector2 HorizontalVelocity { get; set; }
     /// <summary>
-    /// Valore di movimento verticale del character. Indica lo spostamento verticale ad ogni frame del FixedUpdate
+    /// Valore di movimento verticale del character.
     /// </summary>
     public float VerticalVelocity { get; set; }
     /// <summary>
-    /// Vettore di movimento tridimensionale del character. Indica lo spostamento orizzontale e verticale ad ogni frame del FixedUpdate.<br/>
+    /// Vettore di movimento tridimensionale del character. Indica lo spostamento orizzontale e verticale.<br/>
     /// Internamente la velocity rimane comunque divisa fra <seealso cref="HorizontalVelocity"/> e <seealso cref="VerticalVelocity"/>.
     /// </summary>
     public Vector3 TotalVelocity
