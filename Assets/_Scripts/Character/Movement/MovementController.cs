@@ -1,4 +1,5 @@
 ﻿using SyncedRush.Character.Movement;
+using System;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -188,6 +189,7 @@ public class MovementController : NetworkBehaviour
         // 3. Client remoto: segue il server
         // Usa remoteSmoothing per interpolare o assegnare diretto.
         Vector3 target = _serverPosition.Value;
+
         if (remoteSmoothing >= 1f)
             transform.position = target;
         else

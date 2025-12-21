@@ -79,7 +79,7 @@ public class ClientComponentSwitcher : NetworkBehaviour
         if (audioListener != null) audioListener.enabled = isOwner;
 
         // SERVER-ONLY components (movement simulation)
-        if (moveController != null) moveController.enabled = isServer || isOwner;
+        if (moveController != null) moveController.enabled = true;
         if (movementFSM != null) movementFSM.enabled = isServer || isOwner;
 
         // Enable weapon systems for owner and server appropriately. If weapon

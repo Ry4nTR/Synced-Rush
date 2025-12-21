@@ -45,36 +45,6 @@ namespace SyncedRush.Character.Movement
             //_previousState = MovementState.Move;
         }
 
-        /*
-        FALLIMENTO MISERABILE NEL PROVARE A METTERE IL TRIGGER PER L'ANIMAZIONE DEL SALTO QUI.
-        LO LASCIO COSI SAI CHE METODO VA USATO PER AVVIARE IL TRIGGER
-
-        private void FixedUpdate()
-        {
-            MovementState oldState = CurrentStateEnum;
-
-            ProcessFixedUpdate(); // Calls the BaseStateMachine logic
-
-            MovementState newState = CurrentStateEnum;
-
-            // Detect entering Jump
-            if (newState == MovementState.Jump && oldState != MovementState.Jump)
-            {
-                _movementComponent.Anim.SetTrigger("JumpTrigger");
-                _movementComponent.Anim.SetBool("IsJumping", true);
-            }
-
-            // Detect exiting Jump
-            if (oldState == MovementState.Jump && newState != MovementState.Jump)
-            {
-                _movementComponent.Anim.SetBool("IsJumping", false);
-            }
-
-            _previousState = newState;
-        }
-        */
-
-
         public void ProcessCollision(ControllerColliderHit hit)
         {
             CurrentState.ProcessCollision(hit);

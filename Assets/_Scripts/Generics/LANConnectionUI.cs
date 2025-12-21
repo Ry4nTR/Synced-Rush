@@ -47,7 +47,6 @@ public class LANConnectionUI : MonoBehaviour
     public void OnHostClicked()
     {
         string localIP = GetLocalIPAddress();
-        transport.ConnectionData.Address = localIP;
 
         if (networkManager.StartHost())
         {
