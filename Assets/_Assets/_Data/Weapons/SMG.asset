@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a790ab0243820d42a8a07a6a5e50bde, type: 3}
+  m_Name: SMG
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponData
+  weaponName: SMG
+  weaponType: 1
+  weaponID: 2
+  damage: 10
+  fireRate: 0.17
+  range: 77
+  criticalMultiplier: 1.5
+  falloffStartDistance: 10
+  falloffEndDistance: 77
+  minimumDamage: 0.1
+  magazineSize: 30
+  maxAmmo: 120
+  reloadTime: 1.6
+  baseSpread: 0
+  sprintSpread: 0
+  jumpSpread: 0
+  crouchSpreadMultiplier: 0.7
+  aimSpreadMultiplier: 0.5
+  spreadRecoveryRate: 0
+  spreadIncreasePerShot: 0
+  maxSpread: 0
+  recoilPattern: {x: 0, y: 0}
+  recoilRecoverySpeed: 0
+  weaponPrefab: {fileID: 1019066457430675845, guid: d5a919ce978b8a8468d9129e244d19b0, type: 3}
+  shootSound: {fileID: 0}
+  reloadSound: {fileID: 0}
+  emptySound: {fileID: 0}
+  muzzleFlashPrefab: {fileID: 0}
+  bulletTracerPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 0}
+  aimSpeed: 1
+  shootAnimationTrigger: Shoot
+  reloadAnimationTrigger: Reload
+  viewModelPrefab: {fileID: 1019066457430675845, guid: d5a919ce978b8a8468d9129e244d19b0, type: 3}
+  worldModelPrefab: {fileID: 1019066457430675845, guid: 0d243808bb1400e4c9c8838aab9ddf9e, type: 3}

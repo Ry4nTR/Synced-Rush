@@ -86,6 +86,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "ToggleWeaponPanel",
+                    "type": "Button",
+                    "id": "ed2ef5d3-4164-4c7a-83b0-46abd4841691",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -341,6 +350,17 @@
                     "action": "DebugResetPos",
                     "isComposite": false,
                     "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "cc8bd64b-6c97-409d-8ba5-671208f46eca",
+                    "path": "<Keyboard>/b",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ToggleWeaponPanel",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         },
@@ -348,33 +368,6 @@
             "name": "UI",
             "id": "70085451-4f3c-4bff-b838-a9ce77f3aa7c",
             "actions": [
-                {
-                    "name": "Navigate",
-                    "type": "PassThrough",
-                    "id": "6755731e-0fbf-4caf-9f9f-56c00a4fb492",
-                    "expectedControlType": "Vector2",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "Submit",
-                    "type": "Button",
-                    "id": "55b70616-6d4e-4e8a-9a31-dd1b60098152",
-                    "expectedControlType": "Button",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "Cancel",
-                    "type": "Button",
-                    "id": "69082c33-4224-47e1-9647-be2a3704ef61",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
                 {
                     "name": "Point",
                     "type": "PassThrough",
@@ -394,19 +387,10 @@
                     "initialStateCheck": true
                 },
                 {
-                    "name": "RightClick",
+                    "name": "Navigate",
                     "type": "PassThrough",
-                    "id": "ac9d177a-73c5-4675-af18-920b0a7aa6df",
-                    "expectedControlType": "Button",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "MiddleClick",
-                    "type": "PassThrough",
-                    "id": "888cc643-94b6-40ce-a68a-7f115e2fda26",
-                    "expectedControlType": "Button",
+                    "id": "6755731e-0fbf-4caf-9f9f-56c00a4fb492",
+                    "expectedControlType": "Vector2",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -523,28 +507,6 @@
                 },
                 {
                     "name": "",
-                    "id": "274b4e02-65df-42f1-be8b-f463d3d40d53",
-                    "path": "*/{Submit}",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard&Mouse;Gamepad;Touch;Joystick;XR",
-                    "action": "Submit",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "73c37254-729e-4ceb-b886-0330305d8ff2",
-                    "path": "*/{Cancel}",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard&Mouse;Gamepad;Touch;Joystick;XR",
-                    "action": "Cancel",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "559cd40c-816d-4fc2-92cf-6ba9427642e4",
                     "path": "<Mouse>/position",
                     "interactions": "",
@@ -573,28 +535,6 @@
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
                     "action": "ScrollWheel",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "0000e096-9614-46df-a269-fbeb32197310",
-                    "path": "<Mouse>/rightButton",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard&Mouse",
-                    "action": "RightClick",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "7988a232-0dae-4eb8-a6a9-db8a08b3d4d2",
-                    "path": "<Mouse>/middleButton",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard&Mouse",
-                    "action": "MiddleClick",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

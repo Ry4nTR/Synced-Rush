@@ -40,25 +40,27 @@ public class ClientComponentSwitcher : NetworkBehaviour
 
     private void Awake()
     {
-        // Disable everything at startup, OnNetworkSpawn decides what to enable
+        // INPUT components
         if (playerInput != null) playerInput.enabled = false;
         if (inputHandler != null) inputHandler.enabled = false;
 
+        // LOOK components
         if (lookController != null) lookController.enabled = false;
         if (mainCamera != null) mainCamera.enabled = false;
         if (brain != null) brain.enabled = false;
         if (cineCam != null) cineCam.enabled = false;
         if (audioListener != null) audioListener.enabled = false;
 
-
+        // MOVEMENT components
         if (moveController != null) moveController.enabled = true;
         if (movementFSM != null) movementFSM.enabled = false;
 
-        // Weapon components
+        // WEAPON components
         if (weaponController != null) weaponController.enabled = false;
         if (shootingSystem != null) shootingSystem.enabled = false;
+
+        // HEALTH component
         if (healthSystem != null) healthSystem.enabled = false;
-        if (weaponNetworkHandler != null) weaponNetworkHandler.enabled = false;
     }
 
     public override void OnNetworkSpawn()
@@ -68,56 +70,49 @@ public class ClientComponentSwitcher : NetworkBehaviour
         bool isOwner = IsOwner;
         bool isServer = IsServer;
 
-        // OWNER-ONLY components (camera, input, look)
+        // INPUT components (owner only)
         if (playerInput != null) playerInput.enabled = isOwner;
         if (inputHandler != null) inputHandler.enabled = isOwner;
+
+        // LOOK components (owner only)
         if (lookController != null) lookController.enabled = isOwner;
 
+        // CAMERA components (owner only)
         if (mainCamera != null) mainCamera.enabled = isOwner;
         if (brain != null) brain.enabled = isOwner;
         if (cineCam != null) cineCam.enabled = isOwner;
         if (audioListener != null) audioListener.enabled = isOwner;
 
-        // SERVER-ONLY components (movement simulation)
+        // MOVEMENT components (server + owner)
         if (moveController != null) moveController.enabled = true;
         if (movementFSM != null) movementFSM.enabled = isServer || isOwner;
 
-        // Enable weapon systems for owner and server appropriately. If weapon
-        // components have not been registered yet (e.g. before a weapon is
-        // equipped), this call will not have any effect. When RegisterWeapon
-        // is invoked, these components will be enabled based on authority.
+        // WEAPON components
         UpdateWeaponComponentState();
+
+        // HEALTH component (server only)
         if (healthSystem != null) healthSystem.enabled = isServer;
     }
 
     /// <summary>
-    /// Registers weapon-related components when a weapon is spawned. The
-    /// inventory system should call this to wire up the runtime weapon scripts
-    /// to the component switcher. This allows the switcher to enable or
-    /// disable the weapon controller, shooting system and network handler
-    /// according to network authority.
+    /// Registers weapon-related components when a weapon is spawned.
     /// </summary>
-    /// <param name="weaponCtrl">The weapon controller on the spawned view model.</param>
-    /// <param name="shootSys">The shooting system on the spawned view model.</param>
-    /// <param name="netHandler">The network handler on the spawned view model.</param>
-    public void RegisterWeapon(WeaponController weaponCtrl, ShootingSystem shootSys, WeaponNetworkHandler netHandler)
+    public void RegisterWeapon(WeaponController wc, ShootingSystem ss, WeaponNetworkHandler wh)
     {
-        weaponController = weaponCtrl;
-        shootingSystem = shootSys;
-        weaponNetworkHandler = netHandler;
+        weaponController = wc;
+        shootingSystem = ss;
+        weaponNetworkHandler = wh;
         weaponComponentsInitialized = true;
         UpdateWeaponComponentState();
     }
 
     /// <summary>
-    /// Enables or disables weapon components based on current ownership and
-    /// server status. Called from OnNetworkSpawn and after a weapon is
-    /// registered to ensure the correct state.
+    /// Enables or disables weapon components based on current ownership and server status.
     /// </summary>
     private void UpdateWeaponComponentState()
     {
         if (!weaponComponentsInitialized)
-            return; // Skip updating if weapon components haven't been registered yet
+            return;
 
         bool isOwner = IsOwner;
         bool isServer = IsServer;
@@ -125,4 +120,50 @@ public class ClientComponentSwitcher : NetworkBehaviour
         if (shootingSystem != null) shootingSystem.enabled = isOwner;
         if (weaponNetworkHandler != null) weaponNetworkHandler.enabled = isServer || isOwner;
     }
+
+    /// <summary>
+    /// Enables gameplay-related components for the owning client.
+    /// </summary>
+    public void EnableGameplay()
+    {
+        if (!IsOwner) return;
+
+        if (playerInput != null)
+            playerInput.SwitchCurrentActionMap("Player");
+
+        if (inputHandler != null)
+            inputHandler.enabled = true;
+
+        if (lookController != null)
+            lookController.enabled = true;
+
+        if (mainCamera != null) mainCamera.enabled = true;
+        if (brain != null) brain.enabled = true;
+        if (cineCam != null) cineCam.enabled = true;
+        if (audioListener != null) audioListener.enabled = true;
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    /// <summary>
+    /// Enables UI-related components for the owning client.
+    /// </summary>
+    public void EnableUI()
+    {
+        if (!IsOwner) return;
+
+        if (playerInput != null)
+            playerInput.SwitchCurrentActionMap("UI");
+
+        if (inputHandler != null)
+            inputHandler.enabled = false;
+
+        if (lookController != null)
+            lookController.enabled = false;
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
 }

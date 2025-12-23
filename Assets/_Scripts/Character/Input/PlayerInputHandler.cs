@@ -26,6 +26,7 @@ public class PlayerInputHandler : MonoBehaviour
     public bool fire;
     public bool aim;
     public float scroll;
+    public bool toggleWeaponPanel;
 
     //TODO da rimuovere quando non serve più
     public bool debugResetPos;
@@ -46,21 +47,13 @@ public class PlayerInputHandler : MonoBehaviour
 
     // 4) Event facoltativi
     public event Action<Vector2> OnLookEvent = delegate { };
+    public event Action OnToggleWeaponPanelEvent = delegate { };
 
     // 5) MonoBehaviour methods
     private void Awake()
     {
         _controls = new PlayerInputSystem();
-        if (_controls == null)
-        {
-            Debug.LogError("There is an error intializing player input map!");
-        }
-
         _playerInput = GetComponent<PlayerInput>();
-        if (_playerInput == null)
-        {
-            Debug.LogError("Can't find the PlayerInputComponent!");
-        }
     }
 
     private void OnEnable()
@@ -85,6 +78,8 @@ public class PlayerInputHandler : MonoBehaviour
         fire = false;
         aim = false;
         scroll = 0f;
+        toggleWeaponPanel = false;
+
 
         //TODO da rimuovere quando non serve più
         debugResetPos = false;
@@ -140,12 +135,24 @@ public class PlayerInputHandler : MonoBehaviour
         ScrollInput(context.ReadValue<float>());
     }
 
+    public void OnToggleWeaponPanel(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+        {
+            toggleWeaponPanel = true;
+            OnToggleWeaponPanelEvent.Invoke();
+        }
+    }
+
     //TODO da rimuovere quando non serve più
     public void OnDebugResetPos(InputAction.CallbackContext context)
     {
         debugResetPos = context.performed;
     }
 #endif
+
+
+
 
     // 7) Helper publici (altri script leggono questi valori)
     public void MoveInput(Vector2 newMove)
@@ -219,8 +226,7 @@ public class PlayerInputHandler : MonoBehaviour
         _controls.Player.Aim.performed += OnAim;
         _controls.Player.Aim.canceled += OnAim;
 
-        //_playerInput.Player.Scroll.performed += OnScroll;
-        //_playerInput.Player.Scroll.canceled += OnScroll;
+        _controls.Player.ToggleWeaponPanel.performed += OnToggleWeaponPanel;
 
         //TODO da rimuovere quando non serve più
         _controls.Player.DebugResetPos.performed += OnDebugResetPos;
@@ -249,8 +255,7 @@ public class PlayerInputHandler : MonoBehaviour
         _controls.Player.Aim.performed -= OnAim;
         _controls.Player.Aim.canceled -= OnAim;
 
-        //_playerInput.Player.Scroll.performed -= OnScroll;
-        //_playerInput.Player.Scroll.canceled -= OnScroll;
+        _controls.Player.ToggleWeaponPanel.performed -= OnToggleWeaponPanel;
 
         //TODO da rimuovere quando non serve più
         _controls.Player.DebugResetPos.performed -= OnDebugResetPos;

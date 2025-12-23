@@ -189,7 +189,8 @@ GameObject:
   - component: {fileID: -2986967647247276543}
   - component: {fileID: 2476011265268299710}
   - component: {fileID: 245510072461140579}
-  - component: {fileID: 3329557527991648870}
+  - component: {fileID: -5584705844747821917}
+  - component: {fileID: 3468843234944903985}
   - component: {fileID: 3812799252896454869}
   m_Layer: 6
   m_Name: Character
@@ -226,7 +227,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3354322385
+  GlobalObjectIdHash: 2877608786
   InScenePlacedSourceGlobalObjectIdHash: 1514268395
   DeferredDespawnTick: 0
   Ownership: 1
@@ -278,7 +279,7 @@ MonoBehaviour:
   audioListener: {fileID: 2746145554710722952}
   weaponController: {fileID: 0}
   shootingSystem: {fileID: 0}
-  healthSystem: {fileID: 3329557527991648870}
+  healthSystem: {fileID: 0}
   weaponNetworkHandler: {fileID: 0}
 --- !u!114 &5363198753706274393
 MonoBehaviour:
@@ -405,7 +406,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SyncedRush.Character.Movement.CharacterMovementFSM
   _startingState: 1
---- !u!114 &3329557527991648870
+--- !u!114 &-5584705844747821917
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -414,13 +415,29 @@ MonoBehaviour:
   m_GameObject: {fileID: 2338101018676570622}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ac15389b066e7bf4ba607080237eacf7, type: 3}
+  m_Script: {fileID: 11500000, guid: 6efdd46991d14ed4eb9d1b8e10a8fecf, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HealthSystem
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponLoadoutState
   ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 100
-  currentHealth:
-    m_InternalValue: 0
+  EquippedWeaponId:
+    m_InternalValue: -1
+--- !u!114 &3468843234944903985
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2338101018676570622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87d3e39ff1af9a545b2b3df573fa9334, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponInventory
+  ShowTopMostFoldoutHeaderGroup: 1
+  weaponDatabase: {fileID: 11400000, guid: ee9ff1f69c7b7854db6be0df288af04f, type: 2}
+  fpsWeaponSocket: {fileID: 7128583358958515608}
+  tpsWeaponSocket: {fileID: 1454215765898943774}
+  componentSwitcher: {fileID: 2123195640468736219}
 --- !u!143 &3812799252896454869
 CharacterController:
   m_ObjectHideFlags: 0
@@ -967,6 +984,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3ffba53454f86e24bb5b1df58bdbcd96, type: 3}
+--- !u!4 &7128583358958515608 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8273367606726232903, guid: 3ffba53454f86e24bb5b1df58bdbcd96, type: 3}
+  m_PrefabInstance: {fileID: 1170153921665023711}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &8634518842087377366 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7489136438518658825, guid: 3ffba53454f86e24bb5b1df58bdbcd96, type: 3}
@@ -1042,5 +1064,10 @@ GameObject:
 --- !u!4 &811473960634992080 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7689348961251948978, guid: 5be31c0eec022274a87fa6114adf2f1b, type: 3}
+  m_PrefabInstance: {fileID: 7058514350596701282}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1454215765898943774 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8492250610467201404, guid: 5be31c0eec022274a87fa6114adf2f1b, type: 3}
   m_PrefabInstance: {fileID: 7058514350596701282}
   m_PrefabAsset: {fileID: 0}

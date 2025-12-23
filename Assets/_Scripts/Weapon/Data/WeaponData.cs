@@ -74,7 +74,6 @@ public class WeaponData : ScriptableObject
     [Header("Models")]
     public GameObject viewModelPrefab; // First-person model prefab
     public GameObject worldModelPrefab; // Third-person model prefab
-
 }
 
 /// <summary>
@@ -82,10 +81,12 @@ public class WeaponData : ScriptableObject
 /// </summary>
 public enum WeaponType
 {
-    AR,
-    SMG,
-    Sniper,
+    AssaultRifle,
+    SubmachineGun,
+    SniperRifle,
     Pistol,
     Shotgun,
-    Other
+    LightMachineGun,
+    Melee,
+    GrenadeLauncher
 }
