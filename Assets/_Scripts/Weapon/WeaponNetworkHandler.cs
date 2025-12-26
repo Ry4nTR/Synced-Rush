@@ -20,9 +20,6 @@ public class WeaponNetworkHandler : NetworkBehaviour
     /// Called by the WeaponController when the player fires. Only the owner should invoke
     /// this method. Sends a ServerRpc to perform authoritative hit detection.
     /// </summary>
-    /// <param name="origin">The origin of the shot (camera position).</param>
-    /// <param name="direction">The forward direction of the shot.</param>
-    /// <param name="spread">The spread value applied on the client for hit prediction.</param>
     public void NotifyShot(Vector3 origin, Vector3 direction, float spread)
     {
         if (!IsOwner)
@@ -47,15 +44,17 @@ public class WeaponNetworkHandler : NetworkBehaviour
             float distance = Vector3.Distance(origin, hit.point);
             float damage = weaponController.CalculateDamageByDistance(distance);
 
-            // If the hit object has a HealthSystem, apply damage
-            if (hit.collider.TryGetComponent<HealthSystem>(out var health))
+            if (hit.collider.TryGetComponent<Hitbox>(out var hitbox))
             {
-                health.TakeDamage(damage, rpcParams.Receive.SenderClientId);
+                HealthSystem health = hitbox.GetHealthSystem();
+                if (health != null)
+                {
+                    float finalDamage = damage * hitbox.damageMultiplier;
+                    health.TakeDamage(finalDamage, rpcParams.Receive.SenderClientId);
+                }
             }
+
             // Broadcast the hit to all clients for visual feedback.
-            // We send a NetworkObjectReference rather than a NetworkObject because RPC
-            // parameters must implement INetworkSerializable. NetworkObjectReference
-            // handles serialization for network objects automatically.
             NetworkObject netObj = hit.collider.GetComponent<NetworkObject>();
             if (netObj != null)
             {
@@ -65,12 +64,8 @@ public class WeaponNetworkHandler : NetworkBehaviour
     }
 
     /// <summary>
-    /// Broadcasts hit information to all clients so they can spawn impact VFX. This
-    /// does not apply damage – only visual feedback.
+    /// Broadcasts hit information to all clients so they can spawn impact VFX. (only visual feedback)
     /// </summary>
-    /// <param name="hitPoint">The point in world space where the shot hit.</param>
-    /// <param name="hitNormal">The normal of the surface hit.</param>
-    /// <param name="target">A reference to the network object that was hit.</param>
     [ClientRpc]
     private void NotifyHitClientRpc(Vector3 hitPoint, Vector3 hitNormal, NetworkObjectReference targetRef)
     {
@@ -81,13 +76,8 @@ public class WeaponNetworkHandler : NetworkBehaviour
     }
 
     /// <summary>
-    /// Requests damage be applied to a specific networked object. Used when the
-    /// client performs a local raycast and needs to forward hit information to
-    /// the server (e.g., projectile impacts).
+    /// Requests damage be applied to a specific networked object.
     /// </summary>
-    /// <param name="target">The GameObject that was hit.</param>
-    /// <param name="damage">The amount of damage to apply.</param>
-    /// <param name="hitPoint">The hit point in world space.</param>
     public void RequestDamage(GameObject target, float damage, Vector3 hitPoint)
     {
         if (!IsOwner)

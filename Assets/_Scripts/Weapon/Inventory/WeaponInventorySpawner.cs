@@ -78,7 +78,6 @@ public class WeaponInventorySpawner : NetworkBehaviour
             }
 
             data = weaponDatabase.AllWeapons[0];
-            Debug.Log($"[WeaponSpawner] No weapon selected, using default: {data.weaponName}");
         }
         else
         {

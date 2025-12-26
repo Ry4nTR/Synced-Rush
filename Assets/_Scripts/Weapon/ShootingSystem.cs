@@ -13,6 +13,13 @@ public class ShootingSystem : MonoBehaviour
     private WeaponController weaponController;
     private WeaponNetworkHandler networkHandler;
 
+    // =========================
+    // DEBUG RAY (GIZMOS)
+    // =========================
+    private Vector3 lastRayOrigin;
+    private Vector3 lastRayEnd;
+    private bool hasLastRay;
+
     private void Awake()
     {
         weaponController = GetComponent<WeaponController>();
@@ -48,10 +55,9 @@ public class ShootingSystem : MonoBehaviour
 
         if (hasHit)
         {
-            Debug.Log("[ShootingSystem] PerformShoot HIT");
-
-            // Draw ONLY until hit point
-            Debug.DrawLine(origin, hit.point, Color.red, 5f);
+            lastRayOrigin = origin;
+            lastRayEnd = hit.point;
+            hasLastRay = true;
 
             ShowImpactEffect(hit.point, hit.normal);
             ShowBulletTracer(origin, hit.point);
@@ -65,9 +71,11 @@ public class ShootingSystem : MonoBehaviour
         {
             Vector3 endPoint = origin + finalDir * weaponController.weaponData.range;
 
-            ShowBulletTracer(origin, endPoint);
+            lastRayOrigin = origin;
+            lastRayEnd = endPoint;
+            hasLastRay = true;
 
-            Debug.DrawLine(origin, endPoint, Color.red, 1f);
+            ShowBulletTracer(origin, endPoint);
         }
 
         PlayMuzzleFlash();
@@ -134,5 +142,17 @@ public class ShootingSystem : MonoBehaviour
         {
             AudioSource.PlayClipAtPoint(weaponController.weaponData.shootSound, transform.position);
         }
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (!hasLastRay)
+            return;
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawLine(lastRayOrigin, lastRayEnd);
+
+        // Small sphere to clearly show the hit point
+        Gizmos.DrawSphere(lastRayEnd, 0.05f);
     }
 }
