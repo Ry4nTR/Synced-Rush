@@ -92,6 +92,11 @@ public class ClientComponentSwitcher : NetworkBehaviour
 
         // HEALTH component (server only)
         if (healthSystem != null) healthSystem.enabled = isServer;
+
+        if (IsOwner)
+        {
+            UIManager.Instance.RegisterPlayer(gameObject);
+        }
     }
 
     /// <summary>
@@ -104,6 +109,11 @@ public class ClientComponentSwitcher : NetworkBehaviour
         weaponNetworkHandler = wh;
         weaponComponentsInitialized = true;
         UpdateWeaponComponentState();
+
+        if (IsOwner)
+        {
+            UIManager.Instance.RegisterWeapon(wc);
+        }
     }
 
     /// <summary>

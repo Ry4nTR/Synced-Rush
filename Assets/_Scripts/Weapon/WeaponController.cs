@@ -86,7 +86,6 @@ public class WeaponController : MonoBehaviour
             return;
         }
 
-
         // Update the next allowed fire time based on fire rate (shots per second)
         nextFireTime = Time.time + (1f / weaponData.fireRate);
 

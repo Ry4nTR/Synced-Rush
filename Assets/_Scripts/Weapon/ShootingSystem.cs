@@ -8,6 +8,8 @@ using UnityEngine;
 /// </summary>
 public class ShootingSystem : MonoBehaviour
 {
+    [SerializeField] private LayerMask hitMask;
+
     private WeaponController weaponController;
     private WeaponNetworkHandler networkHandler;
 
@@ -31,45 +33,43 @@ public class ShootingSystem : MonoBehaviour
         if (weaponController == null || weaponController.weaponData == null)
             return;
 
-        // 1. Apply spread to the direction
         Vector3 finalDir = ApplySpread(direction, spread);
 
-        // 2. Local raycast for immediate feedback
-        if (Physics.Raycast(origin, finalDir, out RaycastHit hit, weaponController.weaponData.range))
+        RaycastHit hit;
+
+        bool hasHit = Physics.Raycast(
+            origin,
+            finalDir,
+            out hit,
+            weaponController.weaponData.range,
+            hitMask,
+            QueryTriggerInteraction.Ignore
+        );
+
+        if (hasHit)
         {
-            // Shootinig DrawLine(TESTING) <---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-            Debug.Log("[ShootingSystem] PerformShoot CALLED");
+            Debug.Log("[ShootingSystem] PerformShoot HIT");
 
-            Debug.DrawRay(
-                origin,
-                direction * weaponController.weaponData.range,
-                Color.red,
-                5f   // FIVE SECONDS
-            );
+            // Draw ONLY until hit point
+            Debug.DrawLine(origin, hit.point, Color.red, 5f);
 
-
-            // 3. Spawn impact effect and tracer locally
             ShowImpactEffect(hit.point, hit.normal);
             ShowBulletTracer(origin, hit.point);
 
-            // 4. Calculate damage based on distance for falloff
             float distance = Vector3.Distance(origin, hit.point);
             float damage = weaponController.CalculateDamageByDistance(distance);
 
-            // 5. Request damage via the network handler
             networkHandler?.RequestDamage(hit.collider.gameObject, damage, hit.point);
         }
         else
         {
-            // Miss: show tracer to max range
             Vector3 endPoint = origin + finalDir * weaponController.weaponData.range;
+
             ShowBulletTracer(origin, endPoint);
 
-            // Shootinig DrawLine(TESTING) <---------------------------------------------------------------------------------------------------------------------------------------------
-            Debug.DrawLine(origin, endPoint, Color.red, 1f);   // show miss ray
+            Debug.DrawLine(origin, endPoint, Color.red, 1f);
         }
 
-        // 6. Play muzzle flash and shoot sound locally
         PlayMuzzleFlash();
         PlayShootSound();
     }

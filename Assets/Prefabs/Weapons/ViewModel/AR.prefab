@@ -295,7 +295,7 @@ Transform:
   m_GameObject: {fileID: 915717549324212639}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 1.167}
+  m_LocalPosition: {x: 0, y: 1.093, z: 1.167}
   m_LocalScale: {x: 0.41, y: 0.41, z: 0.41}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -440,8 +440,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd0becbbe49df714e945995ee9d4bad3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShootingSystem
-  debugLine: {fileID: 4626922236433033389, guid: 6c0c00f84ac298241a1e5e2cbf670aa2, type: 3}
-  debugLineDuration: 0.05
+  hitMask:
+    serializedVersion: 2
+    m_Bits: 55
 --- !u!114 &2702171006883102037
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -454,7 +455,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3402653505
+  GlobalObjectIdHash: 3487019371
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1

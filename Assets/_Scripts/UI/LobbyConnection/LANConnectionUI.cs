@@ -12,7 +12,7 @@ public class LANConnectionUI : MonoBehaviour
     [SerializeField] private UnityTransport transport;
 
     [Header("UI")]
-    [SerializeField] private CanvasGroup connectionCanvas;
+    [SerializeField] private UIManager UIManager;
     [SerializeField] private TMP_InputField ipInputField;
     [SerializeField] private TextMeshProUGUI hostIpText;
 
@@ -26,8 +26,6 @@ public class LANConnectionUI : MonoBehaviour
 
         if (transport == null && networkManager != null)
             transport = networkManager.GetComponent<UnityTransport>();
-
-        Show();
     }
 
     // =========================
@@ -40,11 +38,9 @@ public class LANConnectionUI : MonoBehaviour
         if (networkManager.StartHost())
         {
             hostIpText.text = "Host IP: " + localIP;
-            HideAllMenus();
-        }
-        else
-        {
-            Debug.LogError("LANConnectionUI: Failed to start Host.");
+
+            UIManager.HideConnection();
+            UIManager.HideWeaponSelector();
         }
     }
 
@@ -61,37 +57,9 @@ public class LANConnectionUI : MonoBehaviour
 
         if (networkManager.StartClient())
         {
-            HideAllMenus();
+            UIManager.HideConnection();
+            UIManager.HideWeaponSelector();
         }
-        else
-        {
-            Debug.LogError("LANConnectionUI: Failed to start Client.");
-        }
-    }
-
-    // =========================
-    // UI VISIBILITY
-    // =========================
-    private void HideAllMenus()
-    {
-        Hide();
-
-        if (weaponSelectorPanel != null)
-            weaponSelectorPanel.ForceClose();
-    }
-
-    private void Show()
-    {
-        connectionCanvas.alpha = 1f;
-        connectionCanvas.interactable = true;
-        connectionCanvas.blocksRaycasts = true;
-    }
-
-    private void Hide()
-    {
-        connectionCanvas.alpha = 0f;
-        connectionCanvas.interactable = false;
-        connectionCanvas.blocksRaycasts = false;
     }
 
     // =========================

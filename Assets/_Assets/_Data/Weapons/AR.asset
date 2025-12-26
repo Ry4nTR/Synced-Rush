@@ -16,7 +16,7 @@ MonoBehaviour:
   weaponType: 0
   weaponID: 1
   damage: 10
-  fireRate: 15
+  fireRate: 10
   range: 77
   criticalMultiplier: 1.5
   falloffStartDistance: 10
