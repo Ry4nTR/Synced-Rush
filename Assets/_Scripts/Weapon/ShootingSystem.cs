@@ -37,6 +37,17 @@ public class ShootingSystem : MonoBehaviour
         // 2. Local raycast for immediate feedback
         if (Physics.Raycast(origin, finalDir, out RaycastHit hit, weaponController.weaponData.range))
         {
+            // Shootinig DrawLine(TESTING) <---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            Debug.Log("[ShootingSystem] PerformShoot CALLED");
+
+            Debug.DrawRay(
+                origin,
+                direction * weaponController.weaponData.range,
+                Color.red,
+                5f   // FIVE SECONDS
+            );
+
+
             // 3. Spawn impact effect and tracer locally
             ShowImpactEffect(hit.point, hit.normal);
             ShowBulletTracer(origin, hit.point);
@@ -53,6 +64,9 @@ public class ShootingSystem : MonoBehaviour
             // Miss: show tracer to max range
             Vector3 endPoint = origin + finalDir * weaponController.weaponData.range;
             ShowBulletTracer(origin, endPoint);
+
+            // Shootinig DrawLine(TESTING) <---------------------------------------------------------------------------------------------------------------------------------------------
+            Debug.DrawLine(origin, endPoint, Color.red, 1f);   // show miss ray
         }
 
         // 6. Play muzzle flash and shoot sound locally

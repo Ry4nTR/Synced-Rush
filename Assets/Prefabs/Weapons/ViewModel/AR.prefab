@@ -440,6 +440,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd0becbbe49df714e945995ee9d4bad3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShootingSystem
+  debugLine: {fileID: 4626922236433033389, guid: 6c0c00f84ac298241a1e5e2cbf670aa2, type: 3}
+  debugLineDuration: 0.05
 --- !u!114 &2702171006883102037
 MonoBehaviour:
   m_ObjectHideFlags: 0

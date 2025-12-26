@@ -10,7 +10,7 @@ namespace SyncedRush.Character.Movement
         /// <summary>
         /// Shortcut to SERVER-SIDE input.
         /// </summary>
-        protected MovementInputData Input => character.InputData;
+        protected GameplayInputData Input => character.InputData;
 
         protected CharacterMovementState(MovementController movementComponentReference)
         {

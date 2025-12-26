@@ -25,6 +25,7 @@ public class PlayerInputHandler : MonoBehaviour
     public bool crouch; // è usato anche per lo slide
     public bool fire;
     public bool aim;
+    public bool reload;
     public float scroll;
     public bool toggleWeaponPanel;
 
@@ -37,12 +38,13 @@ public class PlayerInputHandler : MonoBehaviour
 
     // Proprietà campi input (usare queste al di fuori di questa classe)
     public Vector2 Move => move;
-    public Vector2 Look => Look;
+    public Vector2 Look => look;
     public bool Jump => jump;
     public bool Sprint => sprint;
     public bool Crouch => crouch;
     public bool Fire => fire;
     public bool Aim => aim;
+    public bool Reload => reload;
     public float Scroll => scroll;
 
     // 4) Event facoltativi
@@ -77,6 +79,7 @@ public class PlayerInputHandler : MonoBehaviour
         sprint = false;
         fire = false;
         aim = false;
+        reload = false;
         scroll = 0f;
         toggleWeaponPanel = false;
 
@@ -128,6 +131,11 @@ public class PlayerInputHandler : MonoBehaviour
     public void OnAim(InputAction.CallbackContext context)
     {
         AimInput(context.performed);
+    }
+
+    public void OnReload(InputAction.CallbackContext context)
+    {
+        ReloadInput(context.performed);
     }
 
     public void OnScroll(InputAction.CallbackContext context)
@@ -191,6 +199,11 @@ public class PlayerInputHandler : MonoBehaviour
         aim = newAim;
     }
 
+    public void ReloadInput(bool newReload)
+    {
+        reload = newReload;
+    }
+
     public void ScrollInput(float newScroll)
     {
         scroll = newScroll;
@@ -226,6 +239,9 @@ public class PlayerInputHandler : MonoBehaviour
         _controls.Player.Aim.performed += OnAim;
         _controls.Player.Aim.canceled += OnAim;
 
+        _controls.Player.Reload.performed += OnReload;
+        _controls.Player.Reload.canceled += OnReload;
+
         _controls.Player.ToggleWeaponPanel.performed += OnToggleWeaponPanel;
 
         //TODO da rimuovere quando non serve più
@@ -254,6 +270,9 @@ public class PlayerInputHandler : MonoBehaviour
 
         _controls.Player.Aim.performed -= OnAim;
         _controls.Player.Aim.canceled -= OnAim;
+
+        _controls.Player.Reload.performed -= OnReload;
+        _controls.Player.Reload.canceled -= OnReload;
 
         _controls.Player.ToggleWeaponPanel.performed -= OnToggleWeaponPanel;
 

@@ -189,6 +189,7 @@ GameObject:
   - component: {fileID: -2986967647247276543}
   - component: {fileID: 2476011265268299710}
   - component: {fileID: 245510072461140579}
+  - component: {fileID: 5704255815838417518}
   - component: {fileID: -5584705844747821917}
   - component: {fileID: 3468843234944903985}
   - component: {fileID: 3812799252896454869}
@@ -227,7 +228,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 2877608786
+  GlobalObjectIdHash: 3354322385
   InScenePlacedSourceGlobalObjectIdHash: 1514268395
   DeferredDespawnTick: 0
   Ownership: 1
@@ -331,7 +332,9 @@ MonoBehaviour:
   crouch: 0
   fire: 0
   aim: 0
+  reload: 0
   scroll: 0
+  toggleWeaponPanel: 0
   debugResetPos: 0
 --- !u!114 &-4718773345927608370
 MonoBehaviour:
@@ -406,6 +409,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SyncedRush.Character.Movement.CharacterMovementFSM
   _startingState: 1
+--- !u!114 &5704255815838417518
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2338101018676570622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d1aca3f9cfedfc94da287c29c0457920, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterWeaponHandler
+  ShowTopMostFoldoutHeaderGroup: 1
+  inputHandler: {fileID: 831554826967024705}
 --- !u!114 &-5584705844747821917
 MonoBehaviour:
   m_ObjectHideFlags: 0

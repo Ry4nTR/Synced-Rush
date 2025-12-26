@@ -5,7 +5,7 @@ using UnityEngine;
 /// Struttura con tutti gli input di gameplay che vogliamo mandare al server.
 /// Viene serializzata tramite INetworkSerializable per usarla nei ServerRpc.
 /// </summary>
-public struct MovementInputData : INetworkSerializable
+public struct GameplayInputData : INetworkSerializable
 {
     public Vector2 Move;
     public Vector2 Look;
@@ -14,6 +14,7 @@ public struct MovementInputData : INetworkSerializable
     public bool Crouch;
     public bool Fire;
     public bool Aim;
+    public bool Reload;
     public float Scroll;
 
     /// <summary>
@@ -34,6 +35,7 @@ public struct MovementInputData : INetworkSerializable
         serializer.SerializeValue(ref Crouch);
         serializer.SerializeValue(ref Fire);
         serializer.SerializeValue(ref Aim);
+        serializer.SerializeValue(ref Reload);
         serializer.SerializeValue(ref Scroll);
         serializer.SerializeValue(ref DebugResetPos); // opzionale
 

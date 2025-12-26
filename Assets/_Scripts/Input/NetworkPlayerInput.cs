@@ -25,18 +25,18 @@ public class NetworkPlayerInput : NetworkBehaviour
     // that when the client receives an authoritative state from the server
     // (with the last processed sequence), it can discard processed inputs
     // and optionally replay the remaining ones for reconciliation.
-    private readonly List<MovementInputData> _pendingInputs = new System.Collections.Generic.List<MovementInputData>();
+    private readonly List<GameplayInputData> _pendingInputs = new System.Collections.Generic.List<GameplayInputData>();
 
     /// <summary>
     /// Can be used by other systems to inspect unacknowledged inputs for reconciliation.
     /// </summary>
-    public IReadOnlyList<MovementInputData> PendingInputs => _pendingInputs;
+    public IReadOnlyList<GameplayInputData> PendingInputs => _pendingInputs;
 
     /// <summary>
     /// Ultimo input ricevuto dal client, disponibile SOLO sul server.
     /// MovementController leggerà questa struct lato server.
     /// </summary>
-    public MovementInputData ServerInput { get; private set; }
+    public GameplayInputData ServerInput { get; private set; }
 
     private void Awake()
     {
@@ -50,7 +50,7 @@ public class NetworkPlayerInput : NetworkBehaviour
             return;
 
         // Costruiamo la struct a partire dai campi del PlayerInputHandler
-        MovementInputData inputData = new MovementInputData
+        GameplayInputData inputData = new GameplayInputData
         {
             Move = _inputHandler.move,
             Look = _inputHandler.look,
@@ -59,6 +59,7 @@ public class NetworkPlayerInput : NetworkBehaviour
             Crouch = _inputHandler.crouch,
             Fire = _inputHandler.fire,
             Aim = _inputHandler.aim,
+            Reload = _inputHandler.reload,
             Scroll = _inputHandler.scroll,
             DebugResetPos = _inputHandler.debugResetPos,
 
@@ -105,7 +106,7 @@ public class NetworkPlayerInput : NetworkBehaviour
     }
 
     [ServerRpc]
-    private void SendInputServerRpc(MovementInputData inputData)
+    private void SendInputServerRpc(GameplayInputData inputData)
     {
         // Siamo sul server: memorizziamo l'ultimo input ricevuto
         ServerInput = inputData;

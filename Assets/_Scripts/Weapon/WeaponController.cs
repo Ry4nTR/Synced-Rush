@@ -38,6 +38,13 @@ public class WeaponController : MonoBehaviour
     /// </summary>
     public bool CanShoot => !isReloading && currentAmmo > 0 && Time.time >= nextFireTime;
 
+    /// <summary>
+    /// Exposes current ammo.
+    /// </summary>
+    public int CurrentAmmo => currentAmmo;
+    public int ReserveAmmo => reserveAmmo;
+
+
     private void Awake()
     {
         shootingSystem = GetComponent<ShootingSystem>();
@@ -74,8 +81,11 @@ public class WeaponController : MonoBehaviour
     /// </summary>
     public void RequestFire()
     {
-        if (!CanShoot || weaponData == null)
+        if (!CanShoot)
+        {
             return;
+        }
+
 
         // Update the next allowed fire time based on fire rate (shots per second)
         nextFireTime = Time.time + (1f / weaponData.fireRate);

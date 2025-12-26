@@ -16,6 +16,15 @@
                     "initialStateCheck": true
                 },
                 {
+                    "name": "Look",
+                    "type": "Value",
+                    "id": "1e5bd9bc-3e3f-4514-86c8-189b357578fa",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
                     "name": "Sprint",
                     "type": "Button",
                     "id": "d5fa0941-9c68-4533-b010-cfee68bdc21e",
@@ -43,13 +52,13 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Look",
-                    "type": "Value",
-                    "id": "1e5bd9bc-3e3f-4514-86c8-189b357578fa",
-                    "expectedControlType": "Vector2",
+                    "name": "Fire",
+                    "type": "Button",
+                    "id": "60914450-7388-48ee-aedf-de11ca791a2d",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": true
+                    "initialStateCheck": false
                 },
                 {
                     "name": "Aim",
@@ -61,18 +70,9 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Interact",
+                    "name": "Reload",
                     "type": "Button",
-                    "id": "290f71e3-5c84-4fb8-8b29-d1c8bc4111a0",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "Hold",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "Fire",
-                    "type": "Button",
-                    "id": "60914450-7388-48ee-aedf-de11ca791a2d",
+                    "id": "e0dc3178-94e2-47f2-92fe-2c29c7ae85e0",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -91,6 +91,15 @@
                     "name": "ToggleWeaponPanel",
                     "type": "Button",
                     "id": "ed2ef5d3-4164-4c7a-83b0-46abd4841691",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Interact",
+                    "type": "Button",
+                    "id": "290f71e3-5c84-4fb8-8b29-d1c8bc4111a0",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -359,6 +368,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "ToggleWeaponPanel",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "5b393877-3a5b-46ad-9601-93b8f1b8f184",
+                    "path": "<Keyboard>/r",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Reload",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

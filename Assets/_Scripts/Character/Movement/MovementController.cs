@@ -94,7 +94,7 @@ public class MovementController : NetworkBehaviour
     /// Posizione centrale della capsula del character in world space
     /// </summary>
     public Vector3 CenterPosition => _characterController.transform.position + _characterController.center;
-    public MovementInputData InputData => _netInput.ServerInput;
+    public GameplayInputData InputData => _netInput.ServerInput;
     public PlayerInputHandler LocalInputHandler => _inputHandler;
 
     public Animator Anim => _animator;
@@ -103,7 +103,7 @@ public class MovementController : NetworkBehaviour
     {
         get
         {
-            MovementInputData input = _netInput.ServerInput;
+            GameplayInputData input = _netInput.ServerInput;
 
             Vector3 motion =
                 Orientation.transform.forward * input.Move.y +
