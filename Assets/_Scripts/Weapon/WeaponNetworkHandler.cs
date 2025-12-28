@@ -1,126 +1,130 @@
+﻿using Unity.Netcode;
 using UnityEngine;
-using Unity.Netcode;
 
-/// <summary>
-/// Bridges the weapon controller with the network. Responsible for sending shot
-/// requests to the server, performing authoritative raycasts, applying damage
-/// and notifying clients of hit effects. Separating networking into this class
-/// keeps the weapon logic clean and avoids circular dependencies.
-/// </summary>
 public class WeaponNetworkHandler : NetworkBehaviour
 {
     private WeaponController weaponController;
 
-    private void Awake()
+    public override void OnNetworkSpawn()
     {
-        weaponController = GetComponent<WeaponController>();
+        weaponController = GetComponentInChildren<WeaponController>();
     }
 
+    /* ============================================================
+     *  CLIENT → SERVER ENTRY POINT
+     * ============================================================ */
+
     /// <summary>
-    /// Called by the WeaponController when the player fires. Only the owner should invoke
-    /// this method. Sends a ServerRpc to perform authoritative hit detection.
+    /// Called by WeaponController on the owning client.
     /// </summary>
     public void NotifyShot(Vector3 origin, Vector3 direction, float spread)
     {
         if (!IsOwner)
             return;
-        // Send the shot to the server with a timestamp
-        ShootServerRpc(origin, direction, spread, Time.time);
-    }
+
+        ShootServerRpc(origin, direction, spread);
+    }   
+
+    /* ============================================================
+     *  SERVER-AUTHORITATIVE FIRE
+     * ============================================================ */
 
     [ServerRpc]
-    private void ShootServerRpc(Vector3 origin, Vector3 direction, float spread, float timestamp, ServerRpcParams rpcParams = default)
+    private void ShootServerRpc(
+    Vector3 origin,
+    Vector3 direction,
+    float spread,
+    ServerRpcParams rpcParams = default)
     {
-        // Basic anti-cheat validation (rate of fire, no future timestamps)
-        if (!ValidateShot(rpcParams.Receive.SenderClientId, timestamp))
+        WeaponData data = weaponController.weaponData;
+        if (data == null)
             return;
 
-        // Apply the same spread on the server to get the authoritative direction
-        Vector3 finalDir = ApplySpread(direction, spread);
-        float maxRange = weaponController.weaponData.range;
-        if (Physics.Raycast(origin, finalDir, out RaycastHit hit, maxRange))
-        {
-            // Calculate damage based on distance
-            float distance = Vector3.Distance(origin, hit.point);
-            float damage = weaponController.CalculateDamageByDistance(distance);
+        // 1) Server-side spread correction
+        Vector3 correctedDirection = ApplySpread(direction, spread);
 
-            if (hit.collider.TryGetComponent<Hitbox>(out var hitbox))
+        // 2) Validate shot (anti-cheat / sanity checks)
+        if (!ValidateShot(origin, correctedDirection))
+            return;
+
+        // 3) Server raycast (authoritative)
+        if (Physics.Raycast(
+            origin,
+            correctedDirection,
+            out RaycastHit hit,
+            data.range,
+            data.layerMask,
+            QueryTriggerInteraction.Collide))
+        {
+            Debug.Log(
+                $"[SERVER] Raycast HIT | Collider={hit.collider.name} " +
+                $"Layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}"
+            );
+
+            if (hit.collider.TryGetComponent(out Hitbox hitbox))
             {
                 HealthSystem health = hitbox.GetHealthSystem();
-                if (health != null)
-                {
-                    float finalDamage = damage * hitbox.damageMultiplier;
-                    health.TakeDamage(finalDamage, rpcParams.Receive.SenderClientId);
-                }
-            }
+                if (health == null)
+                    return;
 
-            // Broadcast the hit to all clients for visual feedback.
-            NetworkObject netObj = hit.collider.GetComponent<NetworkObject>();
-            if (netObj != null)
-            {
-                NotifyHitClientRpc(hit.point, hit.normal, netObj);
-            }
-        }
-    }
+                // ─────────────────────────────────────────────
+                // DAMAGE CALCULATION (SERVER AUTHORITATIVE)
+                // ─────────────────────────────────────────────
 
-    /// <summary>
-    /// Broadcasts hit information to all clients so they can spawn impact VFX. (only visual feedback)
-    /// </summary>
-    [ClientRpc]
-    private void NotifyHitClientRpc(Vector3 hitPoint, Vector3 hitNormal, NetworkObjectReference targetRef)
-    {
-        // Only spawn VFX; do not apply damage here.
-        // You can use targetRef.TryGet(out var netObj) to get the NetworkObject if needed.
-        // For example:
-        // if (targetRef.TryGet(out NetworkObject netObj)) { /* show blood on netObj */ }
-    }
+                float distance = Vector3.Distance(origin, hit.point);
 
-    /// <summary>
-    /// Requests damage be applied to a specific networked object.
-    /// </summary>
-    public void RequestDamage(GameObject target, float damage, Vector3 hitPoint)
-    {
-        if (!IsOwner)
-            return;
-        if (!target.TryGetComponent<NetworkObject>(out var netObj))
-            return;
-        ApplyDamageServerRpc(netObj.NetworkObjectId, damage, hitPoint);
-    }
+                // Base damage with falloff
+                float damage = weaponController.CalculateDamageByDistance(distance);
 
-    [ServerRpc]
-    private void ApplyDamageServerRpc(ulong targetNetId, float damage, Vector3 hitPoint)
-    {
-        if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(targetNetId, out var netObj))
-        {
-            if (netObj.TryGetComponent<HealthSystem>(out var health))
-            {
-                health.TakeDamage(damage, OwnerClientId);
+                // Apply hitbox multiplier (head, chest, etc.)
+                damage *= hitbox.damageMultiplier;
+
+                health.TakeDamage(damage, rpcParams.Receive.SenderClientId);
+
+                // 4) Notify all clients of confirmed hit
+                NotifyHitClientRpc(
+                    hit.point,
+                    hit.normal,
+                    rpcParams.Receive.SenderClientId);
             }
         }
     }
 
-    /// <summary>
-    /// Applies the spread value to the direction vector. This should mirror the
-    /// implementation on the client to ensure hits are consistent.
-    /// </summary>
+    /* ============================================================
+     *  SERVER-SIDE HELPERS (UNCHANGED ARCHITECTURE)
+     * ============================================================ */
+
     private Vector3 ApplySpread(Vector3 direction, float spread)
     {
-        float yaw = Random.Range(-spread, spread);
-        float pitch = Random.Range(-spread, spread);
-        Quaternion rot = Quaternion.Euler(pitch, yaw, 0f);
-        return rot * direction;
+        if (spread <= 0f)
+            return direction;
+
+        float x = Random.Range(-spread, spread);
+        float y = Random.Range(-spread, spread);
+
+        Vector3 spreadOffset = new Vector3(x, y, 0f);
+        return (Quaternion.Euler(spreadOffset) * direction).normalized;
     }
 
-    /// <summary>
-    /// Simple validation to ensure the shot is plausible. Checks could include
-    /// limiting the rate of fire and ensuring timestamps are not in the future.
-    /// </summary>
-    private bool ValidateShot(ulong clientId, float timestamp)
+    private bool ValidateShot(Vector3 origin, Vector3 direction)
     {
-        // Example validation: timestamp should not be more than a small threshold in the future
-        if (timestamp > Time.time + 0.5f)
+        // Direction sanity (normalized)
+        if (direction.sqrMagnitude < 0.9f)
             return false;
-        // You could also track the last fire time per client to enforce fire rate
+
+        // VERY LOOSE origin check (camera-based weapons)
+        float maxAllowedDistance = 5f; // NOT 2.5f
+        if (Vector3.Distance(origin, transform.position) > maxAllowedDistance)
+            return false;
+
         return true;
     }
+
+
+    /* ============================================================
+     *  SERVER → CLIENT FEEDBACK
+     * ============================================================ */
+
+    [ClientRpc]
+    private void NotifyHitClientRpc(Vector3 hitPoint, Vector3 hitNormal, ulong instigatorClientId) { }
 }

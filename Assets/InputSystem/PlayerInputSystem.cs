@@ -190,6 +190,15 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""DegubTakeDamage"",
+                    ""type"": ""Button"",
+                    ""id"": ""cd7546b9-c925-41fb-acca-ca63b32a22cd"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -467,6 +476,17 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
                     ""action"": ""Reload"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""21e566bb-9877-4346-9705-f829f1439909"",
+                    ""path"": ""<Keyboard>/t"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""DegubTakeDamage"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -662,6 +682,7 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
         m_Player_DebugResetPos = m_Player.FindAction("DebugResetPos", throwIfNotFound: true);
         m_Player_ToggleWeaponPanel = m_Player.FindAction("ToggleWeaponPanel", throwIfNotFound: true);
         m_Player_Interact = m_Player.FindAction("Interact", throwIfNotFound: true);
+        m_Player_DegubTakeDamage = m_Player.FindAction("DegubTakeDamage", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Point = m_UI.FindAction("Point", throwIfNotFound: true);
@@ -760,6 +781,7 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_DebugResetPos;
     private readonly InputAction m_Player_ToggleWeaponPanel;
     private readonly InputAction m_Player_Interact;
+    private readonly InputAction m_Player_DegubTakeDamage;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -815,6 +837,10 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Player/Interact".
         /// </summary>
         public InputAction @Interact => m_Wrapper.m_Player_Interact;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/DegubTakeDamage".
+        /// </summary>
+        public InputAction @DegubTakeDamage => m_Wrapper.m_Player_DegubTakeDamage;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -874,6 +900,9 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
             @Interact.started += instance.OnInteract;
             @Interact.performed += instance.OnInteract;
             @Interact.canceled += instance.OnInteract;
+            @DegubTakeDamage.started += instance.OnDegubTakeDamage;
+            @DegubTakeDamage.performed += instance.OnDegubTakeDamage;
+            @DegubTakeDamage.canceled += instance.OnDegubTakeDamage;
         }
 
         /// <summary>
@@ -918,6 +947,9 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
             @Interact.started -= instance.OnInteract;
             @Interact.performed -= instance.OnInteract;
             @Interact.canceled -= instance.OnInteract;
+            @DegubTakeDamage.started -= instance.OnDegubTakeDamage;
+            @DegubTakeDamage.performed -= instance.OnDegubTakeDamage;
+            @DegubTakeDamage.canceled -= instance.OnDegubTakeDamage;
         }
 
         /// <summary>
@@ -1164,6 +1196,13 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnInteract(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "DegubTakeDamage" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnDegubTakeDamage(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.

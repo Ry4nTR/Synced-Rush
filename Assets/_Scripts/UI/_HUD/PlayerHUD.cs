@@ -68,10 +68,11 @@ public class PlayerHUD : MonoBehaviour
             : "-- / --";
     }
 
+    // UpdateHelth not casted to int to show decimal health values
     private void UpdateHealth()
     {
         healthText.text = health != null
-            ? $"HP {Mathf.CeilToInt(health.currentHealth.Value)}"
+            ? $"HP {health.currentHealth.Value:F1}"
             : "HP --";
     }
 

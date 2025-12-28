@@ -14,7 +14,7 @@ public class LookController : NetworkBehaviour
     [SerializeField] private PlayerInputHandler inputHandler;
 
     [Header("Camera")]
-    [SerializeField] private Transform cameraHolder;     // The object that pitches up/down
+    [SerializeField] private Transform cameraHolder;
 
     [Header("Arms")]
     [Tooltip("Optional reference to the root of the first‑person arms. If assigned, the arms will follow the camera's vertical rotation.")]
@@ -29,9 +29,11 @@ public class LookController : NetworkBehaviour
     private float pitch;    // Vertical
     private float yaw;      // Horizontal
 
+    // provide access to camera transform
+    public Transform CameraTransform => cameraHolder;
+
     private void Start()
     {
-        // Disable on non-owner
         if (!IsOwner)
         {
             enabled = false;
@@ -46,7 +48,6 @@ public class LookController : NetworkBehaviour
         if (rawPitch > 180f) rawPitch -= 360f;
         pitch = rawPitch;
 
-        // Lock cursor
         inputHandler.SetCursorLocked(true);
     }
 
@@ -62,26 +63,23 @@ public class LookController : NetworkBehaviour
 
         Vector2 look = inputHandler.look;
 
-        // Sensitivity scaling
         float deltaX = look.x * sensitivity * 0.01f;
         float deltaY = look.y * sensitivity * 0.01f;
 
-        // YAW: rotate pivot (horizontal)
+        // YAW
         yaw += deltaX;
         transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
 
-        // PITCH: rotate camera holder (vertical)
+        // PITCH
         pitch += invertY ? deltaY : -deltaY;
         pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
         cameraHolder.localRotation = Quaternion.Euler(pitch, 0f, 0f);
 
-        // Rotate arms  if assigned
+        // Arms follow pitch
         if (armsRoot != null)
         {
-            Vector3 currentEuler = armsRoot.localEulerAngles;
-            float correctedYaw = currentEuler.y;
-            float correctedRoll = currentEuler.z;
-            armsRoot.localRotation = Quaternion.Euler(pitch, correctedYaw, correctedRoll);
+            Vector3 euler = armsRoot.localEulerAngles;
+            armsRoot.localRotation = Quaternion.Euler(pitch, euler.y, euler.z);
         }
     }
 }

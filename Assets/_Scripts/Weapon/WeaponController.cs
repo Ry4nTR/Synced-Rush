@@ -1,6 +1,5 @@
 using System.Collections;
 using UnityEngine;
-using Unity.Netcode;
 
 /// <summary>
 /// Component responsible for managing the runtime state of a weapon on a player.
@@ -25,7 +24,7 @@ public class WeaponController : MonoBehaviour
     private float nextFireTime;
 
     // Cached references
-    private Transform cameraTransform;
+    private Transform firePoint;
     private Animator weaponAnimator;
 
     /// <summary>
@@ -44,26 +43,24 @@ public class WeaponController : MonoBehaviour
     public int CurrentAmmo => currentAmmo;
     public int ReserveAmmo => reserveAmmo;
 
-
     private void Awake()
     {
         shootingSystem = GetComponent<ShootingSystem>();
-        networkHandler = GetComponent<WeaponNetworkHandler>();
-        // Attempt to locate the player's camera – this might need to be set explicitly
-        Camera cam = GetComponentInChildren<Camera>();
-        if (cam != null)
-        {
-            cameraTransform = cam.transform;
-        }
+        if (!networkHandler)
+            networkHandler = GetComponentInParent<WeaponNetworkHandler>();
+
+        if (!networkHandler)
+            Debug.LogError("WeaponController: WeaponNetworkHandler not found in parent Player");
+
+        AssignCameraTransform();
+
         // Optionally find an animator on the child weapon model
         weaponAnimator = GetComponentInChildren<Animator>();
     }
 
     /// <summary>
     /// Initializes the weapon controller with the given weapon data.
-    /// Sets up ammo counts, spread and cooldown.
     /// </summary>
-    /// <param name="data">The static data describing the weapon.</param>
     public void Initialize(WeaponData data)
     {
         weaponData = data;
@@ -90,8 +87,8 @@ public class WeaponController : MonoBehaviour
         nextFireTime = Time.time + (1f / weaponData.fireRate);
 
         // Determine origin/direction based on camera or this transform
-        Vector3 origin = cameraTransform != null ? cameraTransform.position : transform.position;
-        Vector3 direction = cameraTransform != null ? cameraTransform.forward : transform.forward;
+        Vector3 origin = firePoint.position;
+        Vector3 direction = firePoint.forward;
 
         // Perform the actual shot locally for immediate feedback
         shootingSystem?.PerformShoot(origin, direction, CurrentSpread, weaponData.weaponID);
@@ -153,9 +150,6 @@ public class WeaponController : MonoBehaviour
     /// <returns>The spread value to apply to a shot.</returns>
     private float CalculateCurrentSpread()
     {
-        // no spread (TESTING)<---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-        return 0f;
-
         float spread = currentSpread;
         if (isAiming)
         {
@@ -207,10 +201,7 @@ public class WeaponController : MonoBehaviour
 
     /// <summary>
     /// Calculates the damage to apply based on the distance between shooter and target.
-    /// Implements a linear falloff between falloffStartDistance and falloffEndDistance.
     /// </summary>
-    /// <param name="distance">The distance from the shooter to the hit point in meters.</param>
-    /// <returns>The damage value after falloff is applied.</returns>
     public float CalculateDamageByDistance(float distance)
     {
         if (weaponData == null)
@@ -228,5 +219,28 @@ public class WeaponController : MonoBehaviour
         float t = (distance - weaponData.falloffStartDistance) /
                   (weaponData.falloffEndDistance - weaponData.falloffStartDistance);
         return Mathf.Lerp(weaponData.damage, weaponData.minimumDamage, t);
+    }
+
+    private void AssignCameraTransform()
+    {
+        // Weapon must belong to a player
+        LookController lookController = GetComponentInParent<LookController>();
+
+        if (lookController == null)
+        {
+            Debug.LogWarning($"{name} WeaponController: LookController not found in parents.");
+            return;
+        }
+
+        // Only the owner has a valid camera
+        if (!lookController.IsOwner)
+            return;
+
+        firePoint = lookController.CameraTransform;
+
+        if (firePoint == null)
+        {
+            Debug.LogError($"{name} WeaponController: CameraTransform is null.");
+        }
     }
 }

@@ -15,6 +15,9 @@ MonoBehaviour:
   weaponName: AR
   weaponType: 0
   weaponID: 1
+  layerMask:
+    serializedVersion: 2
+    m_Bits: 256
   damage: 10
   fireRate: 10
   range: 77
@@ -22,7 +25,7 @@ MonoBehaviour:
   falloffStartDistance: 10
   falloffEndDistance: 77
   minimumDamage: 0.1
-  magazineSize: 30
+  magazineSize: 29
   maxAmmo: 120
   reloadTime: 1.6
   baseSpread: 0

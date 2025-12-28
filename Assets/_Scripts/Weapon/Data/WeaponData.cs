@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -12,6 +13,7 @@ public class WeaponData : ScriptableObject
     public string weaponName;
     public WeaponType weaponType; // AR, SMG, Sniper, Pistol, etc.
     public int weaponID; // Unique ID used for network synchronization
+    public LayerMask layerMask; // Layers that can be hit by this weapon
 
     [Header("Combat Stats")]
     public float damage; // Base damage per shot

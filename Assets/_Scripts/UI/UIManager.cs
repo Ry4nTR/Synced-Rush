@@ -13,9 +13,6 @@ public class UIManager : MonoBehaviour
     [Header("HUD")]
     [SerializeField] private PlayerHUD playerHUD;
 
-    private WeaponController weapon;
-    private HealthSystem health;
-
     private void Awake()
     {
         if (Instance != null)

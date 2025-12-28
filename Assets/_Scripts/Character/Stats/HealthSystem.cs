@@ -1,5 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Server-authoritative health component.
@@ -21,7 +22,6 @@ public class HealthSystem : NetworkBehaviour, IDamageable
     {
         base.OnNetworkSpawn();
 
-        // Initialize ONLY ONCE, ONLY ON SERVER, ONLY AFTER SPAWN
         if (IsServer && currentHealth.Value <= 0f)
         {
             currentHealth.Value = maxHealth;
@@ -33,17 +33,18 @@ public class HealthSystem : NetworkBehaviour, IDamageable
         if (!IsServer)
             return;
 
+        Debug.Log($"HealthSystem: Taking {amount} damage from Client {instigatorClientId}");
+
         currentHealth.Value = Mathf.Max(0f, currentHealth.Value - amount);
 
         if (currentHealth.Value <= 0f)
         {
-            HandleDeath(instigatorClientId);
+            Die();
         }
     }
 
-    protected virtual void HandleDeath(ulong instigatorClientId)
+    private void Die()
     {
-        // Example logic
-        gameObject.SetActive(false);
+        Debug.Log("Player died");
     }
 }

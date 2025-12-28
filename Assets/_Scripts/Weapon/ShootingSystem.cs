@@ -8,10 +8,13 @@ using UnityEngine;
 /// </summary>
 public class ShootingSystem : MonoBehaviour
 {
-    [SerializeField] private LayerMask hitMask;
+    /// <summary>
+    /// Exposes the layer mask used for client-side raycasts.
+    /// </summary>
+    public LayerMask HitMask => weaponData.layerMask;
 
     private WeaponController weaponController;
-    private WeaponNetworkHandler networkHandler;
+    private WeaponData weaponData;
 
     // =========================
     // DEBUG RAY (GIZMOS)
@@ -23,7 +26,7 @@ public class ShootingSystem : MonoBehaviour
     private void Awake()
     {
         weaponController = GetComponent<WeaponController>();
-        networkHandler = GetComponent<WeaponNetworkHandler>();
+        weaponData = weaponController.weaponData;
     }
 
     /// <summary>
@@ -31,10 +34,6 @@ public class ShootingSystem : MonoBehaviour
     /// Performs a local raycast for immediate feedback and then forwards a damage
     /// request to the server via the network handler.
     /// </summary>
-    /// <param name="origin">The world position where the shot originates.</param>
-    /// <param name="direction">The forward direction of the shot before spread.</param>
-    /// <param name="spread">The spread value to apply to the direction.</param>
-    /// <param name="weaponID">The ID of the weapon being used (not currently used but kept for future expansion).</param>
     public void PerformShoot(Vector3 origin, Vector3 direction, float spread, int weaponID)
     {
         if (weaponController == null || weaponController.weaponData == null)
@@ -49,8 +48,8 @@ public class ShootingSystem : MonoBehaviour
             finalDir,
             out hit,
             weaponController.weaponData.range,
-            hitMask,
-            QueryTriggerInteraction.Ignore
+            HitMask,
+            QueryTriggerInteraction.Collide
         );
 
         if (hasHit)
@@ -64,8 +63,6 @@ public class ShootingSystem : MonoBehaviour
 
             float distance = Vector3.Distance(origin, hit.point);
             float damage = weaponController.CalculateDamageByDistance(distance);
-
-            networkHandler?.RequestDamage(hit.collider.gameObject, damage, hit.point);
         }
         else
         {
