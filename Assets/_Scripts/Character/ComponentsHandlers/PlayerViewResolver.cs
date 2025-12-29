@@ -3,25 +3,48 @@ using UnityEngine;
 
 public class PlayerViewResolver : NetworkBehaviour
 {
-    [Header("References")]
-    [SerializeField] private GameObject fullBodyModel;
-    [SerializeField] private GameObject firstPersonArms;
+    [Header("Visual Roots (NO COLLIDERS INSIDE)")]
+    [SerializeField] private GameObject fullBodyVisual;
+    [SerializeField] private GameObject firstPersonArmsVisual;
 
     public override void OnNetworkSpawn()
     {
-        base.OnNetworkSpawn();
+        // Visual logic is CLIENT-ONLY
+        if (!IsClient)
+            return;
 
-        if (IsOwner)
+        ResolveView();
+    }
+
+    private void ResolveView()
+    {
+        if (IsLocalPlayer)
         {
-            // Local Player
-            fullBodyModel.SetActive(false);
-            firstPersonArms.SetActive(true);
+            // Local player (FPS view)
+            SetFullBodyVisible(false);
+            SetArmsVisible(true);
         }
         else
         {
-            // Remote Player
-            fullBodyModel.SetActive(true);
-            firstPersonArms.SetActive(false);
+            // Remote player (3P view)
+            SetFullBodyVisible(true);
+            SetArmsVisible(false);
         }
+    }
+
+    private void SetFullBodyVisible(bool value)
+    {
+        if (!fullBodyVisual)
+            return;
+
+        fullBodyVisual.SetActive(value);
+    }
+
+    private void SetArmsVisible(bool value)
+    {
+        if (!firstPersonArmsVisual)
+            return;
+
+        firstPersonArmsVisual.SetActive(value);
     }
 }

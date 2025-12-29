@@ -15,6 +15,8 @@ public class ShootingSystem : MonoBehaviour
 
     private WeaponController weaponController;
     private WeaponData weaponData;
+    private Transform playerRoot;
+
 
     // =========================
     // DEBUG RAY (GIZMOS)
@@ -27,6 +29,7 @@ public class ShootingSystem : MonoBehaviour
     {
         weaponController = GetComponent<WeaponController>();
         weaponData = weaponController.weaponData;
+        playerRoot = weaponController.transform.root;
     }
 
     /// <summary>
@@ -41,27 +44,40 @@ public class ShootingSystem : MonoBehaviour
 
         Vector3 finalDir = ApplySpread(direction, spread);
 
-        RaycastHit hit;
-
-        bool hasHit = Physics.Raycast(
+        RaycastHit[] hits = Physics.RaycastAll(
             origin,
             finalDir,
-            out hit,
             weaponController.weaponData.range,
             HitMask,
             QueryTriggerInteraction.Collide
         );
 
-        if (hasHit)
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        RaycastHit validHit = default;
+        bool hasValidHit = false;
+
+        foreach (var hit in hits)
+        {
+            // IGNORE SELF
+            if (hit.collider.transform.IsChildOf(playerRoot))
+                continue;
+
+            validHit = hit;
+            hasValidHit = true;
+            break;
+        }
+
+        if (hasValidHit)
         {
             lastRayOrigin = origin;
-            lastRayEnd = hit.point;
+            lastRayEnd = validHit.point;
             hasLastRay = true;
 
-            ShowImpactEffect(hit.point, hit.normal);
-            ShowBulletTracer(origin, hit.point);
+            ShowImpactEffect(validHit.point, validHit.normal);
+            ShowBulletTracer(origin, validHit.point);
 
-            float distance = Vector3.Distance(origin, hit.point);
+            float distance = Vector3.Distance(origin, validHit.point);
             float damage = weaponController.CalculateDamageByDistance(distance);
         }
         else
@@ -74,6 +90,7 @@ public class ShootingSystem : MonoBehaviour
 
             ShowBulletTracer(origin, endPoint);
         }
+
 
         PlayMuzzleFlash();
         PlayShootSound();
@@ -146,7 +163,7 @@ public class ShootingSystem : MonoBehaviour
         if (!hasLastRay)
             return;
 
-        Gizmos.color = Color.red;
+        Gizmos.color = Color.purple;
         Gizmos.DrawLine(lastRayOrigin, lastRayEnd);
 
         // Small sphere to clearly show the hit point

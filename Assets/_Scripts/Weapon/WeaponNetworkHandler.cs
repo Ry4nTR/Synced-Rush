@@ -4,6 +4,7 @@ using UnityEngine;
 public class WeaponNetworkHandler : NetworkBehaviour
 {
     private WeaponController weaponController;
+    [SerializeField] private Transform serverFireOrigin;
 
     public override void OnNetworkSpawn()
     {
@@ -23,7 +24,7 @@ public class WeaponNetworkHandler : NetworkBehaviour
             return;
 
         ShootServerRpc(origin, direction, spread);
-    }   
+    }
 
     /* ============================================================
      *  SERVER-AUTHORITATIVE FIRE
@@ -37,6 +38,7 @@ public class WeaponNetworkHandler : NetworkBehaviour
     ServerRpcParams rpcParams = default)
     {
         WeaponData data = weaponController.weaponData;
+
         if (data == null)
             return;
 
@@ -47,47 +49,50 @@ public class WeaponNetworkHandler : NetworkBehaviour
         if (!ValidateShot(origin, correctedDirection))
             return;
 
-        // 3) Server raycast (authoritative)
-        if (Physics.Raycast(
-            origin,
-            correctedDirection,
-            out RaycastHit hit,
-            data.range,
-            data.layerMask,
-            QueryTriggerInteraction.Collide))
-        {
-            Debug.Log(
-                $"[SERVER] Raycast HIT | Collider={hit.collider.name} " +
-                $"Layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}"
-            );
+        ulong shooterClientId = rpcParams.Receive.SenderClientId;
 
+        if (!NetworkManager.Singleton.ConnectedClients.TryGetValue(
+                shooterClientId,
+                out var shooterClient))
+        {
+            return;
+        }
+
+        Transform shooterRoot = shooterClient.PlayerObject.transform;
+
+        RaycastHit[] hits = Physics.RaycastAll(
+        origin,
+        correctedDirection,
+        data.range,
+        data.layerMask,
+        QueryTriggerInteraction.Collide
+        );
+
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        foreach (RaycastHit hit in hits)
+        {
+            // IGNORE SELF (SERVER-SIDE)
+            if (hit.collider.transform.IsChildOf(shooterRoot))
+                continue;
+
+            // VALID HIT
             if (hit.collider.TryGetComponent(out Hitbox hitbox))
             {
                 HealthSystem health = hitbox.GetHealthSystem();
                 if (health == null)
                     return;
 
-                // ─────────────────────────────────────────────
-                // DAMAGE CALCULATION (SERVER AUTHORITATIVE)
-                // ─────────────────────────────────────────────
-
-                float distance = Vector3.Distance(origin, hit.point);
-
-                // Base damage with falloff
-                float damage = weaponController.CalculateDamageByDistance(distance);
-
-                // Apply hitbox multiplier (head, chest, etc.)
+                float damage = weaponController.CalculateDamageByDistance(hit.distance);
                 damage *= hitbox.damageMultiplier;
 
-                health.TakeDamage(damage, rpcParams.Receive.SenderClientId);
-
-                // 4) Notify all clients of confirmed hit
-                NotifyHitClientRpc(
-                    hit.point,
-                    hit.normal,
-                    rpcParams.Receive.SenderClientId);
+                health.TakeDamage(damage, shooterClientId);
+                NotifyHitClientRpc(hit.point, hit.normal, shooterClientId);
+                return;
             }
         }
+
+
     }
 
     /* ============================================================
@@ -110,11 +115,6 @@ public class WeaponNetworkHandler : NetworkBehaviour
     {
         // Direction sanity (normalized)
         if (direction.sqrMagnitude < 0.9f)
-            return false;
-
-        // VERY LOOSE origin check (camera-based weapons)
-        float maxAllowedDistance = 5f; // NOT 2.5f
-        if (Vector3.Distance(origin, transform.position) > maxAllowedDistance)
             return false;
 
         return true;

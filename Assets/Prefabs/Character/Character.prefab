@@ -74,7 +74,7 @@ Camera:
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 119
+    m_Bits: 1655
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
@@ -256,8 +256,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerViewResolver
   ShowTopMostFoldoutHeaderGroup: 1
-  fullBodyModel: {fileID: 2603540632608618}
-  firstPersonArms: {fileID: 8634518842087377366}
+  fullBodyVisual: {fileID: 8691063878621137524}
+  firstPersonArmsVisual: {fileID: 8634518842087377366}
 --- !u!114 &2123195640468736219
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -367,7 +367,7 @@ MonoBehaviour:
   _orientation: {fileID: 5302962826593933888}
   _groundLayerMask:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 1536
   reconciliationSmoothing: 0.06
   remoteSmoothing: 0.08
   reconciliationSnapDistance: 2
@@ -470,6 +470,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponNetworkHandler
   ShowTopMostFoldoutHeaderGroup: 1
+  serverFireOrigin: {fileID: 3428661119864486910}
 --- !u!114 &-1213673637414683771
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1168,11 +1169,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 5be31c0eec022274a87fa6114adf2f1b, type: 3}
---- !u!1 &2603540632608618 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 7061044498557608712, guid: 5be31c0eec022274a87fa6114adf2f1b, type: 3}
-  m_PrefabInstance: {fileID: 7058514350596701282}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &811473960634992080 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7689348961251948978, guid: 5be31c0eec022274a87fa6114adf2f1b, type: 3}
@@ -1181,5 +1177,10 @@ Transform:
 --- !u!4 &1454215765898943774 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8492250610467201404, guid: 5be31c0eec022274a87fa6114adf2f1b, type: 3}
+  m_PrefabInstance: {fileID: 7058514350596701282}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8691063878621137524 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1830781330605028886, guid: 5be31c0eec022274a87fa6114adf2f1b, type: 3}
   m_PrefabInstance: {fileID: 7058514350596701282}
   m_PrefabAsset: {fileID: 0}

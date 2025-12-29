@@ -33,6 +33,9 @@ public class HealthSystem : NetworkBehaviour, IDamageable
         if (!IsServer)
             return;
 
+        if (instigatorClientId == OwnerClientId)
+            return;
+
         Debug.Log($"HealthSystem: Taking {amount} damage from Client {instigatorClientId}");
 
         currentHealth.Value = Mathf.Max(0f, currentHealth.Value - amount);
