@@ -3,9 +3,7 @@ using Unity.Netcode;
 using System.Collections.Generic;
 
 /// <summary>
-/// Legge gli input locali dal PlayerInputHandler (sul client owner)
-/// e li invia al server tramite ServerRpc, salvandoli in ServerInput.
-/// MovementController/server leggerà solo ServerInput.
+/// Handles player input in a networked environment with client-side prediction and server reconciliation.
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(PlayerInputHandler))]
@@ -13,29 +11,16 @@ public class NetworkPlayerInput : NetworkBehaviour
 {
     private PlayerInputHandler _inputHandler;
 
-    // Sequence number for client-side prediction.  Incremented each time a new
-    // input is sent to the server.  Used to uniquely identify inputs so the
-    // server can acknowledge which inputs have been processed.  The client can
-    // remove acknowledged inputs from its pending list.
+    // Sequence number for client-side prediction.
+    // Identifies inputs  so the server can acknowledge which inputs have been processed.
     private int _sequenceNumber = 0;
 
-    // Pending inputs that have been sent to the server but not yet
-    // acknowledged by the authoritative simulation. Each entry includes
-    // the input data along with its sequence number. These are kept so
-    // that when the client receives an authoritative state from the server
-    // (with the last processed sequence), it can discard processed inputs
-    // and optionally replay the remaining ones for reconciliation.
+    // Pending inputs that have been sent to the server but not yet acknowledged.
     private readonly List<GameplayInputData> _pendingInputs = new System.Collections.Generic.List<GameplayInputData>();
 
-    /// <summary>
-    /// Can be used by other systems to inspect unacknowledged inputs for reconciliation.
-    /// </summary>
     public IReadOnlyList<GameplayInputData> PendingInputs => _pendingInputs;
 
-    /// <summary>
-    /// Ultimo input ricevuto dal client, disponibile SOLO sul server.
-    /// MovementController leggerà questa struct lato server.
-    /// </summary>
+    //Last input received by the server.
     public GameplayInputData ServerInput { get; private set; }
 
     private void Awake()
@@ -45,11 +30,9 @@ public class NetworkPlayerInput : NetworkBehaviour
 
     private void Update()
     {
-        // Solo il client che possiede questo player deve leggere input hardware.
         if (!IsOwner || !IsClient)
             return;
 
-        // Costruiamo la struct a partire dai campi del PlayerInputHandler
         GameplayInputData inputData = new GameplayInputData
         {
             Move = _inputHandler.move,
@@ -60,10 +43,9 @@ public class NetworkPlayerInput : NetworkBehaviour
             Fire = _inputHandler.fire,
             Aim = _inputHandler.aim,
             Reload = _inputHandler.reload,
-            Scroll = _inputHandler.scroll,
             DebugResetPos = _inputHandler.debugResetPos,
 
-            // Assign an incrementing sequence number for prediction/reconciliation
+            // Assign an incrementing sequence number
             Sequence = ++_sequenceNumber
         };
 
@@ -73,10 +55,7 @@ public class NetworkPlayerInput : NetworkBehaviour
         SendInputServerRpc(inputData);
     }
 
-    /// <summary>
-    /// Chiamato sul client quando riceve la conferma dal server sul numero di sequenza dell’ultimo input processato.
-    /// </summary>
-    /// <param name="lastSequence">L’ultimo numero di sequenza processato dal server.</param>
+    //Chiamato sul client quando riceve la conferma dal server dell’ultimo input processato.
     public void ConfirmInputUpTo(int lastSequence)
     {
         // Remove pending inputs up to the last acknowledged sequence

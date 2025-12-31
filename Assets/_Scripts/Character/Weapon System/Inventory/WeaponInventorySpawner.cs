@@ -1,6 +1,9 @@
 ﻿using UnityEngine;
 using Unity.Netcode;
 
+/// <summary>
+/// Spawns and manages weapon models based on the equipped weapon.
+/// </summary>
 [RequireComponent(typeof(WeaponLoadoutState))]
 public class WeaponInventorySpawner : NetworkBehaviour
 {
@@ -16,8 +19,8 @@ public class WeaponInventorySpawner : NetworkBehaviour
 
     private WeaponLoadoutState loadoutState;
 
-    private GameObject currentViewModel;
-    private GameObject currentWorldModel;
+    private GameObject currentWeapon;
+    private GameObject weaponWorldModel;
 
     private bool subscribed;
 
@@ -36,7 +39,6 @@ public class WeaponInventorySpawner : NetworkBehaviour
             subscribed = true;
         }
 
-        // Spawn current state (likely -1 → no weapon)
         SpawnWeapon(loadoutState.EquippedWeaponId.Value);
     }
 
@@ -57,68 +59,57 @@ public class WeaponInventorySpawner : NetworkBehaviour
         SpawnWeapon(newId);
     }
 
+    //Spawning weapon
     private void SpawnWeapon(int weaponId)
     {
+        if (weaponId < 0) return;
+
         Cleanup();
 
-        if (weaponDatabase == null)
+        WeaponData data = weaponDatabase.GetDataById(weaponId);
+
+        // Check if weapon data exists in database
+        if (data == null)
         {
-            Debug.LogError("WeaponDatabase is missing.");
+            Debug.LogError($"[WeaponSpawner] Weapon ID {weaponId} not found.");
             return;
         }
 
-        WeaponData data = null;
+        SpawnModels(data);
+    }
 
-        if (weaponId < 0)
-        {
-            if (weaponDatabase.AllWeapons.Count == 0)
-            {
-                Debug.LogError("WeaponDatabase is empty.");
-                return;
-            }
-
-            data = weaponDatabase.AllWeapons[0];
-        }
-        else
-        {
-            data = weaponDatabase.GetById(weaponId);
-
-            if (data == null)
-            {
-                Debug.LogError(
-                    $"[WeaponSpawner] Weapon ID {weaponId} not found in WeaponDatabase. " +
-                    $"Check IDs and database configuration."
-                );
-                return;
-            }
-        }
-
-        // --- Spawn ---
+    //Spawning weapon models
+    private void SpawnModels(WeaponData data)
+    {
         if (IsOwner)
         {
-            currentViewModel = Instantiate(data.viewModelPrefab, fpsWeaponSocket, false);
+            currentWeapon = Instantiate(data.weaponPrefab, fpsWeaponSocket, false);
 
-            var wc = currentViewModel.GetComponent<WeaponController>();
+            var wc = currentWeapon.GetComponent<WeaponController>();
             wc?.Initialize(data);
 
-            var ss = currentViewModel.GetComponent<ShootingSystem>();
-            var wh = currentViewModel.GetComponent<WeaponNetworkHandler>();
+            var ss = currentWeapon.GetComponent<ShootingSystem>();
+
+            var wh = currentWeapon.GetComponentInParent<WeaponNetworkHandler>();
+            if (IsServer)
+            {
+                wh.Initialize(data.weaponID);
+            }
 
             componentSwitcher?.RegisterWeapon(wc, ss, wh);
         }
         else
         {
-            currentWorldModel = Instantiate(data.worldModelPrefab, tpsWeaponSocket, false);
+            weaponWorldModel = Instantiate(data.worldModelPrefab, tpsWeaponSocket, false);
         }
     }
 
-
-
+    //Cleanup existing weapon
     private void Cleanup()
     {
-        if (currentViewModel) Destroy(currentViewModel);
-        if (currentWorldModel) Destroy(currentWorldModel);
-        currentViewModel = null;
-        currentWorldModel = null;
+        if (currentWeapon) Destroy(currentWeapon);
+        if (weaponWorldModel) Destroy(weaponWorldModel);
+        currentWeapon = null;
+        weaponWorldModel = null;
     }
 }

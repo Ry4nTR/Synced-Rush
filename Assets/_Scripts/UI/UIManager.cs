@@ -70,16 +70,16 @@ public class UIManager : MonoBehaviour
     }
 
     // =========================
-    // PLAYER DATA
+    // REGISTRATION PLAYER AND WEAPON
     // =========================
 
-    public void RegisterPlayer(GameObject player)
+    public void UIRegisterPlayer(GameObject player)
     {
         playerHUD.BindPlayer(player);
 
         ShowHUD();
     }
-    public void RegisterWeapon(WeaponController weapon)
+    public void UIRegisterWeapon(WeaponController weapon)
     {
         playerHUD.BindWeapon(weapon);
 

@@ -26,18 +26,15 @@ MonoBehaviour:
   falloffEndDistance: 77
   minimumDamage: 0.1
   magazineSize: 30
-  maxAmmo: 120
+  ammoReserve: 120
   reloadTime: 1.6
   baseSpread: 0
-  sprintSpread: 0
   jumpSpread: 0
   crouchSpreadMultiplier: 0.7
   aimSpreadMultiplier: 0.5
   spreadRecoveryRate: 0
   spreadIncreasePerShot: 0
   maxSpread: 0
-  recoilPattern: {x: 0, y: 0}
-  recoilRecoverySpeed: 0
   weaponPrefab: {fileID: 1019066457430675845, guid: edf56bdf02545334f9fa70e38915fb07, type: 3}
   shootSound: {fileID: 0}
   reloadSound: {fileID: 0}
@@ -48,5 +45,7 @@ MonoBehaviour:
   aimSpeed: 1
   shootAnimationTrigger: Shoot
   reloadAnimationTrigger: Reload
-  viewModelPrefab: {fileID: 1019066457430675845, guid: edf56bdf02545334f9fa70e38915fb07, type: 3}
+  aimAnimationBool: IsAiming
+  walkAnimationBool: IsWalking
+  sprintAnimationBool: IsSprinting
   worldModelPrefab: {fileID: 1019066457430675845, guid: 080dc2fb2db6aac4689ab72c23742add, type: 3}

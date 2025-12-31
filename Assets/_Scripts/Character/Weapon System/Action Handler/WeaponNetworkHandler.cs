@@ -3,12 +3,25 @@ using UnityEngine;
 
 public class WeaponNetworkHandler : NetworkBehaviour
 {
+    [Header("Weapon Data")]
+    [SerializeField] private WeaponDatabase weaponDatabase;
+
+    private NetworkVariable<int> weaponId = new NetworkVariable<int>(
+        -1,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
+    private int pendingWeaponId = -1;
     private WeaponController weaponController;
-    [SerializeField] private Transform serverFireOrigin;
 
     public override void OnNetworkSpawn()
     {
         weaponController = GetComponentInChildren<WeaponController>();
+
+        if (IsServer && pendingWeaponId >= 0)
+        {
+            ApplyWeaponId();
+        }
     }
 
     /* ============================================================
@@ -37,10 +50,21 @@ public class WeaponNetworkHandler : NetworkBehaviour
     float spread,
     ServerRpcParams rpcParams = default)
     {
-        WeaponData data = weaponController.weaponData;
+        Debug.Log(weaponId.Value);
+
+        if (weaponId.Value < 0)
+        {
+            Debug.LogWarning("WeaponNetworkHandler: Invalid weapon ID.");
+            return;
+        }
+
+        WeaponData data = weaponDatabase.GetDataById(weaponId.Value);
 
         if (data == null)
+        {
+            Debug.LogWarning("WeaponNetworkHandler: Weapon data not found for ID " + weaponId);
             return;
+        }
 
         // 1) Server-side spread correction
         Vector3 correctedDirection = ApplySpread(direction, spread);
@@ -91,9 +115,24 @@ public class WeaponNetworkHandler : NetworkBehaviour
                 return;
             }
         }
-
-
     }
+
+    public void Initialize(int id)
+    {
+        pendingWeaponId = id;
+
+        if (IsServer && IsSpawned)
+        {
+            ApplyWeaponId();
+        }
+    }
+
+    private void ApplyWeaponId()
+    {
+        weaponId.Value = pendingWeaponId;
+        Debug.Log($"[Server] WeaponNetworkHandler weaponId set to {weaponId.Value}");
+    }
+
 
     /* ============================================================
      *  SERVER-SIDE HELPERS (UNCHANGED ARCHITECTURE)

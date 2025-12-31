@@ -19,6 +19,7 @@ public class ClientComponentSwitcher : NetworkBehaviour
     [Header("Character Components (Server Only)")]
     [SerializeField] private MovementController moveController;
     [SerializeField] private CharacterMovementFSM movementFSM;
+    [SerializeField] private HealthSystem healthSystem;
 
     [Header("Camera System")]
     [SerializeField] private Camera mainCamera;
@@ -31,12 +32,10 @@ public class ClientComponentSwitcher : NetworkBehaviour
     [SerializeField] private ShootingSystem shootingSystem;
 
     [Header("Weapon Components (Server Only)")]
-    [SerializeField] private HealthSystem healthSystem;
     [SerializeField] private WeaponNetworkHandler weaponNetworkHandler;
 
-    // Flag to indicate whether weapon components were registered dynamically
-    private bool weaponComponentsInitialized;
-
+    [Header("UI Components")]
+    [SerializeField] private UIManager uiManager;
 
     private void Awake()
     {
@@ -61,6 +60,9 @@ public class ClientComponentSwitcher : NetworkBehaviour
 
         // HEALTH component
         if (healthSystem != null) healthSystem.enabled = false;
+
+        // UI Manager get reference
+        if (uiManager == null) uiManager = UIManager.Instance;
     }
 
     public override void OnNetworkSpawn()
@@ -93,37 +95,38 @@ public class ClientComponentSwitcher : NetworkBehaviour
         // HEALTH component (server only)
         if (healthSystem != null) healthSystem.enabled = isServer;
 
-        if (IsOwner)
+
+
+
+        // Register the player to the UI Manager (IMPORTANT: after all components are set up)
+        if (isOwner)
         {
-            UIManager.Instance.RegisterPlayer(gameObject);
+            uiManager.UIRegisterPlayer(gameObject);
         }
     }
 
     /// <summary>
-    /// Registers weapon-related components when a weapon is spawned.
+    /// Registers weapon components it's spawned + Registers it to the UI Manager
     /// </summary>
     public void RegisterWeapon(WeaponController wc, ShootingSystem ss, WeaponNetworkHandler wh)
     {
         weaponController = wc;
         shootingSystem = ss;
         weaponNetworkHandler = wh;
-        weaponComponentsInitialized = true;
+
         UpdateWeaponComponentState();
 
         if (IsOwner)
         {
-            UIManager.Instance.RegisterWeapon(wc);
+            uiManager.UIRegisterWeapon(wc);
         }
     }
 
     /// <summary>
-    /// Enables or disables weapon components based on current ownership and server status.
+    /// Enables or disables weapon components
     /// </summary>
     private void UpdateWeaponComponentState()
     {
-        if (!weaponComponentsInitialized)
-            return;
-
         bool isOwner = IsOwner;
         bool isServer = IsServer;
         if (weaponController != null) weaponController.enabled = isOwner;

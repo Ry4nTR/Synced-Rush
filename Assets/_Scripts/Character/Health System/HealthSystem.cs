@@ -1,17 +1,14 @@
 using UnityEngine;
 using Unity.Netcode;
-using UnityEngine.InputSystem;
 
 /// <summary>
-/// Server-authoritative health component.
-/// NetworkVariable writes happen ONLY after NGO registration.
+/// Server-authoritative health system.
 /// </summary>
 public class HealthSystem : NetworkBehaviour, IDamageable
 {
     [Header("Health Settings")]
     public float maxHealth = 100f;
 
-    // Server writes, everyone reads
     public NetworkVariable<float> currentHealth = new NetworkVariable<float>(
         0f,
         NetworkVariableReadPermission.Everyone,
@@ -46,8 +43,23 @@ public class HealthSystem : NetworkBehaviour, IDamageable
         }
     }
 
-    private void Die()
+    public void Die()
     {
         Debug.Log("Player died");
+
+        Respawn();
+    }
+
+    public void Respawn()
+    {
+        if (!IsServer)
+            return;
+
+        currentHealth.Value = maxHealth;
+
+        //reposition player to 0 ,0,0 or a spawn point
+        transform.position = Vector3.zero;
+
+        Debug.Log("Player respawned");
     }
 }

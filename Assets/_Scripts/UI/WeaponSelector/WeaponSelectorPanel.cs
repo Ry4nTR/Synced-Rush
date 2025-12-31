@@ -5,58 +5,49 @@ public class WeaponSelectorPanel : MonoBehaviour
 {
     private PlayerInputHandler inputHandler;
     private ClientComponentSwitcher componentSwitcher;
+    private UIManager uIManager;
 
+    private void Awake()
+    {
+        uIManager = UIManager.Instance;
+    }
     private void Update()
     {
         TryBindPlayer();
     }
 
     private void TryBindPlayer()
-{
-    // Already bound → stop
-    if (inputHandler != null)
-        return;
+    {
+        // Netcode shutting down or not initialized
+        if (NetworkManager.Singleton == null) return;
 
-    // Netcode shutting down or not initialized
-    if (NetworkManager.Singleton == null)
-        return;
+        // Not connected as client
+        var player = NetworkManager.Singleton.LocalClient.PlayerObject;
+        if (player == null)
+            return;
 
-    if (!NetworkManager.Singleton.IsClient)
-        return;
+        inputHandler = player.GetComponent<PlayerInputHandler>();
+        componentSwitcher = player.GetComponent<ClientComponentSwitcher>();
 
-    var localClient = NetworkManager.Singleton.LocalClient;
-    if (localClient == null)
-        return;
-
-    var player = localClient.PlayerObject;
-    if (player == null)
-        return;
-
-    inputHandler = player.GetComponent<PlayerInputHandler>();
-    componentSwitcher = player.GetComponent<ClientComponentSwitcher>();
-
-    if (inputHandler != null)
-        inputHandler.OnToggleWeaponPanelEvent += ToggleInGame;
-}
-
+        if (inputHandler != null)
+            inputHandler.OnToggleWeaponPanelEvent += ToggleInGame;
+    }
 
     // =========================
     // IN-GAME TOGGLE
     // =========================
-
     private void ToggleInGame()
     {
-        UIManager.Instance.ShowWeaponSelector();
+        uIManager.ShowWeaponSelector();
         componentSwitcher?.EnableUI();
     }
 
     // =========================
     // WEAPON SELECTION
     // =========================
-
     public void SelectWeapon(int weaponId)
     {
-        // Always update local selection
+        // Update local selection
         LocalWeaponSelection.SelectedWeaponId = weaponId;
 
         bool isInGame =
@@ -64,26 +55,16 @@ public class WeaponSelectorPanel : MonoBehaviour
             NetworkManager.Singleton.IsConnectedClient &&
             NetworkManager.Singleton.LocalClient?.PlayerObject != null;
 
-        // -------------------------
         // LOBBY BEHAVIOUR
-        // -------------------------
-        if (!isInGame)
-        {
-            // DO NOTHING ELSE
-            // Panel stays open, player can click forever
-            return;
-        }
+        if (!isInGame) return;
 
-        // -------------------------
         // IN-GAME BEHAVIOUR
-        // -------------------------
-        var loadout = NetworkManager.Singleton.LocalClient.PlayerObject
-            .GetComponent<WeaponLoadoutState>();
+        var loadout = NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<WeaponLoadoutState>();
 
         loadout?.RequestEquip(weaponId);
 
-        UIManager.Instance.HideWeaponSelector();
-        UIManager.Instance.ShowHUD();
+        uIManager.HideWeaponSelector();
+        uIManager.ShowHUD();
         componentSwitcher?.EnableGameplay();
     }
 

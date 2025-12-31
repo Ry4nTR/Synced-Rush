@@ -25,11 +25,10 @@ public class WeaponDatabase : ScriptableObject
         }
     }
 
-    public WeaponData GetById(int weaponId)
+    //returns weapon data by weapon ID
+    public WeaponData GetDataById(int weaponId)
     {
         lookup.TryGetValue(weaponId, out var weapon);
         return weapon;
     }
-
-    public IReadOnlyList<WeaponData> AllWeapons => weapons;
 }

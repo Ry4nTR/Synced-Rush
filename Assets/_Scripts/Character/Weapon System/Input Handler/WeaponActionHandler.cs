@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using Unity.Netcode;
 
-public class CharacterWeaponHandler : NetworkBehaviour
+public class WeaponActionHandler : NetworkBehaviour
 {
     [SerializeField] private PlayerInputHandler inputHandler;
 
@@ -22,25 +22,22 @@ public class CharacterWeaponHandler : NetworkBehaviour
             return;
         }
 
-        // 🔴 FIRE
         if (inputHandler.fire)
         {
-            //Debug.Log("[CharacterWeaponHandler] FIRE input detected");
+            //Debug.Log("[WeaponActionHandler] FIRE input detected");
             weaponController.RequestFire();
         }
 
-        // 🔵 AIM
         if (inputHandler.aim != lastAim)
         {
-            //Debug.Log($"[CharacterWeaponHandler] AIM = {inputHandler.aim}");
+            //Debug.Log($"[WeaponActionHandler] AIM = {inputHandler.aim}");
             weaponController.SetAiming(inputHandler.aim);
             lastAim = inputHandler.aim;
         }
 
-        // 🟡 RELOAD (edge-trigger)
         if (inputHandler.reload && !lastReload)
         {
-            //Debug.Log("[CharacterWeaponHandler] RELOAD requested");
+            //Debug.Log("[WeaponActionHandler] RELOAD requested");
             weaponController.Reload();
         }
 

@@ -1,4 +1,5 @@
 using System.Collections;
+using Unity.Services.Multiplayer;
 using UnityEngine;
 
 /// <summary>
@@ -9,13 +10,14 @@ using UnityEngine;
 /// </summary>
 public class WeaponController : MonoBehaviour
 {
-    // References to other systems
     [Tooltip("Static data asset for this weapon")]
     public WeaponData weaponData;
+
     private ShootingSystem shootingSystem;
     private WeaponNetworkHandler networkHandler;
+    private Transform firePoint;
+    private Animator weaponAnimator;
 
-    // Local state (not synced)
     private int currentAmmo;
     private int reserveAmmo;
     private float currentSpread;
@@ -23,49 +25,34 @@ public class WeaponController : MonoBehaviour
     private bool isAiming;
     private float nextFireTime;
 
-    // Cached references
-    private Transform firePoint;
-    private Animator weaponAnimator;
-
-    /// <summary>
-    /// Gets the current spread value, taking aiming into account.
-    /// </summary>
     public float CurrentSpread => CalculateCurrentSpread();
 
-    /// <summary>
-    /// Returns true if the weapon can currently fire.
-    /// </summary>
     public bool CanShoot => !isReloading && currentAmmo > 0 && Time.time >= nextFireTime;
 
-    /// <summary>
-    /// Exposes current ammo.
-    /// </summary>
     public int CurrentAmmo => currentAmmo;
     public int ReserveAmmo => reserveAmmo;
 
     private void Awake()
     {
         shootingSystem = GetComponent<ShootingSystem>();
-        if (!networkHandler)
-            networkHandler = GetComponentInParent<WeaponNetworkHandler>();
-
-        if (!networkHandler)
-            Debug.LogError("WeaponController: WeaponNetworkHandler not found in parent Player");
+        networkHandler = GetComponentInParent<WeaponNetworkHandler>();
 
         AssignCameraTransform();
-
-        // Optionally find an animator on the child weapon model
-        weaponAnimator = GetComponentInChildren<Animator>();
     }
 
-    /// <summary>
-    /// Initializes the weapon controller with the given weapon data.
-    /// </summary>
+    private void Update()
+    {
+        // Recover spread each frame
+            RecoverSpread(Time.deltaTime);
+    }
+
+
+    // Initializes the weapon with the given data.
     public void Initialize(WeaponData data)
     {
         weaponData = data;
         currentAmmo = weaponData.magazineSize;
-        reserveAmmo = weaponData.maxAmmo;
+        reserveAmmo = weaponData.ammoReserve;
         currentSpread = weaponData.baseSpread;
         nextFireTime = 0f;
         isReloading = false;
@@ -112,28 +99,6 @@ public class WeaponController : MonoBehaviour
         StartCoroutine(ReloadCoroutine());
     }
 
-    private IEnumerator ReloadCoroutine()
-    {
-        isReloading = true;
-        // Play reload animation and sound if available
-        if (weaponAnimator != null && !string.IsNullOrEmpty(weaponData.reloadAnimationTrigger))
-        {
-            weaponAnimator.SetTrigger(weaponData.reloadAnimationTrigger);
-        }
-        // Wait for the reload time
-        yield return new WaitForSeconds(weaponData.reloadTime);
-        // Calculate how much ammo to load into the magazine
-        int needed = weaponData.magazineSize - currentAmmo;
-        int toLoad = Mathf.Min(needed, reserveAmmo);
-        currentAmmo += toLoad;
-        reserveAmmo -= toLoad;
-
-        // Infinite ammo(TESTING) <---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-        reserveAmmo = weaponData.maxAmmo;
-
-        isReloading = false;
-    }
-
     /// <summary>
     /// Sets the aiming state. When aiming, spread is reduced via aimSpreadMultiplier.
     /// Additional handling such as adjusting camera FOV can be added here.
@@ -145,16 +110,70 @@ public class WeaponController : MonoBehaviour
     }
 
     /// <summary>
+    /// Calculates the damage to apply based on the distance between shooter and target.
+    /// </summary>
+    public float CalculateDamageByDistance(float distance)
+    {
+        if (weaponData == null)
+            return 0f;
+
+        // No falloff if end distance is not set or start/end reversed
+        if (weaponData.falloffEndDistance <= weaponData.falloffStartDistance)
+            return weaponData.damage;
+
+        // Full damage inside the falloff start range
+        if (distance <= weaponData.falloffStartDistance)
+            return weaponData.damage;
+
+        // Minimum damage beyond the falloff end range
+        if (distance >= weaponData.falloffEndDistance)
+            return weaponData.minimumDamage;
+
+        // Linearly interpolate between base damage and minimum damage
+        float t = (distance - weaponData.falloffStartDistance) /
+                  (weaponData.falloffEndDistance - weaponData.falloffStartDistance);
+        return Mathf.Lerp(weaponData.damage, weaponData.minimumDamage, t);
+    }
+
+    private IEnumerator ReloadCoroutine()
+    {
+        isReloading = true;
+
+        // Play reload animation and sound if available
+        if (weaponAnimator != null && !string.IsNullOrEmpty(weaponData.reloadAnimationTrigger))
+        {
+            weaponAnimator.SetTrigger(weaponData.reloadAnimationTrigger);
+        }
+
+        // Wait for the reload time
+        yield return new WaitForSeconds(weaponData.reloadTime);
+
+        // Calculate how much ammo to load into the magazine
+        int needed = weaponData.magazineSize - currentAmmo;
+        int toLoad = Mathf.Min(needed, reserveAmmo);
+        currentAmmo += toLoad;
+        reserveAmmo -= toLoad;
+
+        // TODO: Remove this testing code
+        // Infinite ammo (TESTING)
+        reserveAmmo = weaponData.ammoReserve;
+
+        isReloading = false;
+    }
+
+    /// <summary>
     /// Calculates the current spread including aiming modifiers.
     /// </summary>
     /// <returns>The spread value to apply to a shot.</returns>
     private float CalculateCurrentSpread()
     {
         float spread = currentSpread;
+
         if (isAiming)
         {
             spread *= weaponData.aimSpreadMultiplier;
         }
+
         // Ensure spread stays within bounds
         return Mathf.Clamp(spread, weaponData.baseSpread, weaponData.maxSpread);
     }
@@ -173,17 +192,7 @@ public class WeaponController : MonoBehaviour
     /// <param name="deltaTime">The time elapsed since the last frame.</param>
     private void RecoverSpread(float deltaTime)
     {
-        currentSpread = Mathf.Max(weaponData.baseSpread,
-                                  currentSpread - weaponData.spreadRecoveryRate * deltaTime);
-    }
-
-    private void Update()
-    {
-        // Recover spread each frame
-        if (weaponData != null)
-        {
-            RecoverSpread(Time.deltaTime);
-        }
+        currentSpread = Mathf.Max(weaponData.baseSpread, currentSpread - weaponData.spreadRecoveryRate * deltaTime);
     }
 
     /// <summary>
@@ -193,32 +202,11 @@ public class WeaponController : MonoBehaviour
     private void ConsumeAmmo()
     {
         currentAmmo--;
+
         if (currentAmmo <= 0 && reserveAmmo > 0)
         {
             Reload();
         }
-    }
-
-    /// <summary>
-    /// Calculates the damage to apply based on the distance between shooter and target.
-    /// </summary>
-    public float CalculateDamageByDistance(float distance)
-    {
-        if (weaponData == null)
-            return 0f;
-        // No falloff if end distance is not set or start/end reversed
-        if (weaponData.falloffEndDistance <= weaponData.falloffStartDistance)
-            return weaponData.damage;
-        // Full damage inside the falloff start range
-        if (distance <= weaponData.falloffStartDistance)
-            return weaponData.damage;
-        // Minimum damage beyond the falloff end range
-        if (distance >= weaponData.falloffEndDistance)
-            return weaponData.minimumDamage;
-        // Linearly interpolate between base damage and minimum damage
-        float t = (distance - weaponData.falloffStartDistance) /
-                  (weaponData.falloffEndDistance - weaponData.falloffStartDistance);
-        return Mathf.Lerp(weaponData.damage, weaponData.minimumDamage, t);
     }
 
     private void AssignCameraTransform()

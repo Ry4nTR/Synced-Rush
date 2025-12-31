@@ -2,18 +2,16 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// ScriptableObject containing all of the static data for a weapon.
-/// This data does not change at runtime and therefore is not synchronized
-/// over the network. Each client must have an identical copy of this asset.
+/// SO containing all data of a weapon.
 /// </summary>
 [CreateAssetMenu(fileName = "New Weapon", menuName = "Weapons/Weapon Data")]
 public class WeaponData : ScriptableObject
 {
     [Header("Identification")]
     public string weaponName;
-    public WeaponType weaponType; // AR, SMG, Sniper, Pistol, etc.
+    public WeaponType weaponType; // AssaultRifle, SubmachineGun, SniperRifle, etc.
     public int weaponID; // Unique ID used for network synchronization
-    public LayerMask layerMask; // Layers that can be hit by this weapon
+    public LayerMask layerMask; // Layers that this weapon can hit
 
     [Header("Combat Stats")]
     public float damage; // Base damage per shot
@@ -22,45 +20,26 @@ public class WeaponData : ScriptableObject
     public float criticalMultiplier = 1.5f; // Multiplier for critical hits
 
     [Header("Damage Falloff")]
-    /// <summary>
-    /// Distance in meters from the shooter at which damage begins to fall off.
-    /// Up to this distance the weapon deals its full base damage.
-    /// </summary>
-    public float falloffStartDistance;
-
-    /// <summary>
-    /// Distance in meters at which damage falloff reaches its minimum value.
-    /// Beyond this distance the weapon will not deal less than minimumDamage.
-    /// </summary>
-    public float falloffEndDistance;
-
-    /// <summary>
-    /// The minimum damage this weapon can deal at extreme range. This value is
-    /// applied once the target is beyond falloffEndDistance.
-    /// </summary>
-    public float minimumDamage;
+    public float falloffStartDistance; // Distance at which damage falloff begins
+    public float falloffEndDistance; // Distance at which damage falloff ends
+    public float minimumDamage; // Minimum damage at maximum range
 
     [Header("Ammo")]
-    public int magazineSize; // Number of bullets per magazine
-    public int maxAmmo; // Maximum ammo reserve
-    public float reloadTime; // Time required to reload in seconds
+    public int magazineSize; // Magazine capacity
+    public int ammoReserve; // Ammo reserve capacity
+    public float reloadTime; // Time required to reload (in seconds)
 
     [Header("Accuracy")]
-    public float baseSpread; // Base spread when idle/walking
-    public float sprintSpread; // Spread when sprinting
+    public float baseSpread; // Spread when idle/walking
     public float jumpSpread; // Spread when jumping
-    public float crouchSpreadMultiplier = 0.7f; // Multiplier applied to spread while crouching
-    public float aimSpreadMultiplier = 0.5f; // Multiplier applied to spread while aiming
-    public float spreadRecoveryRate; // How quickly the spread recovers over time
-    public float spreadIncreasePerShot; // Spread added with each shot
-    public float maxSpread; // Maximum spread value
-
-    [Header("Recoil")]
-    public Vector2 recoilPattern; // X = horizontal recoil, Y = vertical recoil
-    public float recoilRecoverySpeed; // Speed at which recoil recovers
+    public float crouchSpreadMultiplier = 0.7f; // Spread multiplier when crouching
+    public float aimSpreadMultiplier = 0.5f; // Spread multiplier when aiming
+    public float spreadRecoveryRate; // Spread recovery over time
+    public float spreadIncreasePerShot; // Spread increase with each shot
+    public float maxSpread; // Maximum spread
 
     [Header("Visual & Audio")]
-    public GameObject weaponPrefab; // Prefab for the weapon (client only)
+    public GameObject weaponPrefab; // Prefab of the weapon
     public AudioClip shootSound;
     public AudioClip reloadSound;
     public AudioClip emptySound;
@@ -72,9 +51,11 @@ public class WeaponData : ScriptableObject
     public float aimSpeed; // Speed of transition to aiming
     public string shootAnimationTrigger = "Shoot";
     public string reloadAnimationTrigger = "Reload";
+    public string aimAnimationBool = "IsAiming";
+    public string walkAnimationBool = "IsWalking";
+    public string sprintAnimationBool = "IsSprinting";
 
     [Header("Models")]
-    public GameObject viewModelPrefab; // First-person model prefab
     public GameObject worldModelPrefab; // Third-person model prefab
 }
 

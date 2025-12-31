@@ -276,14 +276,15 @@ MonoBehaviour:
   lookController: {fileID: 7529996170362948438}
   moveController: {fileID: -2986967647247276543}
   movementFSM: {fileID: 245510072461140579}
+  healthSystem: {fileID: -1213673637414683771}
   mainCamera: {fileID: 4697262685522540234}
   brain: {fileID: 5301591873232992699}
   cineCam: {fileID: 1191002731392592227}
   audioListener: {fileID: 2746145554710722952}
   weaponController: {fileID: 0}
   shootingSystem: {fileID: 0}
-  healthSystem: {fileID: 0}
-  weaponNetworkHandler: {fileID: 0}
+  weaponNetworkHandler: {fileID: 7510125466554032796}
+  uiManager: {fileID: 0}
 --- !u!114 &5363198753706274393
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -326,7 +327,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 148f8cb0ea7cdbd4aa28a341084cc183, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InputManager
-  lockCursorOnEnable: 1
   move: {x: 0, y: 0}
   look: {x: 0, y: 0}
   jump: 0
@@ -335,7 +335,6 @@ MonoBehaviour:
   fire: 0
   aim: 0
   reload: 0
-  scroll: 0
   toggleWeaponPanel: 0
   debugResetPos: 0
 --- !u!114 &-4718773345927608370
@@ -470,7 +469,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponNetworkHandler
   ShowTopMostFoldoutHeaderGroup: 1
-  serverFireOrigin: {fileID: 3428661119864486910}
+  weaponDatabase: {fileID: 11400000, guid: ee9ff1f69c7b7854db6be0df288af04f, type: 2}
 --- !u!114 &-1213673637414683771
 MonoBehaviour:
   m_ObjectHideFlags: 0

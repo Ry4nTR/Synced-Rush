@@ -1,25 +1,29 @@
-using UnityEngine;
+Ôªøusing UnityEngine;
 
 /// <summary>
 /// Gestisce le statistiche del character. (es. <see cref="_walkSpeed"/>)<br/>
-/// Per il momento funge pi˘ da Struct; ma nel caso volessimo avere un controllo pi˘ granulare sui parametri del personaggio, si puÚ estendere la funzionalit‡ di questa classe
+/// Per il momento funge pi≈Ø da Struct; ma nel caso volessimo avere un controllo pi≈Ø granulare sui parametri del personaggio, si pu≈à estendere la funzionalit≈ï di questa classe
 /// </summary>
 public class CharacterStats : MonoBehaviour
 {
     // Campi privati
-    /// <summary>Velocit‡ di camminata in m/s</summary>
+    [Header("Movement Speed")]
+    /// <summary>Velocit≈ï di camminata in m/s</summary>
     [SerializeField] private float _walkSpeed = 5f;
-    /// <summary>Velocit‡ di corsa in m/s</summary>
+    /// <summary>Velocit≈ï di corsa in m/s</summary>
     [SerializeField] private float _runSpeed = 7.5f;
 
-    /// <summary>L'altezza che viene raggiunta con un salto (indipendente dalla gravit‡)</summary>
+    [Header("Jump Settings")]
+    /// <summary>L'altezza che viene raggiunta con un salto (indipendente dalla gravit≈ï)</summary>
     [SerializeField] private float _jumpHeight = 2f;
     /// <summary>Tempo (in secondi) permesso al giocatore di saltare anche dopo aver perso conttato con il terreno </summary>
     [SerializeField] private float _jumpCoyoteTime = 0.25f;
 
+    [Header("Air Movement")]
     [SerializeField] private float _airAcceleration = 3f;
     [SerializeField] private float _airDeceleration = 3f;
 
+    [Header("Slide Settings")]
     //TODO _slideMoveInfluence e _slideDecelleration sono da definire meglio
     /// <summary> </summary>
     [SerializeField] private float _slideStartBoost = 7.5f;
@@ -32,15 +36,17 @@ public class CharacterStats : MonoBehaviour
     /// <summary> </summary>
     [SerializeField] private float _slideIncreasedDecelerationThreshold = 70f;
 
-    /// <summary>Velocit‡ minima per correre su una parete</summary>
+    [Header("Wall Run Settings")]
+    /// <summary>Velocit≈ï minima per correre su una parete</summary>
     [SerializeField] private float _wallRunMinimumSpeed = 1f;
     /// <summary>Angolazione massima per la visuale rispetto al muro consentita per correre su una parete</summary>
     [SerializeField] private float _wallRunLookAngleLimit = 110f;
 
-    /// <summary>Accelerazione di gravit‡ (m/s^2)</summary>
+    [Header("Physics")]
+    /// <summary>Accelerazione di gravit≈ï (m/s^2)</summary>
     [SerializeField] private float _gravity = 9.81f;
 
-    // Propriet‡
+    // Propriet≈ï
     public float WalkSpeed => _walkSpeed;
     public float RunSpeed => _runSpeed;
     public float JumpHeight => _jumpHeight;

@@ -1,42 +1,28 @@
 using System;
 using UnityEngine;
-#if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
-#endif
 
 /// <summary>
-/// PlayerInputHandler:
-/// Component da mettere sul player che riceve input via PlayerInput (Send Messages)
-/// e rende disponibili helper / valori per gli altri script (es. Player controller, LookController).
+/// Componente che riceve input via Player Input System ed espone metodi/variabili
 /// </summary>
 [DisallowMultipleComponent]
 public class PlayerInputHandler : MonoBehaviour
 {
-    // 1) Campi serializzati
-    [Header("Cursor")]
-    [SerializeField] private bool lockCursorOnEnable = true;
-
-    // 2) Campi pubblici (imitando StarterAssetsInputs)
     [Header("Character Input Values")]
     public Vector2 move;
     public Vector2 look;
     public bool jump;
     public bool sprint;
-    public bool crouch; // è usato anche per lo slide
+    public bool crouch; // ALSO SLIDE
     public bool fire;
     public bool aim;
     public bool reload;
-    public float scroll;
     public bool toggleWeaponPanel;
-
     //TODO da rimuovere quando non serve più
     public bool debugResetPos;
 
-    // 3) Campi privati
-    private PlayerInput _playerInput;
     private PlayerInputSystem _controls;
 
-    // Proprietà campi input (usare queste al di fuori di questa classe)
     public Vector2 Move => move;
     public Vector2 Look => look;
     public bool Jump => jump;
@@ -45,9 +31,7 @@ public class PlayerInputHandler : MonoBehaviour
     public bool Fire => fire;
     public bool Aim => aim;
     public bool Reload => reload;
-    public float Scroll => scroll;
 
-    // 4) Event facoltativi
     public event Action<Vector2> OnLookEvent = delegate { };
     public event Action OnToggleWeaponPanelEvent = delegate { };
 
@@ -55,24 +39,19 @@ public class PlayerInputHandler : MonoBehaviour
     private void Awake()
     {
         _controls = new PlayerInputSystem();
-        _playerInput = GetComponent<PlayerInput>();
     }
 
     private void OnEnable()
     {
-        if (lockCursorOnEnable)
-        {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-        }
+        // Lock the cursor
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
 
-        if (_controls != null)
-        {
-            _controls.Enable();
-            SubscribeAllInputs();
-        }
+        // Enable the action map + subscribe to events
+        _controls.Enable();
+        SubscribeAllInputs();
 
-        // reset iniziale
+        // Reset all inputs
         move = Vector2.zero;
         look = Vector2.zero;
         jump = false;
@@ -80,9 +59,7 @@ public class PlayerInputHandler : MonoBehaviour
         fire = false;
         aim = false;
         reload = false;
-        scroll = 0f;
         toggleWeaponPanel = false;
-
 
         //TODO da rimuovere quando non serve più
         debugResetPos = false;
@@ -138,11 +115,6 @@ public class PlayerInputHandler : MonoBehaviour
         ReloadInput(context.performed);
     }
 
-    public void OnScroll(InputAction.CallbackContext context)
-    {
-        ScrollInput(context.ReadValue<float>());
-    }
-
     public void OnToggleWeaponPanel(InputAction.CallbackContext context)
     {
         if (context.performed)
@@ -158,9 +130,6 @@ public class PlayerInputHandler : MonoBehaviour
         debugResetPos = context.performed;
     }
 #endif
-
-
-
 
     // 7) Helper publici (altri script leggono questi valori)
     public void MoveInput(Vector2 newMove)
@@ -202,11 +171,6 @@ public class PlayerInputHandler : MonoBehaviour
     public void ReloadInput(bool newReload)
     {
         reload = newReload;
-    }
-
-    public void ScrollInput(float newScroll)
-    {
-        scroll = newScroll;
     }
 
     public void SetCursorLocked(bool locked)

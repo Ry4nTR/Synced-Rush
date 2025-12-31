@@ -1,5 +1,8 @@
 using UnityEngine;
 
+/// <summary>
+/// Types of body parts for hitboxes.
+/// </summary>
 public enum BodyPartType
 {
     Head,
@@ -19,7 +22,6 @@ public class Hitbox : MonoBehaviour
     public BodyPartType bodyPart;
     public float damageMultiplier = 1f;
 
-    // Cached reference to the owning HealthSystem
     private HealthSystem healthSystem;
 
     private void Awake()
@@ -27,6 +29,7 @@ public class Hitbox : MonoBehaviour
         healthSystem = GetComponentInParent<HealthSystem>();
     }
 
+    //returns the HealthSystem of the player this hitbox belongs to
     public HealthSystem GetHealthSystem()
     {
         return healthSystem;

@@ -15,13 +15,20 @@ public class PlayerHUD : MonoBehaviour
     private WeaponController weapon;
     private HealthSystem health;
 
+    private void Update()
+    {
+            UpdateAmmo();
+    }
+    private void OnDestroy()
+    {
+        if (health != null)
+            health.currentHealth.OnValueChanged -= OnHealthChanged;
+    }
+
     // =========================
-    // INITIALIZATION
+    // BINDING PLAYER AND WEAPON
     // =========================
 
-    /// <summary>
-    /// Called once by UIManager when the local player is known.
-    /// </summary>
     public void BindPlayer(GameObject player)
     {
         health = player.GetComponent<HealthSystem>();
@@ -39,24 +46,6 @@ public class PlayerHUD : MonoBehaviour
         UpdateAmmo();
     }
 
-
-    private void OnDestroy()
-    {
-        if (health != null)
-            health.currentHealth.OnValueChanged -= OnHealthChanged;
-    }
-
-    // =========================
-    // UPDATE LOOP
-    // =========================
-
-    private void Update()
-    {
-        // Ammo is local-only → safe and cheap to update per frame
-        if (weapon != null)
-            UpdateAmmo();
-    }
-
     // =========================
     // HUD UPDATES
     // =========================
@@ -68,7 +57,6 @@ public class PlayerHUD : MonoBehaviour
             : "-- / --";
     }
 
-    // UpdateHelth not casted to int to show decimal health values
     private void UpdateHealth()
     {
         healthText.text = health != null
