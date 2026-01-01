@@ -57,9 +57,6 @@ public class HealthSystem : NetworkBehaviour, IDamageable
 
         currentHealth.Value = maxHealth;
 
-        //reposition player to 0 ,0,0 or a spawn point
-        transform.position = Vector3.zero;
-
         Debug.Log("Player respawned");
     }
 }

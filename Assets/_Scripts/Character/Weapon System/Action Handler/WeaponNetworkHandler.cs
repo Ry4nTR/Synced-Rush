@@ -6,22 +6,13 @@ public class WeaponNetworkHandler : NetworkBehaviour
     [Header("Weapon Data")]
     [SerializeField] private WeaponDatabase weaponDatabase;
 
-    private NetworkVariable<int> weaponId = new NetworkVariable<int>(
-        -1,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server
-    );
-    private int pendingWeaponId = -1;
     private WeaponController weaponController;
+    private WeaponLoadoutState loadoutState;
 
     public override void OnNetworkSpawn()
     {
+        loadoutState = GetComponent<WeaponLoadoutState>();
         weaponController = GetComponentInChildren<WeaponController>();
-
-        if (IsServer && pendingWeaponId >= 0)
-        {
-            ApplyWeaponId();
-        }
     }
 
     /* ============================================================
@@ -50,21 +41,14 @@ public class WeaponNetworkHandler : NetworkBehaviour
     float spread,
     ServerRpcParams rpcParams = default)
     {
-        Debug.Log(weaponId.Value);
-
-        if (weaponId.Value < 0)
-        {
-            Debug.LogWarning("WeaponNetworkHandler: Invalid weapon ID.");
+        if (loadoutState == null)
             return;
-        }
 
-        WeaponData data = weaponDatabase.GetDataById(weaponId.Value);
+        int weaponId = loadoutState.EquippedWeaponId.Value;
+        WeaponData data = weaponDatabase.GetDataById(weaponId);
 
         if (data == null)
-        {
-            Debug.LogWarning("WeaponNetworkHandler: Weapon data not found for ID " + weaponId);
             return;
-        }
 
         // 1) Server-side spread correction
         Vector3 correctedDirection = ApplySpread(direction, spread);
@@ -75,12 +59,8 @@ public class WeaponNetworkHandler : NetworkBehaviour
 
         ulong shooterClientId = rpcParams.Receive.SenderClientId;
 
-        if (!NetworkManager.Singleton.ConnectedClients.TryGetValue(
-                shooterClientId,
-                out var shooterClient))
-        {
+        if (!NetworkManager.Singleton.ConnectedClients.TryGetValue(shooterClientId, out var shooterClient))
             return;
-        }
 
         Transform shooterRoot = shooterClient.PlayerObject.transform;
 
@@ -107,7 +87,7 @@ public class WeaponNetworkHandler : NetworkBehaviour
                 if (health == null)
                     return;
 
-                float damage = weaponController.CalculateDamageByDistance(hit.distance);
+                float damage = data.CalculateDamageByDistance(hit.distance);
                 damage *= hitbox.damageMultiplier;
 
                 health.TakeDamage(damage, shooterClientId);
@@ -115,22 +95,6 @@ public class WeaponNetworkHandler : NetworkBehaviour
                 return;
             }
         }
-    }
-
-    public void Initialize(int id)
-    {
-        pendingWeaponId = id;
-
-        if (IsServer && IsSpawned)
-        {
-            ApplyWeaponId();
-        }
-    }
-
-    private void ApplyWeaponId()
-    {
-        weaponId.Value = pendingWeaponId;
-        Debug.Log($"[Server] WeaponNetworkHandler weaponId set to {weaponId.Value}");
     }
 
 

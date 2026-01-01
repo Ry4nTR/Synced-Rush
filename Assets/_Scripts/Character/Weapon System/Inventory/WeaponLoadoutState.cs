@@ -6,7 +6,7 @@
 public class WeaponLoadoutState : NetworkBehaviour
 {
     public NetworkVariable<int> EquippedWeaponId = new NetworkVariable<int>(
-        -1, // -1 = no weapon
+        -1,
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server
     );

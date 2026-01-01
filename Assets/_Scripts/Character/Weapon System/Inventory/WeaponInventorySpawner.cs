@@ -91,10 +91,6 @@ public class WeaponInventorySpawner : NetworkBehaviour
             var ss = currentWeapon.GetComponent<ShootingSystem>();
 
             var wh = currentWeapon.GetComponentInParent<WeaponNetworkHandler>();
-            if (IsServer)
-            {
-                wh.Initialize(data.weaponID);
-            }
 
             componentSwitcher?.RegisterWeapon(wc, ss, wh);
         }

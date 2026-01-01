@@ -1,12 +1,29 @@
 using System;
 using UnityEngine;
 
+// Enumeration of possible weapon categories. Additional types can be added as needed.
+public enum WeaponType
+{
+    AssaultRifle,
+    SubmachineGun,
+    SniperRifle,
+    Pistol,
+    Shotgun,
+    LightMachineGun,
+    Melee,
+    GrenadeLauncher
+}
+
 /// <summary>
 /// SO containing all data of a weapon.
 /// </summary>
 [CreateAssetMenu(fileName = "New Weapon", menuName = "Weapons/Weapon Data")]
 public class WeaponData : ScriptableObject
 {
+    // =========================
+    // WEAPON PROPERTIES
+    // =========================
+
     [Header("Identification")]
     public string weaponName;
     public WeaponType weaponType; // AssaultRifle, SubmachineGun, SniperRifle, etc.
@@ -57,19 +74,33 @@ public class WeaponData : ScriptableObject
 
     [Header("Models")]
     public GameObject worldModelPrefab; // Third-person model prefab
-}
 
-/// <summary>
-/// Enumeration of possible weapon categories. Additional types can be added as needed.
-/// </summary>
-public enum WeaponType
-{
-    AssaultRifle,
-    SubmachineGun,
-    SniperRifle,
-    Pistol,
-    Shotgun,
-    LightMachineGun,
-    Melee,
-    GrenadeLauncher
+    // =========================
+    // HELPER METHODS
+    // =========================
+
+    // Calculates the damage based on the distance to the target.
+    public float CalculateDamageByDistance(float distance)
+    {
+        // Clamp negative or zero distances
+        if (distance <= 0f)
+            return damage;
+
+        // No falloff before start distance
+        if (distance <= falloffStartDistance)
+            return damage;
+
+        // Fully fallen off after end distance
+        if (distance >= falloffEndDistance)
+            return minimumDamage;
+
+        // Linear interpolation between damage and minimumDamage
+        float t = Mathf.InverseLerp(
+            falloffStartDistance,
+            falloffEndDistance,
+            distance
+        );
+
+        return Mathf.Lerp(damage, minimumDamage, t);
+    }
 }

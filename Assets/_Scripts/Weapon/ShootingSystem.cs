@@ -47,7 +47,7 @@ public class ShootingSystem : MonoBehaviour
         RaycastHit[] hits = Physics.RaycastAll(
             origin,
             finalDir,
-            weaponController.weaponData.range,
+            weaponData.range,
             HitMask,
             QueryTriggerInteraction.Collide
         );
@@ -78,11 +78,11 @@ public class ShootingSystem : MonoBehaviour
             ShowBulletTracer(origin, validHit.point);
 
             float distance = Vector3.Distance(origin, validHit.point);
-            float damage = weaponController.CalculateDamageByDistance(distance);
+            float damage = weaponData.CalculateDamageByDistance(distance);
         }
         else
         {
-            Vector3 endPoint = origin + finalDir * weaponController.weaponData.range;
+            Vector3 endPoint = origin + finalDir * weaponData.range;
 
             lastRayOrigin = origin;
             lastRayEnd = endPoint;
