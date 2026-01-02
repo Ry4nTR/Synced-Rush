@@ -38,6 +38,8 @@ public class WeaponData : ScriptableObject
     [Header("Damage Falloff")]
     public float falloffStartDistance; // Distance at which damage falloff begins
     public float falloffEndDistance; // Distance at which damage falloff ends
+    public float falloffDistancePerStep; // Distance per damage reduction step
+    public float damageReductionPerStep; // Damage reduction per step
     public float minimumDamage; // Minimum damage at maximum range
 
     [Header("Ammo")]
@@ -93,6 +95,21 @@ public class WeaponData : ScriptableObject
         // Fully fallen off after end distance
         if (distance >= falloffEndDistance)
             return minimumDamage;
+
+        // Stepped falloff calculation
+        if (falloffDistancePerStep > 0f)
+        {
+            // Calculate how many steps beyond falloffStartDistance
+            float distanceBeyondStart = distance - falloffStartDistance;
+            int steps = Mathf.FloorToInt(distanceBeyondStart / falloffDistancePerStep);
+
+            // Calculate damage reduction
+            float damageReduction = steps * damageReductionPerStep;
+            float steppedDamage = damage - damageReduction;
+
+            // Ensure damage doesn't go below minimum
+            return Mathf.Max(steppedDamage, minimumDamage);
+        }
 
         // Linear interpolation between damage and minimumDamage
         float t = Mathf.InverseLerp(
