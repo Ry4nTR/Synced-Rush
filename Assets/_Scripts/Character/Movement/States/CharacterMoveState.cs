@@ -25,7 +25,7 @@ namespace SyncedRush.Character.Movement
             // handler is available (e.g. remote clients) default to false.
             bool jumpInput = (character.IsServer || character.LocalInputHandler == null)
                 ? Input.Jump
-                : character.LocalInputHandler.jump;
+                : character.LocalInputHandler.Jump;
 
             if (jumpInput)
                 return MovementState.Jump;
@@ -117,13 +117,13 @@ namespace SyncedRush.Character.Movement
             }
             else
             {
-                Vector2 move = character.LocalInputHandler.move;
+                Vector2 move = character.LocalInputHandler.Move;
                 Vector3 inputDir = character.Orientation.transform.forward * move.y + character.Orientation.transform.right * move.x;
                 if (inputDir.magnitude > 1f)
                     inputDir.Normalize();
                 float dot = Vector3.Dot(inputDir, character.Orientation.transform.forward);
-                bool crouchInput = character.LocalInputHandler.crouch;
-                bool sprintInput = character.LocalInputHandler.sprint;
+                bool crouchInput = character.LocalInputHandler.Crouch;
+                bool sprintInput = character.LocalInputHandler.Sprint;
                 return crouchInput && sprintInput && dot > -0.1f;
             }
         }
@@ -155,12 +155,12 @@ namespace SyncedRush.Character.Movement
             }
             else
             {
-                Vector2 move = character.LocalInputHandler.move;
+                Vector2 move = character.LocalInputHandler.Move;
                 // Compute a direction from the local move input relative to character orientation.
                 Vector3 inputDir = character.Orientation.transform.forward * move.y + character.Orientation.transform.right * move.x;
                 if (inputDir.magnitude > 1f)
                     inputDir.Normalize();
-                bool sprintInput = character.LocalInputHandler.sprint;
+                bool sprintInput = character.LocalInputHandler.Sprint;
                 bool movingBackwardsOnly = Mathf.Approximately(move.y, -1f) && Mathf.Approximately(move.x, 0f);
                 float targetSpeed = sprintInput && !movingBackwardsOnly ? character.Stats.RunSpeed : character.Stats.WalkSpeed;
                 character.HorizontalVelocity = Vector2.MoveTowards(

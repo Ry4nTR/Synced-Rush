@@ -35,15 +35,15 @@ public class NetworkPlayerInput : NetworkBehaviour
 
         GameplayInputData inputData = new GameplayInputData
         {
-            Move = _inputHandler.move,
-            Look = _inputHandler.look,
-            Jump = _inputHandler.jump,
-            Sprint = _inputHandler.sprint,
-            Crouch = _inputHandler.crouch,
-            Fire = _inputHandler.fire,
-            Aim = _inputHandler.aim,
-            Reload = _inputHandler.reload,
-            DebugResetPos = _inputHandler.debugResetPos,
+            Move = _inputHandler.Move,
+            Look = _inputHandler.Look,
+            Jump = _inputHandler.Jump,
+            Sprint = _inputHandler.Sprint,
+            Crouch = _inputHandler.Crouch,
+            Fire = _inputHandler.Fire,
+            Aim = _inputHandler.Aim,
+            Reload = _inputHandler.Reload,
+            DebugResetPos = _inputHandler.DebugResetPos,
 
             // Assign an incrementing sequence number
             Sequence = ++_sequenceNumber

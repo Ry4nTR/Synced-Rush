@@ -1,45 +1,72 @@
-﻿using UnityEngine;
-using Unity.Netcode;
+﻿using Unity.Netcode;
+using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class WeaponSelectorPanel : MonoBehaviour
 {
-    private PlayerInputHandler inputHandler;
+    private PlayerInput playerInput;
     private ClientComponentSwitcher componentSwitcher;
-    private UIManager uIManager;
+    private UIManager uiManager;
 
-    private void Awake()
+    private bool isOpen;
+
+    private void Start()
     {
-        uIManager = UIManager.Instance;
+        uiManager = UIManager.Instance;
+
+        // Bind when a client connects
+        NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
     }
-    private void Update()
+
+    private void OnClientConnected(ulong clientId)
     {
+        if (clientId != NetworkManager.Singleton.LocalClientId)
+            return;
+
         TryBindPlayer();
     }
 
     private void TryBindPlayer()
     {
-        // Netcode shutting down or not initialized
-        if (NetworkManager.Singleton == null) return;
+        var player = NetworkManager.Singleton.LocalClient?.PlayerObject;
+        if (player == null) return;
 
-        // Not connected as client
-        var player = NetworkManager.Singleton.LocalClient.PlayerObject;
-        if (player == null)
-            return;
-
-        inputHandler = player.GetComponent<PlayerInputHandler>();
+        playerInput = player.GetComponent<PlayerInput>();
         componentSwitcher = player.GetComponent<ClientComponentSwitcher>();
 
-        if (inputHandler != null)
-            inputHandler.OnToggleWeaponPanelEvent += ToggleInGame;
+        // bind once
+        var action = playerInput.actions["ToggleWeaponPanel"];
+        action.performed -= OnTogglePerformed;
+        action.performed += OnTogglePerformed;
     }
 
     // =========================
     // IN-GAME TOGGLE
     // =========================
+    private void OnTogglePerformed(InputAction.CallbackContext ctx)
+    {
+        ToggleInGame();
+    }
     private void ToggleInGame()
     {
-        uIManager.ShowWeaponSelector();
-        componentSwitcher?.EnableUI();
+        if (!isOpen)
+        {
+            uiManager.ShowWeaponSelector();
+            uiManager.HideHUD();
+
+            componentSwitcher?.EnableUI();
+
+            isOpen = true;
+        }
+        else
+        {
+            uiManager.HideWeaponSelector();
+            uiManager.ShowHUD();
+
+            componentSwitcher?.EnableGameplay();
+
+            isOpen = false;
+        }
     }
 
     // =========================
@@ -47,30 +74,24 @@ public class WeaponSelectorPanel : MonoBehaviour
     // =========================
     public void SelectWeapon(int weaponId)
     {
-        // Update local selection
         LocalWeaponSelection.SelectedWeaponId = weaponId;
 
-        bool isInGame =
-            NetworkManager.Singleton != null &&
-            NetworkManager.Singleton.IsConnectedClient &&
-            NetworkManager.Singleton.LocalClient?.PlayerObject != null;
+        var player = NetworkManager.Singleton.LocalClient?.PlayerObject;
+        if (player == null) return;
 
-        // LOBBY BEHAVIOUR
-        if (!isInGame) return;
-
-        // IN-GAME BEHAVIOUR
-        var loadout = NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<WeaponLoadoutState>();
-
+        var loadout = player.GetComponent<WeaponLoadoutState>();
         loadout?.RequestEquip(weaponId);
 
-        uIManager.HideWeaponSelector();
-        uIManager.ShowHUD();
+        uiManager.HideWeaponSelector();
+        uiManager.ShowHUD();
         componentSwitcher?.EnableGameplay();
+
+        isOpen = false;
     }
 
     private void OnDestroy()
     {
-        if (inputHandler != null)
-            inputHandler.OnToggleWeaponPanelEvent -= ToggleInGame;
+        if (NetworkManager.Singleton != null)
+            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
     }
 }

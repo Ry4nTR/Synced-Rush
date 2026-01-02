@@ -34,10 +34,10 @@ namespace SyncedRush.Character.Movement
             // values from the PlayerInputHandler.
             bool jumpInput = (character.IsServer || character.LocalInputHandler == null)
                 ? Input.Jump
-                : character.LocalInputHandler.jump;
+                : character.LocalInputHandler.Jump;
             bool crouchInput = (character.IsServer || character.LocalInputHandler == null)
                 ? Input.Crouch
-                : character.LocalInputHandler.crouch;
+                : character.LocalInputHandler.Crouch;
 
             if (jumpInput)
                 return MovementState.Jump;
@@ -73,7 +73,7 @@ namespace SyncedRush.Character.Movement
             }
             else
             {
-                Vector2 localMove = character.LocalInputHandler.move;
+                Vector2 localMove = character.LocalInputHandler.Move;
                 worldDir = character.Orientation.transform.forward * localMove.y + character.Orientation.transform.right * localMove.x;
                 worldDir.y = 0f;
             }
@@ -169,7 +169,7 @@ namespace SyncedRush.Character.Movement
                 {
                     // On the client, compute the input direction from the local input and
                     // orientation.  Normalize the direction to avoid magnitude scaling.
-                    Vector2 localMove = character.LocalInputHandler.move;
+                    Vector2 localMove = character.LocalInputHandler.Move;
                     if (localMove.magnitude > 0f)
                     {
                         Vector3 dir = character.Orientation.transform.forward * localMove.y + character.Orientation.transform.right * localMove.x;

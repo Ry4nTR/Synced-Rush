@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using TMPro;
+using UnityEngine.EventSystems;
 
 public class UIManager : MonoBehaviour
 {
@@ -30,6 +30,25 @@ public class UIManager : MonoBehaviour
     }
 
     // =========================
+    // BASIC METHOD FOR PANEL CONTROL
+    // =========================
+    private void Show(CanvasGroup cg)
+    {
+        if (!cg) return;
+        cg.alpha = 1f;
+        cg.interactable = true;
+        cg.blocksRaycasts = true;
+    }
+
+    private void Hide(CanvasGroup cg)
+    {
+        if (!cg) return;
+        cg.alpha = 0f;
+        cg.interactable = false;
+        cg.blocksRaycasts = false;
+    }
+
+    // =========================
     // PANEL CONTROL (LAYERED)
     // =========================
 
@@ -52,21 +71,9 @@ public class UIManager : MonoBehaviour
     {
         Show(hudPanel);
     }
-
-    private void Show(CanvasGroup cg)
+    public void HideHUD()
     {
-        if (!cg) return;
-        cg.alpha = 1f;
-        cg.interactable = true;
-        cg.blocksRaycasts = true;
-    }
-
-    private void Hide(CanvasGroup cg)
-    {
-        if (!cg) return;
-        cg.alpha = 0f;
-        cg.interactable = false;
-        cg.blocksRaycasts = false;
+        Hide(hudPanel);
     }
 
     // =========================

@@ -15,13 +15,7 @@ public class WeaponNetworkHandler : NetworkBehaviour
         weaponController = GetComponentInChildren<WeaponController>();
     }
 
-    /* ============================================================
-     *  CLIENT → SERVER ENTRY POINT
-     * ============================================================ */
-
-    /// <summary>
-    /// Called by WeaponController on the owning client.
-    /// </summary>
+    // Reseaves a shooting request from the local player and forwards it to the server.
     public void NotifyShot(Vector3 origin, Vector3 direction, float spread)
     {
         if (!IsOwner)
@@ -30,28 +24,15 @@ public class WeaponNetworkHandler : NetworkBehaviour
         ShootServerRpc(origin, direction, spread);
     }
 
-    /* ============================================================
-     *  SERVER-AUTHORITATIVE FIRE
-     * ============================================================ */
-
+    // server-side shooting logic
     [ServerRpc]
-    private void ShootServerRpc(
-    Vector3 origin,
-    Vector3 direction,
-    float spread,
-    ServerRpcParams rpcParams = default)
+    private void ShootServerRpc(Vector3 origin, Vector3 direction, float spread, ServerRpcParams rpcParams = default)
     {
-        if (loadoutState == null)
-            return;
-
         int weaponId = loadoutState.EquippedWeaponId.Value;
         WeaponData data = weaponDatabase.GetDataById(weaponId);
 
-        if (data == null)
-            return;
-
         // 1) Server-side spread correction
-        Vector3 correctedDirection = ApplySpread(direction, spread);
+        Vector3 correctedDirection = data.ApplySpread(direction, spread);
 
         // 2) Validate shot (anti-cheat / sanity checks)
         if (!ValidateShot(origin, correctedDirection))
@@ -97,23 +78,7 @@ public class WeaponNetworkHandler : NetworkBehaviour
         }
     }
 
-
-    /* ============================================================
-     *  SERVER-SIDE HELPERS (UNCHANGED ARCHITECTURE)
-     * ============================================================ */
-
-    private Vector3 ApplySpread(Vector3 direction, float spread)
-    {
-        if (spread <= 0f)
-            return direction;
-
-        float x = Random.Range(-spread, spread);
-        float y = Random.Range(-spread, spread);
-
-        Vector3 spreadOffset = new Vector3(x, y, 0f);
-        return (Quaternion.Euler(spreadOffset) * direction).normalized;
-    }
-
+    // Shoot validation logic
     private bool ValidateShot(Vector3 origin, Vector3 direction)
     {
         // Direction sanity (normalized)
@@ -123,11 +88,7 @@ public class WeaponNetworkHandler : NetworkBehaviour
         return true;
     }
 
-
-    /* ============================================================
-     *  SERVER → CLIENT FEEDBACK
-     * ============================================================ */
-
+   // SERVER → CLIENT FEEDBACK
     [ClientRpc]
     private void NotifyHitClientRpc(Vector3 hitPoint, Vector3 hitNormal, ulong instigatorClientId) { }
 }

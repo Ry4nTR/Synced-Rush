@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 // Enumeration of possible weapon categories. Additional types can be added as needed.
@@ -15,7 +14,7 @@ public enum WeaponType
 }
 
 /// <summary>
-/// SO containing all data of a weapon.
+/// SO containing all data of a weapon and helper methods for shooting systems.
 /// </summary>
 [CreateAssetMenu(fileName = "New Weapon", menuName = "Weapons/Weapon Data")]
 public class WeaponData : ScriptableObject
@@ -72,8 +71,9 @@ public class WeaponData : ScriptableObject
     public string walkAnimationBool = "IsWalking";
     public string sprintAnimationBool = "IsSprinting";
 
-    [Header("Models")]
+    [Header("Models & ModelParts")]
     public GameObject worldModelPrefab; // Third-person model prefab
+    public GameObject Muzzle; // Muzzle transform for effects (TO TEST AND SOLVE)
 
     // =========================
     // HELPER METHODS
@@ -102,5 +102,27 @@ public class WeaponData : ScriptableObject
         );
 
         return Mathf.Lerp(damage, minimumDamage, t);
+    }
+
+    // Applies spread to a given direction vector.
+    public Vector3 ApplySpread(Vector3 direction, float spread)
+    {
+        if (spread <= 0f)
+            return direction;
+
+        // Calculate spread in radians for more intuitive control
+        float spreadRad = spread * Mathf.Deg2Rad;
+
+        // Generate random angles with normal distribution for better "center-heavy" spread
+        float angle = Random.Range(0f, 2f * Mathf.PI); // Random direction around circle
+        float distance = Mathf.Sqrt(Random.Range(0f, 1f)) * spreadRad; // Square root for uniform disk distribution
+
+        // Calculate offsets
+        float x = Mathf.Sin(angle) * distance;
+        float y = Mathf.Cos(angle) * distance;
+
+        // Apply spread as rotation
+        Quaternion spreadRotation = Quaternion.Euler(x * Mathf.Rad2Deg, y * Mathf.Rad2Deg, 0f);
+        return spreadRotation * direction;
     }
 }

@@ -61,7 +61,7 @@ public class LookController : NetworkBehaviour
     {
         if (!IsOwner) return;
 
-        Vector2 look = inputHandler.look;
+        Vector2 look = inputHandler.Look;
 
         float deltaX = look.x * sensitivity * 0.01f;
         float deltaY = look.y * sensitivity * 0.01f;

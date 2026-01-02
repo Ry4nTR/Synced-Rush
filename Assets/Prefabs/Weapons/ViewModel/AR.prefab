@@ -439,9 +439,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd0becbbe49df714e945995ee9d4bad3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShootingSystem
-  hitMask:
-    serializedVersion: 2
-    m_Bits: 257
 --- !u!114 &2702171006883102037
 MonoBehaviour:
   m_ObjectHideFlags: 0

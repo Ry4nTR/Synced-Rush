@@ -3,10 +3,7 @@ using Unity.Services.Multiplayer;
 using UnityEngine;
 
 /// <summary>
-/// Component responsible for managing the runtime state of a weapon on a player.
-/// It handles local ammo counts, spread, firing cooldowns, reloading and aiming.
-/// Networking is performed through the WeaponNetworkHandler – this class does
-/// not directly communicate with the server.
+/// Manages the runtime state of a weapon on a player.
 /// </summary>
 public class WeaponController : MonoBehaviour
 {
@@ -15,7 +12,7 @@ public class WeaponController : MonoBehaviour
 
     private ShootingSystem shootingSystem;
     private WeaponNetworkHandler networkHandler;
-    private Transform firePoint;
+    private Transform fireOrigin;
     private Animator weaponAnimator;
 
     private int currentAmmo;
@@ -25,10 +22,11 @@ public class WeaponController : MonoBehaviour
     private bool isAiming;
     private float nextFireTime;
 
+    // Helper properties
     public float CurrentSpread => CalculateCurrentSpread();
-
     public bool CanShoot => !isReloading && currentAmmo > 0 && Time.time >= nextFireTime;
 
+    // Public getters for HUD
     public int CurrentAmmo => currentAmmo;
     public int ReserveAmmo => reserveAmmo;
 
@@ -37,17 +35,15 @@ public class WeaponController : MonoBehaviour
         shootingSystem = GetComponent<ShootingSystem>();
         networkHandler = GetComponentInParent<WeaponNetworkHandler>();
 
-        AssignCameraTransform();
+        AssignFireOrigin();
     }
 
     private void Update()
     {
-        // Recover spread each frame
-            RecoverSpread(Time.deltaTime);
+        RecoverSpread(Time.deltaTime);
     }
 
-
-    // Initializes the weapon with the given data.
+    // Initializes the weapon data
     public void Initialize(WeaponData data)
     {
         weaponData = data;
@@ -59,23 +55,23 @@ public class WeaponController : MonoBehaviour
         isAiming = false;
     }
 
-    /// <summary>
-    /// Called by input to request a shot. Performs local validation, fires the weapon
-    /// locally and notifies the network handler.
-    /// </summary>
+    // =========================
+    // BASIC WEAPON ACTIONS
+    // =========================
+    // Performs local validation, fires the weapon locally and notifies the network about the shot.
     public void RequestFire()
     {
         if (!CanShoot)
         {
-            return;
+            return; 
         }
 
         // Update the next allowed fire time based on fire rate (shots per second)
         nextFireTime = Time.time + (1f / weaponData.fireRate);
 
-        // Determine origin/direction based on camera or this transform
-        Vector3 origin = firePoint.position;
-        Vector3 direction = firePoint.forward;
+        // Assigning origin/direction based on fireOrigin
+        Vector3 origin = fireOrigin.position;
+        Vector3 direction = fireOrigin.forward;
 
         // Perform the actual shot locally for immediate feedback
         shootingSystem?.PerformShoot(origin, direction, CurrentSpread, weaponData.weaponID);
@@ -88,9 +84,13 @@ public class WeaponController : MonoBehaviour
         networkHandler?.NotifyShot(origin, direction, currentSpread);
     }
 
-    /// <summary>
-    /// Begins the reloading process if possible.
-    /// </summary>
+    // Sets the aiming state
+    public void SetAiming(bool aiming)
+    {
+        isAiming = aiming;
+    }
+
+    // Starts reloading if possible
     public void Reload()
     {
         if (isReloading || currentAmmo >= weaponData.magazineSize || reserveAmmo <= 0)
@@ -99,72 +99,37 @@ public class WeaponController : MonoBehaviour
         StartCoroutine(ReloadCoroutine());
     }
 
-    /// <summary>
-    /// Sets the aiming state. When aiming, spread is reduced via aimSpreadMultiplier.
-    /// Additional handling such as adjusting camera FOV can be added here.
-    /// </summary>
-    /// <param name="aiming">True when the player is aiming down sights.</param>
-    public void SetAiming(bool aiming)
-    {
-        isAiming = aiming;
-    }
-
-    /// <summary>
-    /// Calculates the damage to apply based on the distance between shooter and target.
-    /// </summary>
-    public float CalculateDamageByDistance(float distance)
-    {
-        if (weaponData == null)
-            return 0f;
-
-        // No falloff if end distance is not set or start/end reversed
-        if (weaponData.falloffEndDistance <= weaponData.falloffStartDistance)
-            return weaponData.damage;
-
-        // Full damage inside the falloff start range
-        if (distance <= weaponData.falloffStartDistance)
-            return weaponData.damage;
-
-        // Minimum damage beyond the falloff end range
-        if (distance >= weaponData.falloffEndDistance)
-            return weaponData.minimumDamage;
-
-        // Linearly interpolate between base damage and minimum damage
-        float t = (distance - weaponData.falloffStartDistance) /
-                  (weaponData.falloffEndDistance - weaponData.falloffStartDistance);
-        return Mathf.Lerp(weaponData.damage, weaponData.minimumDamage, t);
-    }
-
+    // Reloading coroutine
     private IEnumerator ReloadCoroutine()
     {
         isReloading = true;
 
-        // Play reload animation and sound if available
+        // Play reload animation if available
         if (weaponAnimator != null && !string.IsNullOrEmpty(weaponData.reloadAnimationTrigger))
         {
             weaponAnimator.SetTrigger(weaponData.reloadAnimationTrigger);
         }
 
-        // Wait for the reload time
+        // Wait for the reload time (VEDI SE PUOI USARE UN EVENTO ALL'INTERNO DELL'ANIMAZIONE)
         yield return new WaitForSeconds(weaponData.reloadTime);
 
-        // Calculate how much ammo to load into the magazine
+        // Ammo calculations
         int needed = weaponData.magazineSize - currentAmmo;
         int toLoad = Mathf.Min(needed, reserveAmmo);
         currentAmmo += toLoad;
         reserveAmmo -= toLoad;
 
-        // TODO: Remove this testing code
-        // Infinite ammo (TESTING)
+        // Infinite ammo (TESTING) <------------------------------------------------------------------------
         reserveAmmo = weaponData.ammoReserve;
 
         isReloading = false;
     }
 
-    /// <summary>
-    /// Calculates the current spread including aiming modifiers.
-    /// </summary>
-    /// <returns>The spread value to apply to a shot.</returns>
+
+    // =========================
+    // SPREAD MANAGEMENT
+    // =========================
+    // Calculates the current spread including aiming modifiers.
     private float CalculateCurrentSpread()
     {
         float spread = currentSpread;
@@ -178,27 +143,23 @@ public class WeaponController : MonoBehaviour
         return Mathf.Clamp(spread, weaponData.baseSpread, weaponData.maxSpread);
     }
 
-    /// <summary>
-    /// Increases spread after firing a shot.
-    /// </summary>
+    // Increases spread after firing a shot.
     private void IncreaseSpread()
     {
         currentSpread = Mathf.Min(currentSpread + weaponData.spreadIncreasePerShot, weaponData.maxSpread);
     }
 
-    /// <summary>
-    /// Gradually recovers spread back to the base spread over time.
-    /// </summary>
-    /// <param name="deltaTime">The time elapsed since the last frame.</param>
+    // Gradually recovers spread back to the base spread over time.
     private void RecoverSpread(float deltaTime)
     {
         currentSpread = Mathf.Max(weaponData.baseSpread, currentSpread - weaponData.spreadRecoveryRate * deltaTime);
     }
 
-    /// <summary>
-    /// Consumes a single bullet from the magazine and triggers an automatic reload
-    /// if the magazine becomes empty and there is reserve ammo available.
-    /// </summary>
+
+    // =========================
+    // AMMO MANAGEMENT
+    // =========================
+    // Consumes bullets from the magazine and triggers an automatic reload if the magazine is empty.
     private void ConsumeAmmo()
     {
         currentAmmo--;
@@ -208,27 +169,21 @@ public class WeaponController : MonoBehaviour
             Reload();
         }
     }
+    
 
-    private void AssignCameraTransform()
+    // =========================
+    // OTHER METHODS
+    // =========================
+    // Assigns the fire origin based on the player's camera.
+    private void AssignFireOrigin()
     {
         // Weapon must belong to a player
         LookController lookController = GetComponentInParent<LookController>();
-
-        if (lookController == null)
-        {
-            Debug.LogWarning($"{name} WeaponController: LookController not found in parents.");
-            return;
-        }
 
         // Only the owner has a valid camera
         if (!lookController.IsOwner)
             return;
 
-        firePoint = lookController.CameraTransform;
-
-        if (firePoint == null)
-        {
-            Debug.LogError($"{name} WeaponController: CameraTransform is null.");
-        }
+        fireOrigin = lookController.CameraTransform;
     }
 }

@@ -3,6 +3,34 @@
     "name": "PlayerInputSystem",
     "maps": [
         {
+            "name": "Global",
+            "id": "c174ed3d-d315-402a-9066-414938cdfcb9",
+            "actions": [
+                {
+                    "name": "ToggleWeaponPanel",
+                    "type": "Button",
+                    "id": "9adff1c1-07c6-48a0-a127-0edb4d0931c4",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "Press(pressPoint=1.401298E-45)",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "b71b2bf2-3239-4005-80fc-ded2bed7c1ef",
+                    "path": "<Keyboard>/b",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ToggleWeaponPanel",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
             "name": "Player",
             "id": "6a30fffc-5e07-4a59-9117-85fddfc9dca8",
             "actions": [
@@ -88,27 +116,9 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "ToggleWeaponPanel",
-                    "type": "Button",
-                    "id": "ed2ef5d3-4164-4c7a-83b0-46abd4841691",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
                     "name": "Interact",
                     "type": "Button",
                     "id": "290f71e3-5c84-4fb8-8b29-d1c8bc4111a0",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "DegubTakeDamage",
-                    "type": "Button",
-                    "id": "cd7546b9-c925-41fb-acca-ca63b32a22cd",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -371,34 +381,12 @@
                 },
                 {
                     "name": "",
-                    "id": "cc8bd64b-6c97-409d-8ba5-671208f46eca",
-                    "path": "<Keyboard>/b",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "ToggleWeaponPanel",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "5b393877-3a5b-46ad-9601-93b8f1b8f184",
                     "path": "<Keyboard>/r",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
                     "action": "Reload",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "21e566bb-9877-4346-9705-f829f1439909",
-                    "path": "<Keyboard>/t",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "DegubTakeDamage",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

@@ -44,7 +44,7 @@ namespace SyncedRush.Character.Movement
             }
             else
             {
-                jumpInput = character.LocalInputHandler.jump;
+                jumpInput = character.LocalInputHandler.Jump;
             }
 
             if (jumpInput)

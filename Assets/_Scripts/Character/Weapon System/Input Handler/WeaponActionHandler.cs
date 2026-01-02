@@ -22,26 +22,26 @@ public class WeaponActionHandler : NetworkBehaviour
             return;
         }
 
-        if (inputHandler.fire)
+        if (inputHandler.Fire)
         {
             //Debug.Log("[WeaponActionHandler] FIRE input detected");
             weaponController.RequestFire();
         }
 
-        if (inputHandler.aim != lastAim)
+        if (inputHandler.Aim != lastAim)
         {
             //Debug.Log($"[WeaponActionHandler] AIM = {inputHandler.aim}");
-            weaponController.SetAiming(inputHandler.aim);
-            lastAim = inputHandler.aim;
+            weaponController.SetAiming(inputHandler.Aim);
+            lastAim = inputHandler.Aim;
         }
 
-        if (inputHandler.reload && !lastReload)
+        if (inputHandler.Reload && !lastReload)
         {
             //Debug.Log("[WeaponActionHandler] RELOAD requested");
             weaponController.Reload();
         }
 
-        lastReload = inputHandler.reload;
+        lastReload = inputHandler.Reload;
     }
 
     private void TryAcquireWeapon()

@@ -33,7 +33,7 @@ namespace SyncedRush.Character.Movement
             }
             else
             {
-                jumpInput = character.LocalInputHandler.jump;
+                jumpInput = character.LocalInputHandler.Jump;
             }
 
             if (!jumpInput)
@@ -181,7 +181,7 @@ namespace SyncedRush.Character.Movement
             else
             {
                 // On the client compute the move direction from the local input for prediction.
-                Vector2 move = character.LocalInputHandler.move;
+                Vector2 move = character.LocalInputHandler.Move;
                 Vector3 moveDir = character.Orientation.transform.forward * move.y + character.Orientation.transform.right * move.x;
                 if (moveDir.magnitude > 1f)
                     moveDir.Normalize();

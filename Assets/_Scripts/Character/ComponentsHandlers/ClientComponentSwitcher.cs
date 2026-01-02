@@ -63,6 +63,11 @@ public class ClientComponentSwitcher : NetworkBehaviour
 
         // UI Manager get reference
         if (uiManager == null) uiManager = UIManager.Instance;
+
+        // --- Enable GLOBAL MAP (always on) ---
+        var globalMap = playerInput.actions.FindActionMap("Global");
+        if (globalMap != null)
+            globalMap.Enable();
     }
 
     public override void OnNetworkSpawn()
@@ -105,9 +110,7 @@ public class ClientComponentSwitcher : NetworkBehaviour
         }
     }
 
-    /// <summary>
-    /// Registers weapon components it's spawned + Registers it to the UI Manager
-    /// </summary>
+    // Registers weapon components it's spawned + Registers it to the UI Manager
     public void RegisterWeapon(WeaponController wc, ShootingSystem ss, WeaponNetworkHandler wh)
     {
         weaponController = wc;
@@ -122,9 +125,7 @@ public class ClientComponentSwitcher : NetworkBehaviour
         }
     }
 
-    /// <summary>
-    /// Enables or disables weapon components
-    /// </summary>
+    // Manages weapon component states based on ownership and server authority.
     private void UpdateWeaponComponentState()
     {
         bool isOwner = IsOwner;
@@ -134,49 +135,34 @@ public class ClientComponentSwitcher : NetworkBehaviour
         if (weaponNetworkHandler != null) weaponNetworkHandler.enabled = isServer || isOwner;
     }
 
-    /// <summary>
-    /// Enables gameplay-related components for the owning client.
-    /// </summary>
+    // Enables gameplay-related components for the owning client.
     public void EnableGameplay()
     {
         if (!IsOwner) return;
 
-        if (playerInput != null)
-            playerInput.SwitchCurrentActionMap("Player");
+        Debug.Log("Switching to Player action map");
+        playerInput.SwitchCurrentActionMap("Player");
 
-        if (inputHandler != null)
-            inputHandler.enabled = true;
-
-        if (lookController != null)
-            lookController.enabled = true;
-
-        if (mainCamera != null) mainCamera.enabled = true;
-        if (brain != null) brain.enabled = true;
-        if (cineCam != null) cineCam.enabled = true;
-        if (audioListener != null) audioListener.enabled = true;
+        inputHandler.enabled = true;
+        lookController.enabled = true;
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
-    /// <summary>
-    /// Enables UI-related components for the owning client.
-    /// </summary>
+    // Enables UI-related components for the owning client.
     public void EnableUI()
     {
         if (!IsOwner) return;
 
-        if (playerInput != null)
-            playerInput.SwitchCurrentActionMap("UI");
+        Debug.Log("Switching to UI action map");
+        playerInput.SwitchCurrentActionMap("UI");
 
-        if (inputHandler != null)
-            inputHandler.enabled = false;
-
-        if (lookController != null)
-            lookController.enabled = false;
+        inputHandler.ClearAllInputs();
+        inputHandler.enabled = false;
+        lookController.enabled = false;
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
-
 }
