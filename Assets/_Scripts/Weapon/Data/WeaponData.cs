@@ -33,7 +33,6 @@ public class WeaponData : ScriptableObject
     public float damage; // Base damage per shot
     public float fireRate; // Shots per second
     public float range; // Maximum effective range
-    public float criticalMultiplier = 1.5f; // Multiplier for critical hits
 
     [Header("Damage Falloff")]
     public float falloffStartDistance; // Distance at which damage falloff begins
