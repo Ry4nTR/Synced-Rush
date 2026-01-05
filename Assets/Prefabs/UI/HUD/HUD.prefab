@@ -220,9 +220,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4494659912564592834}
+  - component: {fileID: 8253113874373016522}
   - component: {fileID: 6399087109819723096}
   - component: {fileID: 4635912598416986691}
-  - component: {fileID: 8253113874373016522}
   - component: {fileID: 1731611687937557335}
   m_Layer: 5
   m_Name: HUD
@@ -254,6 +254,18 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!225 &8253113874373016522
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1971371267993279951}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!222 &6399087109819723096
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -292,18 +304,6 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!225 &8253113874373016522
-CanvasGroup:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1971371267993279951}
-  m_Enabled: 1
-  m_Alpha: 1
-  m_Interactable: 1
-  m_BlocksRaycasts: 1
-  m_IgnoreParentGroups: 0
 --- !u!114 &1731611687937557335
 MonoBehaviour:
   m_ObjectHideFlags: 0
