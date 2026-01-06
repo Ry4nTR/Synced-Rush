@@ -1,9 +1,11 @@
 using UnityEngine;
 
-public class MainMenuController : MonoBehaviour
+public class MenuController : MonoBehaviour
 {
     [SerializeField] private MenuUIManager uiManager;
     [SerializeField] private LobbyManager lobbyManager;
+    [SerializeField] private GamemodeDefinition defaultGamemode;
+    [SerializeField] private MapDefinition defaultMap;
 
     private int localPlayerId = 0;
 
@@ -14,6 +16,8 @@ public class MainMenuController : MonoBehaviour
     public void OnCreateMatchPressed()
     {
         lobbyManager.CreateLobby("Host");
+        lobbyManager.SetGamemode(defaultGamemode);
+        lobbyManager.SetMap(defaultMap);
         uiManager.ShowLobby();
     }
 
@@ -34,14 +38,7 @@ public class MainMenuController : MonoBehaviour
 
     public void OnStartMatchPressed()
     {
-        if (!lobbyManager.CanStartMatch())
-        {
-            Debug.Log("Cannot start match yet");
-            return;
-        }
-
-        lobbyManager.LockLobby();
-        Debug.Log("MATCH START (next step later)");
+        lobbyManager.StartMatch();
     }
 
     public void OnLeaveLobbyPressed()

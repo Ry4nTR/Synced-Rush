@@ -2530,7 +2530,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 6581772181670119677}
-        m_TargetAssemblyTypeName: MainMenuController, Assembly-CSharp
+        m_TargetAssemblyTypeName: MenuController, Assembly-CSharp
         m_MethodName: OnStartMatchPressed
         m_Mode: 1
         m_Arguments:
@@ -5495,7 +5495,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LobbyManager
   players: []
-  randomTeams: 1
+  selectedGamemode: {fileID: 0}
+  selectedMap: {fileID: 0}
+  teamAssignmentMode: 0
 --- !u!224 &6558289681247125591
 RectTransform:
   m_ObjectHideFlags: 0
@@ -5665,6 +5667,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MainMenuController
   uiManager: {fileID: 5582182046221182523}
   lobbyManager: {fileID: 6524855522452212405}
+  defaultGamemode: {fileID: 11400000, guid: 0c37e3938995eab46b635bb207e4f8dd, type: 2}
+  defaultMap: {fileID: 11400000, guid: aed5cb0628485f646a61a145748f6423, type: 2}
 --- !u!224 &6606896362871779955
 RectTransform:
   m_ObjectHideFlags: 0

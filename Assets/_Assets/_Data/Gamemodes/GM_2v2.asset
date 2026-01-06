@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a566a029e8797784c83edcaf7e374aeb, type: 3}
+  m_Name: GM_2v2
+  m_EditorClassIdentifier: Assembly-CSharp::GamemodeDefinition
+  gamemodeType: 1
+  requiredPlayers: 4
+  playersPerTeam: 2
+  roundsToWin: 3
