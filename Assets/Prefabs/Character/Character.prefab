@@ -230,7 +230,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 2877608786
+  GlobalObjectIdHash: 3354322385
   InScenePlacedSourceGlobalObjectIdHash: 1514268395
   DeferredDespawnTick: 0
   Ownership: 1
@@ -407,6 +407,7 @@ MonoBehaviour:
   fire: 0
   aim: 0
   reload: 0
+  ability: 0
   debugResetPos: 0
 --- !u!114 &-4718773345927608370
 MonoBehaviour:
@@ -435,6 +436,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CharacterController
   ShowTopMostFoldoutHeaderGroup: 1
   _orientation: {fileID: 5302962826593933888}
+  _cameraTransform: {fileID: 6586182560886131289}
   _groundLayerMask:
     serializedVersion: 2
     m_Bits: 1536
@@ -467,6 +469,8 @@ MonoBehaviour:
   _slideIncreasedDecelerationThreshold: 70
   _wallRunMinimumSpeed: 1
   _wallRunLookAngleLimit: 110
+  _dashSpeed: 17
+  _dashDuration: 0.3
   _gravity: 9.81
 --- !u!114 &245510072461140579
 MonoBehaviour:
@@ -555,6 +559,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HealthSystem
   ShowTopMostFoldoutHeaderGroup: 1
   maxHealth: 100
+  allowDamageFromOwner: 0
   currentHealth:
     m_InternalValue: 0
 --- !u!143 &3812799252896454869
