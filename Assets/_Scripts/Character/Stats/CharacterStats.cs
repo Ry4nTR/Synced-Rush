@@ -42,6 +42,11 @@ public class CharacterStats : MonoBehaviour
     /// <summary>Angolazione massima per la visuale rispetto al muro consentita per correre su una parete</summary>
     [SerializeField] private float _wallRunLookAngleLimit = 110f;
 
+    /// <summary> </summary>
+    [SerializeField] private float _dashSpeed = 17f;
+    /// <summary>Durata del dash in secondi</summary>
+    [SerializeField] private float _dashDuration = 0.3f;
+
     [Header("Physics")]
     /// <summary>Accelerazione di gravitŕ (m/s^2)</summary>
     [SerializeField] private float _gravity = 9.81f;
@@ -60,5 +65,7 @@ public class CharacterStats : MonoBehaviour
     public float SlideIncreasedDecelerationThreshold => _slideIncreasedDecelerationThreshold;
     public float WallRunMinSpeed => _wallRunMinimumSpeed;
     public float WallRunLookAngleLimit => _wallRunLookAngleLimit;
+    public float DashSpeed => _dashSpeed;
+    public float DashDuration => _dashDuration;
     public float Gravity => _gravity;
 }

@@ -209,6 +209,15 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Ability"",
+                    ""type"": ""Button"",
+                    ""id"": ""2d6b33b7-be26-4ceb-9420-7cd512172dd6"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -475,6 +484,28 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
                     ""action"": ""Reload"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""97afd18e-527a-4f7b-8e0b-a4717a01ee25"",
+                    ""path"": ""<Keyboard>/f"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Ability"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""7ae4f784-bc9c-4eb0-9f1f-ee6c59a04207"",
+                    ""path"": ""<Gamepad>/buttonSouth"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Ability"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -672,6 +703,7 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
         m_Player_Reload = m_Player.FindAction("Reload", throwIfNotFound: true);
         m_Player_DebugResetPos = m_Player.FindAction("DebugResetPos", throwIfNotFound: true);
         m_Player_Interact = m_Player.FindAction("Interact", throwIfNotFound: true);
+        m_Player_Ability = m_Player.FindAction("Ability", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Point = m_UI.FindAction("Point", throwIfNotFound: true);
@@ -866,6 +898,7 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Reload;
     private readonly InputAction m_Player_DebugResetPos;
     private readonly InputAction m_Player_Interact;
+    private readonly InputAction m_Player_Ability;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -917,6 +950,10 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Player/Interact".
         /// </summary>
         public InputAction @Interact => m_Wrapper.m_Player_Interact;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/Ability".
+        /// </summary>
+        public InputAction @Ability => m_Wrapper.m_Player_Ability;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -973,6 +1010,9 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
             @Interact.started += instance.OnInteract;
             @Interact.performed += instance.OnInteract;
             @Interact.canceled += instance.OnInteract;
+            @Ability.started += instance.OnAbility;
+            @Ability.performed += instance.OnAbility;
+            @Ability.canceled += instance.OnAbility;
         }
 
         /// <summary>
@@ -1014,6 +1054,9 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
             @Interact.started -= instance.OnInteract;
             @Interact.performed -= instance.OnInteract;
             @Interact.canceled -= instance.OnInteract;
+            @Ability.started -= instance.OnAbility;
+            @Ability.performed -= instance.OnAbility;
+            @Ability.canceled -= instance.OnAbility;
         }
 
         /// <summary>
@@ -1268,6 +1311,13 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnInteract(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Ability" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnAbility(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.

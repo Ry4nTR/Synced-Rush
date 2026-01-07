@@ -43,6 +43,7 @@ public class NetworkPlayerInput : NetworkBehaviour
             Fire = _inputHandler.Fire,
             Aim = _inputHandler.Aim,
             Reload = _inputHandler.Reload,
+            Ability = _inputHandler.Ability,
             DebugResetPos = _inputHandler.DebugResetPos,
 
             // Assign an incrementing sequence number

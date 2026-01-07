@@ -1,5 +1,4 @@
 ﻿using SyncedRush.Character.Movement;
-using System;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -9,6 +8,7 @@ using UnityEngine;
 public class MovementController : NetworkBehaviour
 {
     [SerializeField] private GameObject _orientation;
+    [SerializeField] private Transform _cameraTransform;
     [SerializeField] private LayerMask _groundLayerMask;
 
     private CharacterController _characterController;
@@ -113,6 +113,27 @@ public class MovementController : NetworkBehaviour
             motion.Normalize();
             return motion;
         }
+    }
+
+    public Vector3 LocalMoveDirection
+    {
+        get
+        {
+            Vector2 input = LocalInputHandler.Move;
+
+            Vector3 motion =
+                Orientation.transform.forward * input.y +
+                Orientation.transform.right * input.x;
+
+            motion.y = 0f;
+            motion.Normalize();
+            return motion;
+        }
+    }
+
+    public Vector3 LookDirection
+    {
+        get { return _cameraTransform.forward; }
     }
 
     // Lista di proprietà messe "nel posto sbagliato"
