@@ -18,6 +18,7 @@ public class PlayerInputHandler : MonoBehaviour
     [SerializeField] private bool fire;
     [SerializeField] private bool aim;
     [SerializeField] private bool reload;
+    [SerializeField] private bool ability;
 
     // Debug / utility
     [SerializeField] private bool debugResetPos;
@@ -33,6 +34,7 @@ public class PlayerInputHandler : MonoBehaviour
     public bool Fire => fire;
     public bool Aim => aim;
     public bool Reload => reload;
+    public bool Ability => ability;
     public bool DebugResetPos => debugResetPos;
 
     private void Awake()
@@ -77,6 +79,7 @@ public class PlayerInputHandler : MonoBehaviour
     {
         jump = _controls.Player.Jump.WasPressedThisFrame();
         reload = _controls.Player.Reload.WasPressedThisFrame();
+        ability = _controls.Player.Ability.WasPressedThisFrame();
     }
 
     public void SetCursorLocked(bool locked)
@@ -94,5 +97,6 @@ public class PlayerInputHandler : MonoBehaviour
         fire = false;
         aim = false;
         reload = false;
+        ability = false;
     }
 }

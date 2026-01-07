@@ -56,6 +56,12 @@ namespace SyncedRush.Character.Movement
             if (_canWallRun)
                 return MovementState.WallRun;
 
+            bool dashInput = (character.IsServer || character.LocalInputHandler == null)
+                ? Input.Ability
+                : character.LocalInputHandler.Ability;
+            if (dashInput)
+                return MovementState.Dash;
+
             Fall();
 
             ProcessMovement();
@@ -154,12 +160,19 @@ namespace SyncedRush.Character.Movement
                 Vector2 lookDir = new(character.Orientation.transform.forward.x, character.Orientation.transform.forward.z);
 
                 float angle = Vector2.Angle(hitN, -lookDir);
-                Debug.Log("AirState " + angle); //TODO
+                Debug.Log("AirState " + angle); //TODO da rimuovere
+
+                Vector3 inputDir = (character.IsServer || character.LocalInputHandler == null)
+                    ? character.MoveDirection
+                    : character.LocalMoveDirection;
+
+                bool moveInputToWall = Vector3.Dot(inputDir, rayHit.normal) < 0;
 
                 if (hasHit
                     && rayHit.normal.y < 0.1f
                     && rayHit.normal.y > -0.1f
-                    && angle < character.Stats.WallRunLookAngleLimit)
+                    && angle < character.Stats.WallRunLookAngleLimit
+                    && moveInputToWall)
                 {
                     return true;
                 }

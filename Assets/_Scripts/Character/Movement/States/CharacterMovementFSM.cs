@@ -12,6 +12,7 @@ namespace SyncedRush.Character.Movement
         Jump = 3,
         Slide = 4,
         WallRun = 5,
+        Dash = 6,
 	}
 
     [RequireComponent(typeof(MovementController))]
@@ -30,6 +31,7 @@ namespace SyncedRush.Character.Movement
             CharacterAirState airState = new(_movementComponent);
             CharacterSlideState slideState = new(_movementComponent);
             CharacterWallRunState wallRunState = new(_movementComponent);
+            CharacterDashState dashState = new(_movementComponent);
 
             Dictionary<MovementState, CharacterMovementState> states = new()
             {
@@ -37,7 +39,8 @@ namespace SyncedRush.Character.Movement
                 { MovementState.Air, airState },
                 { MovementState.Jump, airState },
                 { MovementState.Slide, slideState },
-                { MovementState.WallRun, wallRunState }
+                { MovementState.WallRun, wallRunState },
+                { MovementState.Dash, dashState }
             };
 
             Initialize(states, MovementState.Move);
