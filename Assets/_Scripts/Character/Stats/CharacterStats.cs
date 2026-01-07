@@ -42,6 +42,7 @@ public class CharacterStats : MonoBehaviour
     /// <summary>Angolazione massima per la visuale rispetto al muro consentita per correre su una parete</summary>
     [SerializeField] private float _wallRunLookAngleLimit = 110f;
 
+    [Header("Dash Settings")]
     /// <summary> </summary>
     [SerializeField] private float _dashSpeed = 17f;
     /// <summary>Durata del dash in secondi</summary>
