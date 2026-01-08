@@ -4,7 +4,6 @@ namespace SyncedRush.Character.Movement
 {
     public class CharacterAirState : CharacterMovementState
     {
-        private bool _usedDoubleJump = false;
         private bool _canWallRun = false;
         private bool _previousJumpInput = true;
         private float _coyoteTimer = 0f;
@@ -40,17 +39,13 @@ namespace SyncedRush.Character.Movement
             {
                 _previousJumpInput = false;
             }
-            else if (!_previousJumpInput && !_usedDoubleJump)
+            else if (!_previousJumpInput)
             {
                 if (_coyoteTimer > 0f)
                 {
                     RequestForcedStateEnter();
                     return MovementState.Jump;
                 }
-
-                _usedDoubleJump = true;
-                _previousJumpInput = true;
-                Jump();
             }
 
             if (_canWallRun)
@@ -218,7 +213,6 @@ namespace SyncedRush.Character.Movement
 
         private void ResetFlags()
         {
-            _usedDoubleJump = false;
             _canWallRun = false;
             _previousJumpInput = true;
         }
