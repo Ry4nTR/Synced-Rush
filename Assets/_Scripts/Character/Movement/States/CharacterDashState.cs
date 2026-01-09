@@ -1,8 +1,9 @@
+using UnityEditor.Rendering.LookDev;
 using UnityEngine;
 
 namespace SyncedRush.Character.Movement
 {
-	public class CharacterDashState : CharacterMovementState
+    public class CharacterDashState : CharacterMovementState
     {
         private float _dashTimer = 0f;
 
@@ -35,6 +36,28 @@ namespace SyncedRush.Character.Movement
 
             _dashTimer = character.Stats.DashDuration;
 
+            Vector3 dashDir = GetDashDirection();
+            Vector3 velocityDir = character.TotalVelocity.normalized;
+
+            if (dashDir != Vector3.zero)
+            {
+                if (Vector3.Dot(dashDir, velocityDir) > 0)
+                    character.TotalVelocity += dashDir * character.Stats.DashSpeed;
+                else
+                    character.TotalVelocity = dashDir * character.Stats.DashSpeed;
+            }
+            else
+                Debug.LogError("DashDir è 0 mentre non dovrebbe esserelo");
+
+        }
+
+        public override void ExitState()
+        {
+            base.ExitState();
+        }
+
+        private Vector3 GetDashDirection()
+        {
             Vector3 dashDir = Vector3.zero;
 
             Vector3 lookDir = character.LookDirection.normalized;
@@ -66,18 +89,7 @@ namespace SyncedRush.Character.Movement
                 ? lookDir
                 : dashDir.normalized;
 
-            if (dashDir != Vector3.zero)
-            {
-                character.TotalVelocity = dashDir * character.Stats.DashSpeed;
-            }
-            else
-                Debug.LogError("DashDir è 0 mentre non dovrebbe esserelo");
-
-        }
-
-        public override void ExitState()
-        {
-            base.ExitState();
+            return dashDir;
         }
 
         private bool CheckGround()
