@@ -8,6 +8,7 @@ public class LobbyPlayerData
     public int teamId;
     public bool isReady;
     public bool isHost;
+    public bool isAlive;
 
     public LobbyPlayerData(int id, string name, bool host)
     {
@@ -16,5 +17,6 @@ public class LobbyPlayerData
         isHost = host;
         isReady = false;
         teamId = -1;
+        isAlive = true;
     }
 }

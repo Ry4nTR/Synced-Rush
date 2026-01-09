@@ -150,6 +150,20 @@ public class ClientComponentSwitcher : NetworkBehaviour
         Cursor.visible = false;
     }
 
+    public void DisableGameplay()
+    {
+        if (!IsOwner) return;
+
+        Debug.Log("Disabling gameplay components");
+
+        inputHandler.ClearAllInputs();
+        inputHandler.enabled = false;
+        lookController.enabled = false;
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
     // Enables UI-related components for the owning client.
     public void EnableUI()
     {

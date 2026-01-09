@@ -21,9 +21,10 @@ MonoBehaviour:
   damage: 10
   fireRate: 10
   range: 77
-  criticalMultiplier: 1.5
   falloffStartDistance: 10
   falloffEndDistance: 77
+  falloffDistancePerStep: 0
+  damageReductionPerStep: 0
   minimumDamage: 0.1
   magazineSize: 30
   ammoReserve: 120
@@ -35,7 +36,7 @@ MonoBehaviour:
   spreadRecoveryRate: 0
   spreadIncreasePerShot: 0
   maxSpread: 0
-  weaponPrefab: {fileID: 1019066457430675845, guid: edf56bdf02545334f9fa70e38915fb07, type: 3}
+  weaponPrefab: {fileID: 7907567775967570144, guid: b457496d9a25c3849a4673c6042fbac1, type: 3}
   shootSound: {fileID: 0}
   reloadSound: {fileID: 0}
   emptySound: {fileID: 0}
@@ -49,3 +50,4 @@ MonoBehaviour:
   walkAnimationBool: IsWalking
   sprintAnimationBool: IsSprinting
   worldModelPrefab: {fileID: 1019066457430675845, guid: 080dc2fb2db6aac4689ab72c23742add, type: 3}
+  Muzzle: {fileID: 0}

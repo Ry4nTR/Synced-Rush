@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using Unity.Netcode;
 
 /// <summary>
@@ -16,11 +16,17 @@ public class HealthSystem : NetworkBehaviour, IDamageable
         NetworkVariableWritePermission.Server
     );
 
+    private PlayerCombatIdentity combatIdentity;
+    private RoundDeathTracker deathTracker;
+
     public float CurrentHealth => currentHealth.Value;
 
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
+
+        combatIdentity = GetComponent<PlayerCombatIdentity>();
+        deathTracker = FindAnyObjectByType<RoundDeathTracker>();
 
         if (IsServer && currentHealth.Value <= 0f)
         {
@@ -45,9 +51,18 @@ public class HealthSystem : NetworkBehaviour, IDamageable
 
     public void Die()
     {
-        //Debug.Log("Player died");
+        if (!IsServer)
+            return;
 
-        Respawn();
+        Debug.Log($"Player {combatIdentity.playerId} died");
+
+        // 🔴 IMPORTANT: notify round system
+        deathTracker.NotifyPlayerDeath(combatIdentity.playerId);
+
+        DisableGameplayClientRpc();
+
+        // Disable player for rest of round
+        gameObject.SetActive(false);
     }
 
     public void Respawn()
@@ -56,7 +71,14 @@ public class HealthSystem : NetworkBehaviour, IDamageable
             return;
 
         currentHealth.Value = maxHealth;
+        gameObject.SetActive(true);
+    }
 
-        //Debug.Log("Player respawned");
+    [ClientRpc]
+    private void DisableGameplayClientRpc()
+    {
+        var switcher = GetComponent<ClientComponentSwitcher>();
+        if (switcher != null)
+            switcher.EnableUI();
     }
 }

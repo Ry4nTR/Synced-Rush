@@ -10,7 +10,7 @@ public enum TeamAssignmentMode
 public class LobbyManager : MonoBehaviour
 {
     [Header("State")]
-    public LobbyState CurrentState { get; private set; } = LobbyState.Inactive;
+    public LobbyState CurrentState { get; private set; } = LobbyState.None;
 
     [Header("Players")]
     [SerializeField] private List<LobbyPlayerData> players = new List<LobbyPlayerData>();
@@ -30,6 +30,8 @@ public class LobbyManager : MonoBehaviour
 
     // TEMP: local id generator
     private int nextPlayerId = 0;
+
+    public IReadOnlyList<LobbyPlayerData> Players => players;
 
     // =========================
     // LOBBY LIFECYCLE
@@ -54,7 +56,7 @@ public class LobbyManager : MonoBehaviour
         players.Clear();
         selectedGamemode = null;
         selectedMap = null;
-        CurrentState = LobbyState.Inactive;
+        CurrentState = LobbyState.None;
     }
 
     // =========================
@@ -127,7 +129,7 @@ public class LobbyManager : MonoBehaviour
     public void LockLobby()
     {
         Debug.Log("Lobby locked");
-        CurrentState = LobbyState.Locked;
+        CurrentState = LobbyState.InGame;
     }
 
     public void StartMatch()
@@ -147,7 +149,35 @@ public class LobbyManager : MonoBehaviour
         }
 
         CurrentState = LobbyState.InGame;
+
+        var roundManager = FindAnyObjectByType<RoundManager>();
+        roundManager.Initialize(this, selectedGamemode);
+
         Debug.Log("Match started");
+    }
+
+    public void OnMatchEnded(int winningTeamId)
+    {
+        CurrentState = LobbyState.PostMatch;
+
+        Debug.Log($"Lobby entering PostMatch. Winning team: {winningTeamId}");
+
+        ResetLobbyAfterMatch();
+    }
+
+    private void ResetLobbyAfterMatch()
+    {
+        foreach (var player in players)
+        {
+            player.isReady = false;
+            player.teamId = -1;
+            player.isAlive = false;
+        }
+
+        teamA.Clear();
+        teamB.Clear();
+
+        Debug.Log("Lobby reset after match");
     }
 
     // =========================
@@ -228,8 +258,8 @@ public class LobbyManager : MonoBehaviour
     // DEBUG / TEMP
     // =========================
 
-    public List<LobbyPlayerData> GetPlayers()
+    public LobbyPlayerData GetPlayerById(int playerId)
     {
-        return players;
+        return players.Find(p => p.playerId == playerId);
     }
 }
