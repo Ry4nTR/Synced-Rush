@@ -46,6 +46,12 @@ namespace SyncedRush.Character.Movement
             if (!crouchInput || character.HorizontalVelocity.magnitude < 1f)
                 return MovementState.Move;
 
+            bool dashInput = (character.IsServer || character.LocalInputHandler == null)
+                ? Input.Ability
+                : character.LocalInputHandler.Ability;
+            if (dashInput)
+                return MovementState.Dash;
+
             Slide();
 
             if (EndSpeed > _currentEndSpeed)
