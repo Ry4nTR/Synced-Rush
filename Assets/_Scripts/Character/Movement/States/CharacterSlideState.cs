@@ -6,6 +6,7 @@ namespace SyncedRush.Character.Movement
     {
         private float _currentEndSpeed = 0f;
         private bool _isEnding = false;
+        private bool _blockCrouchInput = false;
         private Vector3 _previousGroundNormal = Vector3.zero;
 
         private float EndSpeed
@@ -39,14 +40,19 @@ namespace SyncedRush.Character.Movement
                 ? Input.Crouch
                 : character.LocalInputHandler.Crouch;
 
+            if (!crouchInput)
+                _blockCrouchInput = false;
+
             if (jumpInput)
                 return MovementState.Jump;
 
-            // Exit the slide if crouch is released or speed is too low.
-            if (!crouchInput || character.HorizontalVelocity.magnitude < 1f)
+            if (character.HorizontalVelocity.magnitude < 1f)
                 return MovementState.Move;
 
-            bool dashInput = (character.IsServer || character.LocalInputHandler == null)
+            if (crouchInput && !_blockCrouchInput)
+                return MovementState.Move;
+
+                bool dashInput = (character.IsServer || character.LocalInputHandler == null)
                 ? Input.Ability
                 : character.LocalInputHandler.Ability;
             if (dashInput)
@@ -67,6 +73,9 @@ namespace SyncedRush.Character.Movement
         public override void EnterState()
         {
             base.EnterState();
+
+            _blockCrouchInput = true;
+
             // When entering the slide state, apply an initial boost in the direction the
             // player is moving.  On the server use the authoritative MoveDirection from
             // the networked input; on the client use the local input from the

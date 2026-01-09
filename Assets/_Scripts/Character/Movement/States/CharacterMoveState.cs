@@ -5,6 +5,7 @@ namespace SyncedRush.Character.Movement
     public class CharacterMoveState : CharacterMovementState
     {
         private Vector3 _previousGroundNormal = Vector3.zero;
+        private bool _blockCrouchInput = false;
 
         public CharacterMoveState(MovementController movementComponentReference) : base(movementComponentReference)
         {
@@ -49,6 +50,9 @@ namespace SyncedRush.Character.Movement
         public override void EnterState()
         {
             base.EnterState();
+
+            if (!(ParentStateMachine.PreviousStateEnum == MovementState.Air))
+                _blockCrouchInput = true;
 
             SnapToGround();
             _previousGroundNormal = Vector3.zero;
@@ -115,6 +119,19 @@ namespace SyncedRush.Character.Movement
             // input to decide if the player is crouching and sprinting.  On the client
             // prediction path, read these values from the PlayerInputHandler and compute the
             // input direction from the local move vector.
+            bool crouchIn = (character.IsServer || character.LocalInputHandler == null)
+                ? Input.Crouch
+                : character.LocalInputHandler.Crouch;
+
+            if (!crouchIn)
+            {
+                _blockCrouchInput = false;
+                return false;
+            }
+
+            if (_blockCrouchInput)
+                return false;
+
             if (character.IsServer || character.LocalInputHandler == null)
             {
                 Vector3 inputDir = character.MoveDirection;
