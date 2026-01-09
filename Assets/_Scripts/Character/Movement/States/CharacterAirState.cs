@@ -5,8 +5,7 @@ namespace SyncedRush.Character.Movement
     public class CharacterAirState : CharacterMovementState
     {
         private bool _canWallRun = false;
-        private bool _previousJumpInput = true;
-        private float _coyoteTimer = 0f;
+        private bool _blockJetpackInput = false;
 
         public CharacterAirState(MovementController movementComponentReference) : base(movementComponentReference)
         {
@@ -23,31 +22,6 @@ namespace SyncedRush.Character.Movement
 
             AirMove();
 
-            // Determine the jump button state.  On the server use the networked value; on the
-            // client read from the PlayerInputHandler if available.
-            bool jumpInput;
-            if (character.IsServer || character.LocalInputHandler == null)
-            {
-                jumpInput = Input.Jump;
-            }
-            else
-            {
-                jumpInput = character.LocalInputHandler.Jump;
-            }
-
-            if (!jumpInput)
-            {
-                _previousJumpInput = false;
-            }
-            else if (!_previousJumpInput)
-            {
-                if (_coyoteTimer > 0f)
-                {
-                    RequestForcedStateEnter();
-                    return MovementState.Jump;
-                }
-            }
-
             if (_canWallRun)
                 return MovementState.WallRun;
 
@@ -57,11 +31,20 @@ namespace SyncedRush.Character.Movement
             if (dashInput)
                 return MovementState.Dash;
 
+            bool jetpackInput = (character.IsServer || character.LocalInputHandler == null)
+                ? Input.Jetpack
+                : character.LocalInputHandler.Jetpack;
+            if (jetpackInput)
+            {
+                if (!_blockJetpackInput)
+                    JetpackFly();
+            }
+            else
+                _blockJetpackInput = false;
+
             Fall();
 
             ProcessMovement();
-
-            _coyoteTimer = Mathf.MoveTowards(_coyoteTimer, 0f, Time.deltaTime);
 
             return MovementState.None;
         }
@@ -72,13 +55,16 @@ namespace SyncedRush.Character.Movement
 
             ResetFlags();
 
-            if (character.State == MovementState.Jump)
+            bool hasJumped = ParentStateMachine.PreviousStateEnum is MovementState.Jump
+                                                           or MovementState.WallRun;
+
+            bool jetpackInput = (character.IsServer || character.LocalInputHandler == null)
+                ? Input.Jetpack
+                : character.LocalInputHandler.Jetpack;
+            if (jetpackInput && hasJumped)
             {
-                _coyoteTimer = 0f;
-                Jump();
+                _blockJetpackInput = true;
             }
-            else
-                _coyoteTimer = character.Stats.JumpCoyoteTime;
         }
 
         public override void ProcessCollision(ControllerColliderHit hit)
@@ -205,16 +191,15 @@ namespace SyncedRush.Character.Movement
             character.VerticalVelocity -= (character.Stats.Gravity * Time.deltaTime);
         }
 
-        private void Jump()
+        private void JetpackFly()
         {
-            float jumpSpeed = Mathf.Sqrt(2 * character.Stats.Gravity * character.Stats.JumpHeight);
-            character.VerticalVelocity = jumpSpeed;
+            character.VerticalVelocity += (character.Stats.JetpackAcceleration * Time.deltaTime);
         }
 
         private void ResetFlags()
         {
             _canWallRun = false;
-            _previousJumpInput = true;
+            _blockJetpackInput = false;
         }
 
     }

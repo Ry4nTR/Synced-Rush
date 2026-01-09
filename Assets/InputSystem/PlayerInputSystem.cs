@@ -218,6 +218,15 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Jetpack"",
+                    ""type"": ""Button"",
+                    ""id"": ""b91818fb-037c-47b7-99f4-aa9383a728cd"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -517,6 +526,28 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
                     ""action"": ""Ability"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""2f4fb2b7-bcb9-4210-b6ae-b3a614b189cd"",
+                    ""path"": ""<Keyboard>/space"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Jetpack"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""fac60072-79b6-41f0-af53-ed9979343a3d"",
+                    ""path"": ""<Gamepad>/buttonSouth"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Jetpack"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -715,6 +746,7 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
         m_Player_DebugResetPos = m_Player.FindAction("DebugResetPos", throwIfNotFound: true);
         m_Player_Interact = m_Player.FindAction("Interact", throwIfNotFound: true);
         m_Player_Ability = m_Player.FindAction("Ability", throwIfNotFound: true);
+        m_Player_Jetpack = m_Player.FindAction("Jetpack", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Point = m_UI.FindAction("Point", throwIfNotFound: true);
@@ -910,6 +942,7 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_DebugResetPos;
     private readonly InputAction m_Player_Interact;
     private readonly InputAction m_Player_Ability;
+    private readonly InputAction m_Player_Jetpack;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -965,6 +998,10 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Player/Ability".
         /// </summary>
         public InputAction @Ability => m_Wrapper.m_Player_Ability;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/Jetpack".
+        /// </summary>
+        public InputAction @Jetpack => m_Wrapper.m_Player_Jetpack;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -1024,6 +1061,9 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
             @Ability.started += instance.OnAbility;
             @Ability.performed += instance.OnAbility;
             @Ability.canceled += instance.OnAbility;
+            @Jetpack.started += instance.OnJetpack;
+            @Jetpack.performed += instance.OnJetpack;
+            @Jetpack.canceled += instance.OnJetpack;
         }
 
         /// <summary>
@@ -1068,6 +1108,9 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
             @Ability.started -= instance.OnAbility;
             @Ability.performed -= instance.OnAbility;
             @Ability.canceled -= instance.OnAbility;
+            @Jetpack.started -= instance.OnJetpack;
+            @Jetpack.performed -= instance.OnJetpack;
+            @Jetpack.canceled -= instance.OnJetpack;
         }
 
         /// <summary>
@@ -1329,6 +1372,13 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnAbility(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Jetpack" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnJetpack(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.

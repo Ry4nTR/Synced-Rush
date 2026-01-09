@@ -4,17 +4,7 @@ namespace SyncedRush.Generics
 {
     public abstract class BaseState<TStateEnum> where TStateEnum : Enum
     {
-        private BaseStateMachine<TStateEnum, BaseState<TStateEnum>> _parentStateMachine;
-
-        protected BaseStateMachine<TStateEnum, BaseState<TStateEnum>> ParentStateMachine => _parentStateMachine;
-
         public event Action RequestForcedEnter;
-
-        public void SetParentStateMachine(BaseStateMachine<TStateEnum, BaseState<TStateEnum>> parentStateMachine)
-        {
-            if (_parentStateMachine == null)
-                _parentStateMachine = parentStateMachine;
-        }
 
         public virtual void EnterState() { }
 
@@ -29,6 +19,5 @@ namespace SyncedRush.Generics
         {
             RequestForcedEnter?.Invoke();
         }
-
     }
 }

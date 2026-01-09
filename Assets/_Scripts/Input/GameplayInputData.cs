@@ -16,6 +16,7 @@ public struct GameplayInputData : INetworkSerializable
     public bool Aim;
     public bool Reload;
     public bool Ability;
+    public bool Jetpack;
     public float Scroll;
 
     /// <summary>
@@ -38,6 +39,7 @@ public struct GameplayInputData : INetworkSerializable
         serializer.SerializeValue(ref Aim);
         serializer.SerializeValue(ref Reload);
         serializer.SerializeValue(ref Ability);
+        serializer.SerializeValue(ref Jetpack);
         serializer.SerializeValue(ref Scroll);
         serializer.SerializeValue(ref DebugResetPos); // opzionale
 

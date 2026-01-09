@@ -48,6 +48,10 @@ public class CharacterStats : MonoBehaviour
     /// <summary>Durata del dash in secondi</summary>
     [SerializeField] private float _dashDuration = 0.3f;
 
+    [Header("Jetpack Settings")]
+    /// <summary>Accelerazione del jetpack (m/s^2)</summary>
+    [SerializeField] private float _jetpackAcceleration = 16f;
+
     [Header("Physics")]
     /// <summary>Accelerazione di gravitŕ (m/s^2)</summary>
     [SerializeField] private float _gravity = 9.81f;
@@ -68,5 +72,6 @@ public class CharacterStats : MonoBehaviour
     public float WallRunLookAngleLimit => _wallRunLookAngleLimit;
     public float DashSpeed => _dashSpeed;
     public float DashDuration => _dashDuration;
+    public float JetpackAcceleration => _jetpackAcceleration;
     public float Gravity => _gravity;
 }

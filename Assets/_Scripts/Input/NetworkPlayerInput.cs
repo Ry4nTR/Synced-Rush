@@ -44,6 +44,7 @@ public class NetworkPlayerInput : NetworkBehaviour
             Aim = _inputHandler.Aim,
             Reload = _inputHandler.Reload,
             Ability = _inputHandler.Ability,
+            Jetpack = _inputHandler.Jetpack,
             DebugResetPos = _inputHandler.DebugResetPos,
 
             // Assign an incrementing sequence number

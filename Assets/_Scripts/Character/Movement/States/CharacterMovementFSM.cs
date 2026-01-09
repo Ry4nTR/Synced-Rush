@@ -21,14 +21,13 @@ namespace SyncedRush.Character.Movement
 
         private MovementController _movementComponent;
 
-        //private MovementState _previousState;
-
         private void Awake()
         {
             _movementComponent = GetComponent<MovementController>();
 
             CharacterMoveState moveState = new(_movementComponent);
             CharacterAirState airState = new(_movementComponent);
+            CharacterJumpState jumpState = new(_movementComponent);
             CharacterSlideState slideState = new(_movementComponent);
             CharacterWallRunState wallRunState = new(_movementComponent);
             CharacterDashState dashState = new(_movementComponent);
@@ -37,7 +36,7 @@ namespace SyncedRush.Character.Movement
             {
                 { MovementState.Move, moveState },
                 { MovementState.Air, airState },
-                { MovementState.Jump, airState },
+                { MovementState.Jump, jumpState },
                 { MovementState.Slide, slideState },
                 { MovementState.WallRun, wallRunState },
                 { MovementState.Dash, dashState }
@@ -45,7 +44,10 @@ namespace SyncedRush.Character.Movement
 
             Initialize(states, MovementState.Move);
 
-            //_previousState = MovementState.Move;
+            foreach (CharacterMovementState state in states.Values)
+            {
+                state.SetParentStateMachine(this);
+            }
         }
 
         public void ProcessCollision(ControllerColliderHit hit)

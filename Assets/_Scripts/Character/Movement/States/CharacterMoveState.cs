@@ -119,7 +119,7 @@ namespace SyncedRush.Character.Movement
             {
                 Vector3 inputDir = character.MoveDirection;
                 float dot = Vector3.Dot(inputDir, character.Orientation.transform.forward);
-                return Input.Crouch && Input.Sprint && dot > -0.1f;
+                return Input.Crouch && dot > -0.1f;
             }
             else
             {
@@ -129,8 +129,7 @@ namespace SyncedRush.Character.Movement
                     inputDir.Normalize();
                 float dot = Vector3.Dot(inputDir, character.Orientation.transform.forward);
                 bool crouchInput = character.LocalInputHandler.Crouch;
-                bool sprintInput = character.LocalInputHandler.Sprint;
-                return crouchInput && sprintInput && dot > -0.1f;
+                return crouchInput && dot > -0.1f;
             }
         }
 

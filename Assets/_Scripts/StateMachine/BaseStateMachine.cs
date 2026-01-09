@@ -22,6 +22,7 @@ namespace SyncedRush.Generics
         public TStateEnum CurrentStateEnum { get; private set; }
         /// <summary> Serve agli stati in uscita per capire qual'è il prossimo stato </summary>
         public TStateEnum QueuedStateEnum { get; private set; }
+        public TStateEnum PreviousStateEnum { get; private set; }
         public bool IsInitialized { get; private set; }
 
         protected void OnDestroy()
@@ -42,6 +43,8 @@ namespace SyncedRush.Generics
 
             IsInitialized = true;
 
+            PreviousStateEnum = default;
+
             ChangeState(initialState);
         }
 
@@ -53,7 +56,10 @@ namespace SyncedRush.Generics
 
                 bool sameState = CurrentState == newState;
                 if (!sameState)
+                {
+                    PreviousStateEnum = CurrentStateEnum;
                     CurrentState?.ExitState();
+                }
 
                 QueuedStateEnum = default;
                 CurrentStateEnum = state;

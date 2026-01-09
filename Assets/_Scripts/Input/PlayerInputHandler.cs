@@ -1,6 +1,4 @@
-using System;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 /// <summary>
 /// Centralized input buffer using Unity Input System.
@@ -19,10 +17,11 @@ public class PlayerInputHandler : MonoBehaviour
     [SerializeField] private bool aim;
     [SerializeField] private bool reload;
     [SerializeField] private bool ability;
+    [SerializeField] private bool jetpack;
 
     // Debug / utility
     [SerializeField] private bool debugResetPos;
-
+    
     private PlayerInputSystem _controls;
 
     // Read-only accessors
@@ -35,6 +34,7 @@ public class PlayerInputHandler : MonoBehaviour
     public bool Aim => aim;
     public bool Reload => reload;
     public bool Ability => ability;
+    public bool Jetpack => jetpack;
     public bool DebugResetPos => debugResetPos;
 
     private void Awake()
@@ -70,6 +70,8 @@ public class PlayerInputHandler : MonoBehaviour
         sprint = _controls.Player.Sprint.IsPressed();
         crouch = _controls.Player.Crouch.IsPressed();
 
+        jetpack = _controls.Player.Jetpack.IsPressed();
+
         // Debug
         debugResetPos = _controls.Player.DebugResetPos.IsPressed();
     }
@@ -98,5 +100,6 @@ public class PlayerInputHandler : MonoBehaviour
         aim = false;
         reload = false;
         ability = false;
+        jetpack = false;
     }
 }
