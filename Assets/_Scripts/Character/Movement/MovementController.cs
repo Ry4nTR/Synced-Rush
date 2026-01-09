@@ -99,6 +99,28 @@ public class MovementController : NetworkBehaviour
 
     public Animator Anim => _animator;
 
+    public Vector2 MoveInputDirection
+    {
+        get
+        {
+            Vector2 input = _netInput.ServerInput.Move;
+            input.Normalize();
+
+            return input;
+        }
+    }
+
+    public Vector2 LocalMoveInputDirection
+    {
+        get
+        {
+            Vector2 input = LocalInputHandler.Move;
+            input.Normalize();
+
+            return input;
+        }
+    }
+
     public Vector3 MoveDirection
     {
         get
