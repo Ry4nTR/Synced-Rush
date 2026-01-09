@@ -38,11 +38,13 @@ namespace SyncedRush.Character.Movement
 
             Vector3 dashDir = GetDashDirection();
             Vector3 velocityDir = character.TotalVelocity.normalized;
+            float speed = character.TotalVelocity.magnitude;
 
             if (dashDir != Vector3.zero)
             {
-                if (Vector3.Dot(dashDir, velocityDir) > 0)
-                    character.TotalVelocity += dashDir * character.Stats.DashSpeed;
+                if (Vector3.Dot(dashDir, velocityDir) >= 0
+                    && speed > character.Stats.DashSpeed)
+                    character.TotalVelocity = dashDir * speed;
                 else
                     character.TotalVelocity = dashDir * character.Stats.DashSpeed;
             }
