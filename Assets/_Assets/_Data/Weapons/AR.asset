@@ -36,7 +36,7 @@ MonoBehaviour:
   spreadRecoveryRate: 0
   spreadIncreasePerShot: 0
   maxSpread: 0
-  weaponPrefab: {fileID: 7907567775967570144, guid: b457496d9a25c3849a4673c6042fbac1, type: 3}
+  weaponPrefab: {fileID: 6948224201117220615, guid: 1b828a764d202134a82a6ebfefac886a, type: 3}
   shootSound: {fileID: 0}
   reloadSound: {fileID: 0}
   emptySound: {fileID: 0}

@@ -9,6 +9,9 @@ public enum TeamAssignmentMode
 
 public class LobbyManager : MonoBehaviour
 {
+    [Header("Lobby Info")]
+    public string LobbyName { get; private set; }
+
     [Header("State")]
     public LobbyState CurrentState { get; private set; } = LobbyState.None;
 
@@ -37,14 +40,14 @@ public class LobbyManager : MonoBehaviour
     // LOBBY LIFECYCLE
     // =========================
 
-    public void CreateLobby(string hostName)
+    public void CreateLobby(string hostName, string lobbyName)
     {
-        Debug.Log("Lobby created");
+        Debug.Log($"Lobby created: {lobbyName}");
 
         players.Clear();
         CurrentState = LobbyState.Open;
+        LobbyName = lobbyName;
 
-        // Host joins immediately
         var hostPlayer = new LobbyPlayerData(nextPlayerId++, hostName, true);
         players.Add(hostPlayer);
     }
@@ -137,6 +140,9 @@ public class LobbyManager : MonoBehaviour
         if (!CanStartMatch())
             return;
 
+        Debug.Log("MATCH STARTED — LOBBY OK");
+
+        /*
         if (teamAssignmentMode == TeamAssignmentMode.Random)
         {
             AssignTeamsAutomatically();
@@ -154,6 +160,7 @@ public class LobbyManager : MonoBehaviour
         roundManager.Initialize(this, selectedGamemode);
 
         Debug.Log("Match started");
+        */
     }
 
     public void OnMatchEnded(int winningTeamId)
@@ -190,7 +197,6 @@ public class LobbyManager : MonoBehaviour
             return;
 
         selectedGamemode = gamemode;
-        Debug.Log($"Gamemode set: {gamemode.gamemodeType}");
     }
 
     public GamemodeDefinition GetGamemode()

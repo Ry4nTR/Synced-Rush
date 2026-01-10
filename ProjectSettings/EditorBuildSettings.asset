@@ -11,6 +11,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/_TestingMainScene/WeaponTestingScene.unity
     guid: bf5016dca784f194cb00c0460b977c90
+  - enabled: 1
+    path: Assets/Scenes/_TestingMainScene/TestMainScene.unity
+    guid: 2d9b7a1dae96ed1408016a4e18b3bce8
   m_configObjects:
     com.unity.input.settings: {fileID: 11400000, guid: dd8787bc8f016ff47911e565283b9940, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

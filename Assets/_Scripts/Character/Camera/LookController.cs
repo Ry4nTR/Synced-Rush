@@ -74,12 +74,5 @@ public class LookController : NetworkBehaviour
         pitch += invertY ? deltaY : -deltaY;
         pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
         cameraHolder.localRotation = Quaternion.Euler(pitch, 0f, 0f);
-
-        // Arms follow pitch
-        if (armsRoot != null)
-        {
-            Vector3 euler = armsRoot.localEulerAngles;
-            armsRoot.localRotation = Quaternion.Euler(pitch, euler.y, euler.z);
-        }
     }
 }

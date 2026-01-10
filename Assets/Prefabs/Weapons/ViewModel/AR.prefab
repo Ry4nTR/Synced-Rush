@@ -810,6 +810,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7852393229904586540}
+  - component: {fileID: 575915563982533088}
+  - component: {fileID: 3557770026734857741}
   m_Layer: 7
   m_Name: AR
   m_TagString: Untagged
@@ -827,7 +829,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 462214004984541024}
@@ -843,6 +845,31 @@ Transform:
   - {fileID: 10247264683478607}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &575915563982533088
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6948224201117220615}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81364f629a4a2f74ea19d351c4119fcb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponController
+  weaponData: {fileID: 11400000, guid: 47876a37f0c9bbd4d93b129e51a85071, type: 2}
+--- !u!114 &3557770026734857741
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6948224201117220615}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd0becbbe49df714e945995ee9d4bad3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShootingSystem
 --- !u!1 &7007149558765499091
 GameObject:
   m_ObjectHideFlags: 0
