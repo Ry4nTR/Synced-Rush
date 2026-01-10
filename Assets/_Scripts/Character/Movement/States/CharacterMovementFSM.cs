@@ -42,12 +42,12 @@ namespace SyncedRush.Character.Movement
                 { MovementState.Dash, dashState }
             };
 
-            Initialize(states, MovementState.Move);
-
             foreach (CharacterMovementState state in states.Values)
             {
                 state.SetParentStateMachine(this);
             }
+
+            Initialize(states, MovementState.Move);
         }
 
         public void ProcessCollision(ControllerColliderHit hit)
