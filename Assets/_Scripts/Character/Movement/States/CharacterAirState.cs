@@ -22,7 +22,11 @@ namespace SyncedRush.Character.Movement
 
             AirMove();
 
-            if (_canWallRun)
+            bool crouchInput = (character.IsServer || character.LocalInputHandler == null)
+                ? Input.Crouch
+                : character.LocalInputHandler.Crouch;
+
+            if (_canWallRun && !crouchInput)
                 return MovementState.WallRun;
 
             bool dashInput = (character.IsServer || character.LocalInputHandler == null)
@@ -163,27 +167,24 @@ namespace SyncedRush.Character.Movement
 
         private void AirMove()
         {
-            if (character.IsServer || character.LocalInputHandler == null)
-            {
-                // On the server use the networked input to compute the move direction.
-                Vector3 moveDir = character.MoveDirection;
-                character.HorizontalVelocity = Vector2.MoveTowards(
-                    character.HorizontalVelocity,
-                    new Vector2(moveDir.x, moveDir.z) * character.Stats.RunSpeed,
-                    Time.deltaTime * character.Stats.RunSpeed * 1);
-            }
-            else
-            {
-                // On the client compute the move direction from the local input for prediction.
-                Vector2 move = character.LocalInputHandler.Move;
-                Vector3 moveDir = character.Orientation.transform.forward * move.y + character.Orientation.transform.right * move.x;
-                if (moveDir.magnitude > 1f)
-                    moveDir.Normalize();
-                character.HorizontalVelocity = Vector2.MoveTowards(
-                    character.HorizontalVelocity,
-                    new Vector2(moveDir.x, moveDir.z) * character.Stats.RunSpeed,
-                    Time.deltaTime * character.Stats.RunSpeed * 1);
-            }
+            Vector3 moveDir = (character.IsServer || character.LocalInputHandler == null)
+                ? character.MoveDirection
+                : character.LocalMoveDirection;
+
+            Vector2 moveDirXY = new(moveDir.x, moveDir.z);
+
+            bool isOverSpeed = character.HorizontalVelocity.magnitude > character.Stats.AirTargetSpeed;
+
+            float targetDeceleration = isOverSpeed
+                ? character.Stats.AirOverspeedDeceleration
+                : character.Stats.AirDeceleration;
+
+            character.HorizontalVelocity += character.Stats.AirAcceleration * Time.deltaTime * moveDirXY;
+
+            character.HorizontalVelocity = Vector2.MoveTowards(
+                character.HorizontalVelocity,
+                Vector2.zero,
+                Time.deltaTime * targetDeceleration);
         }
 
         private void Fall()

@@ -59,6 +59,12 @@ namespace SyncedRush.Character.Movement
             if (dashInput)
                 return MovementState.Dash;
 
+            bool crouchInput = (character.IsServer || character.LocalInputHandler == null)
+                ? Input.Crouch
+                : character.LocalInputHandler.Crouch;
+            if (crouchInput)
+                return MovementState.Air;
+
             ProcessMovement();
 
             return MovementState.None;

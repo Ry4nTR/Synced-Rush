@@ -160,35 +160,50 @@ namespace SyncedRush.Character.Movement
 
         private void Walk()
         {
+            Vector3 inputDir = Vector3.zero;
+            bool sprintInput = false;
+            Vector2 move = Vector2.zero;
+
             // On the server use networked input; on the client use local input from the
             // PlayerInputHandler.  In both cases compute an input direction in world space
             // and choose run or walk speed based on the sprint key.
             if (character.IsServer || character.LocalInputHandler == null)
             {
-                Vector3 inputDir = character.MoveDirection;
-                bool sprint = Input.Sprint;
-                Vector2 move = Input.Move;
-                bool movingBackwardsOnly = Mathf.Approximately(move.y, -1f) && Mathf.Approximately(move.x, 0f);
-                float targetSpeed = sprint && !movingBackwardsOnly ? character.Stats.RunSpeed : character.Stats.WalkSpeed;
-                character.HorizontalVelocity = Vector2.MoveTowards(
-                    character.HorizontalVelocity,
-                    new Vector2(inputDir.x, inputDir.z) * targetSpeed,
-                    Time.deltaTime * character.Stats.RunSpeed * 10);
+                inputDir = character.MoveDirection;
+                sprintInput = Input.Sprint;
+                move = Input.Move;
             }
             else
             {
-                Vector2 move = character.LocalInputHandler.Move;
+                move = character.LocalInputHandler.Move;
                 // Compute a direction from the local move input relative to character orientation.
-                Vector3 inputDir = character.Orientation.transform.forward * move.y + character.Orientation.transform.right * move.x;
+                inputDir = character.Orientation.transform.forward * move.y + character.Orientation.transform.right * move.x;
                 if (inputDir.magnitude > 1f)
                     inputDir.Normalize();
-                bool sprintInput = character.LocalInputHandler.Sprint;
-                bool movingBackwardsOnly = Mathf.Approximately(move.y, -1f) && Mathf.Approximately(move.x, 0f);
-                float targetSpeed = sprintInput && !movingBackwardsOnly ? character.Stats.RunSpeed : character.Stats.WalkSpeed;
+                sprintInput = character.LocalInputHandler.Sprint;
+            }
+
+            Vector2 moveDirXY = new(inputDir.x, inputDir.z);
+
+            bool movingBackwardsOnly = Mathf.Approximately(move.y, -1f) && Mathf.Approximately(move.x, 0f);
+
+            float targetSpeed = sprintInput && !movingBackwardsOnly ? character.Stats.RunSpeed : character.Stats.WalkSpeed;
+
+            bool isOverSpeed = character.HorizontalVelocity.magnitude > targetSpeed;
+
+            if (isOverSpeed)
+            {
                 character.HorizontalVelocity = Vector2.MoveTowards(
                     character.HorizontalVelocity,
-                    new Vector2(inputDir.x, inputDir.z) * targetSpeed,
-                    Time.deltaTime * character.Stats.RunSpeed * 10);
+                    moveDirXY * targetSpeed,
+                    Time.deltaTime * character.Stats.OverspeedDeceleration);
+            }
+            else
+            {
+                character.HorizontalVelocity = Vector2.MoveTowards(
+                    character.HorizontalVelocity,
+                    moveDirXY * targetSpeed,
+                    Time.deltaTime * targetSpeed * 10);
             }
         }
     }

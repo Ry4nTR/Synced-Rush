@@ -12,6 +12,8 @@ public class CharacterStats : MonoBehaviour
     [SerializeField] private float _walkSpeed = 5f;
     /// <summary>Velocitŕ di corsa in m/s</summary>
     [SerializeField] private float _runSpeed = 7.5f;
+    /// <summary>Decelerazione camminata/corsa nel caso viene superata la velocità di target (m/s^2)</summary>
+    [SerializeField] private float _overspeedDeceleration = 7.5f;
 
     [Header("Jump Settings")]
     /// <summary>L'altezza che viene raggiunta con un salto (indipendente dalla gravitŕ)</summary>
@@ -20,11 +22,15 @@ public class CharacterStats : MonoBehaviour
     [SerializeField] private float _jumpCoyoteTime = 0.25f;
 
     [Header("Air Movement")]
-    [SerializeField] private float _airAcceleration = 3f;
+    /// <summary>Velocità desiderata in aria (m/s)</summary>
+    [SerializeField] private float _airTargetSpeed = 3f;
+    [SerializeField] private float _airAcceleration = 5f;
     [SerializeField] private float _airDeceleration = 3f;
+    /// <summary>Decelerazione aumentata nel caso viene superata la target speed (m/s^2)</summary>
+    [SerializeField] private float _airOverspeedDeceleration = 6f;
 
     [Header("Slide Settings")]
-    //TODO _slideMoveInfluence e _slideDecelleration sono da definire meglio
+    //TODO _slideMoveInfluence e _slideDeceleration sono da definire meglio
     /// <summary> </summary>
     [SerializeField] private float _slideStartBoost = 7.5f;
     /// <summary> </summary>
@@ -59,10 +65,13 @@ public class CharacterStats : MonoBehaviour
     // Proprietŕ
     public float WalkSpeed => _walkSpeed;
     public float RunSpeed => _runSpeed;
+    public float OverspeedDeceleration => _overspeedDeceleration;
     public float JumpHeight => _jumpHeight;
     public float JumpCoyoteTime => _jumpCoyoteTime;
+    public float AirTargetSpeed => _airTargetSpeed;
     public float AirAcceleration => _airAcceleration;
     public float AirDeceleration => _airDeceleration;
+    public float AirOverspeedDeceleration => _airOverspeedDeceleration;
     public float SlideStartBoost => _slideStartBoost;
     public float SlideMoveInfluence => _slideMoveInfluence;
     public float SlideDeceleration => _slideDeceleration;
