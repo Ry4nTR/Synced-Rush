@@ -27,18 +27,19 @@ public class SpawnManager : MonoBehaviour
     {
         if (spawnPoints == null)
             return;
-
+        /*
         foreach (var player in lobbyManager.Players)
         {
             Transform spawn = spawnPoints.GetRandomSpawn(player.teamId);
             SpawnPlayer(player, spawn);
         }
+        */
     }
 
     // =========================
     // Internal
     // =========================
-
+    /*
     private void SpawnPlayer(LobbyPlayerData player, Transform spawnPoint)
     {
         if (spawnPoint == null)
@@ -55,4 +56,5 @@ public class SpawnManager : MonoBehaviour
         // Assign ownership
         // Set position & rotation
     }
+    */
 }

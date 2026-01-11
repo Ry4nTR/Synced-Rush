@@ -19,6 +19,7 @@ public class RoundDeathTracker : MonoBehaviour
     // Public API
     // =========================
 
+    /*
     public void NotifyPlayerDeath(int playerId)
     {
         var player = lobbyManager.GetPlayerById(playerId);
@@ -34,11 +35,13 @@ public class RoundDeathTracker : MonoBehaviour
 
         CheckTeamElimination(player.teamId);
     }
+    */
 
     // =========================
     // Internal
     // =========================
 
+    /*
     private void CheckTeamElimination(int teamId)
     {
         foreach (var p in lobbyManager.Players)
@@ -51,4 +54,5 @@ public class RoundDeathTracker : MonoBehaviour
         int winningTeamId = teamId == 0 ? 1 : 0;
         roundManager.EndRound(winningTeamId);
     }
+    */
 }

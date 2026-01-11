@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class MenuUIManager : MonoBehaviour
+public class PanelManager : MonoBehaviour
 {
     [Header("Panels")]
     [SerializeField] private CanvasGroup mainMenuPanel;

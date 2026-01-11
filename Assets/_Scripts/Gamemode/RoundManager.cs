@@ -68,8 +68,8 @@ public class RoundManager : NetworkBehaviour
 
         Debug.Log("Preparing next round");
 
-        foreach (var player in lobbyManager.Players)
-            player.isAlive = true;
+        //foreach (var player in lobbyManager.Players)
+            //player.isAlive = true;
 
         spawnManager.SpawnAllPlayers();
 

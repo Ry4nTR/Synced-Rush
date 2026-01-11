@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: b0665c3e3e69ce94eb3a0254097e22d7
+guid: 1fe051ce6175d2b4d93738b840317080
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
@@ -31,11 +31,11 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: IdleProva
+      name: WalkIdleLoop_AR
       takeName: Scene
       internalID: -623603649343465320
       firstFrame: 0
-      lastFrame: 60
+      lastFrame: 24
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -43,7 +43,7 @@ ModelImporter:
       loop: 0
       hasAdditiveReferencePose: 0
       loopTime: 1
-      loopBlend: 0
+      loopBlend: 1
       loopBlendOrientation: 0
       loopBlendPositionY: 0
       loopBlendPositionXZ: 0

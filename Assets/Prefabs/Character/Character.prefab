@@ -28,8 +28,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1829883740197097229}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.000000048428774, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: 0.08808236, y: 0.41983208, z: -0.040979996, w: 0.9023875}
+  m_LocalPosition: {x: 0.61865693, y: 0.51499987, z: 0.0629346}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -115,7 +115,7 @@ MonoBehaviour:
   m_RendererIndex: -1
   m_VolumeLayerMask:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 1911
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
   m_RenderPostProcessing: 0
@@ -459,10 +459,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
   _walkSpeed: 5
   _runSpeed: 5.25
+  _overspeedDeceleration: 7.5
   _jumpHeight: 2
   _jumpCoyoteTime: 0.25
+  _airTargetSpeed: 3
   _airAcceleration: 3
   _airDeceleration: 3
+  _airOverspeedDeceleration: 6
   _slideStartBoost: 10
   _slideMoveInfluence: 4
   _slideDeceleration: 10
@@ -656,7 +659,7 @@ Camera:
     height: 1
   near clip plane: 0.01
   far clip plane: 1000
-  field of view: 60
+  field of view: 90
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
@@ -694,7 +697,7 @@ MonoBehaviour:
   m_RendererIndex: -1
   m_VolumeLayerMask:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 128
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
   m_RenderPostProcessing: 0
@@ -828,7 +831,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 169188c2479b8f546b8119c89677402f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraFollower
-  virtualCamera: {fileID: 6586182560886131289}
+  vcam: {fileID: 1191002731392592227}
   viewmodelCam: {fileID: 2403002803719941364}
 --- !u!1 &7235606184766109600
 GameObject:
@@ -1350,13 +1353,21 @@ PrefabInstance:
       value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 7157371085075486136, guid: 3ffba53454f86e24bb5b1df58bdbcd96, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7157371085075486136, guid: 3ffba53454f86e24bb5b1df58bdbcd96, type: 3}
       propertyPath: m_StaticShadowCaster
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7157371085075486136, guid: 3ffba53454f86e24bb5b1df58bdbcd96, type: 3}
       propertyPath: m_UpdateWhenOffscreen
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7157371085075486136, guid: 3ffba53454f86e24bb5b1df58bdbcd96, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: aaddffe38381a60428eb1aeab1ba8b85, type: 2}
     - target: {fileID: 7272441892845392073, guid: 3ffba53454f86e24bb5b1df58bdbcd96, type: 3}
       propertyPath: m_Layer
       value: 7

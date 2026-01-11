@@ -1,18 +1,20 @@
+using Unity.Cinemachine;
 using UnityEngine;
 
 public class CameraFollower : MonoBehaviour
 {
-    public Transform virtualCamera;
+    public CinemachineCamera vcam;
     public Camera viewmodelCam;
 
     void LateUpdate()
     {
-        if (virtualCamera == null) return;
+        if (vcam == null) return;
 
-        // Arms view
+        var state = vcam.State;
+
         viewmodelCam.transform.SetPositionAndRotation(
-            virtualCamera.position,
-            virtualCamera.rotation
+            state.GetFinalPosition(),
+            state.GetFinalOrientation()
         );
     }
 }

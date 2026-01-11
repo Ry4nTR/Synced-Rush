@@ -12,7 +12,7 @@ public class CreateMatchPanelController : MonoBehaviour
 
     [Header("Refs")]
     [SerializeField] private LobbyManager lobbyManager;
-    [SerializeField] private MenuUIManager uiManager;
+    [SerializeField] private PanelManager uiManager;
 
     [Header("Data")]
     [SerializeField] private GamemodeDefinition[] gamemodes;
@@ -22,8 +22,6 @@ public class CreateMatchPanelController : MonoBehaviour
     {
         PopulateDropdowns();
         ResetInputs();
-
-        playerNameInput.text = PlayerProfile.PlayerName;
     }
 
     private void PopulateDropdowns()
@@ -59,23 +57,31 @@ public class CreateMatchPanelController : MonoBehaviour
     // =========================
     public void OnCreateMatchPressed()
     {
-        string playerName = playerNameInput.text;
-        if (string.IsNullOrWhiteSpace(playerName))
-            playerName = "Host";
+        string playerName = string.IsNullOrWhiteSpace(playerNameInput.text)
+            ? "Host"
+            : playerNameInput.text;
 
-        string lobbyName = lobbyNameInput.text;
-        if (string.IsNullOrWhiteSpace(lobbyName))
-            lobbyName = $"{playerName}'s Lobby";
+        string lobbyName = string.IsNullOrWhiteSpace(lobbyNameInput.text)
+            ? $"{playerName}'s Lobby"
+            : lobbyNameInput.text;
 
         PlayerProfile.PlayerName = playerName;
 
+        // 1. Start network host
         MatchmakingManager.Instance.Host();
 
+        // 2. Initialize LOCAL lobby cache (non-networked)
         lobbyManager.CreateLobby(playerName, lobbyName);
         lobbyManager.SetGamemode(gamemodes[gamemodeDropdown.value]);
         lobbyManager.SetMap(maps[mapDropdown.value]);
 
-        uiManager.ShowLobby();
-    }
+        // 3. Push lobby name to NETWORK
+        NetworkLobbyState.Instance.SetLobbyNameServerRpc(lobbyName);
 
+        // 4. Switch UI
+        uiManager.ShowLobby();
+
+        // 5. Reset inputs for next time
+        ResetInputs();
+    }
 }
