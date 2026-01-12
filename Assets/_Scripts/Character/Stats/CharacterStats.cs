@@ -8,12 +8,14 @@ public class CharacterStats : MonoBehaviour
 {
     // Campi privati
     [Header("Movement Speed")]
-    /// <summary>Velocitŕ di camminata in m/s</summary>
+    /// <summary>Velocitŕ target di camminata in m/s</summary>
     [SerializeField] private float _walkSpeed = 5f;
-    /// <summary>Velocitŕ di corsa in m/s</summary>
+    /// <summary>Velocitŕ target di corsa in m/s</summary>
     [SerializeField] private float _runSpeed = 7.5f;
+    /// <summary>Accelerazione/Decelerazione camminata/corsa (m/s^2)</summary>
+    [SerializeField] private float _groundAccelDecel = 10f;
     /// <summary>Decelerazione camminata/corsa nel caso viene superata la velocità di target (m/s^2)</summary>
-    [SerializeField] private float _overspeedDeceleration = 7.5f;
+    [SerializeField] private float _groundOverspeedDeceleration = 7.5f;
 
     [Header("Jump Settings")]
     /// <summary>L'altezza che viene raggiunta con un salto (indipendente dalla gravitŕ)</summary>
@@ -43,8 +45,12 @@ public class CharacterStats : MonoBehaviour
     [SerializeField] private float _slideIncreasedDecelerationThreshold = 70f;
 
     [Header("Wall Run Settings")]
+    /// <summary>Decelerazione WallRun (m/s^2)</summary>
+    [SerializeField] private float _wallRunDeceleration = 5f;
+    /// <summary>Frenata manuale del WallRun (m/s^2) NOTA: viene comunque applicata la <see cref="_wallRunDeceleration"/> durante la frenata</summary>
+    [SerializeField] private float _wallRunBrake = 10f;
     /// <summary>Velocitŕ minima per correre su una parete</summary>
-    [SerializeField] private float _wallRunMinimumSpeed = 1f;
+    [SerializeField] private float _wallRunMinimumSpeed = 3f;
     /// <summary>Angolazione massima per la visuale rispetto al muro consentita per correre su una parete</summary>
     [SerializeField] private float _wallRunLookAngleLimit = 110f;
 
@@ -65,22 +71,32 @@ public class CharacterStats : MonoBehaviour
     // Proprietŕ
     public float WalkSpeed => _walkSpeed;
     public float RunSpeed => _runSpeed;
-    public float OverspeedDeceleration => _overspeedDeceleration;
+    public float GroundAccelDecel => _groundAccelDecel;
+    public float GroundOverspeedDeceleration => _groundOverspeedDeceleration;
+
     public float JumpHeight => _jumpHeight;
     public float JumpCoyoteTime => _jumpCoyoteTime;
+
     public float AirTargetSpeed => _airTargetSpeed;
     public float AirAcceleration => _airAcceleration;
     public float AirDeceleration => _airDeceleration;
     public float AirOverspeedDeceleration => _airOverspeedDeceleration;
+
     public float SlideStartBoost => _slideStartBoost;
     public float SlideMoveInfluence => _slideMoveInfluence;
     public float SlideDeceleration => _slideDeceleration;
     public float SlideIncreasedDeceleration => _slideIncreasedDeceleration;
     public float SlideIncreasedDecelerationThreshold => _slideIncreasedDecelerationThreshold;
+
+    public float WallRunDeceleration => _wallRunDeceleration;
+    public float WallRunBrake => _wallRunBrake;
     public float WallRunMinSpeed => _wallRunMinimumSpeed;
     public float WallRunLookAngleLimit => _wallRunLookAngleLimit;
+
     public float DashSpeed => _dashSpeed;
     public float DashDuration => _dashDuration;
+
     public float JetpackAcceleration => _jetpackAcceleration;
+
     public float Gravity => _gravity;
 }

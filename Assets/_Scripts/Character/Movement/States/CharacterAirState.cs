@@ -108,6 +108,9 @@ namespace SyncedRush.Character.Movement
 
         private bool CheckWallRunCondition(ControllerColliderHit hit)
         {
+            if (character.HorizontalVelocity.magnitude < character.Stats.WallRunMinSpeed)
+                return false;
+
             if (
                 hit.normal.y < 0.1f
                 && hit.normal.y > -0.1f

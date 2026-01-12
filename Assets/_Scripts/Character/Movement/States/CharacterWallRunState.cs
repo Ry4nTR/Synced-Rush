@@ -4,8 +4,8 @@ namespace SyncedRush.Character.Movement
 {
     public class CharacterWallRunState : CharacterMovementState
     {
-        private float _stepDistance = 0.1f;
-        private float _wallSnapLength = 1.0f;
+        private readonly float _stepDistance = 0.1f;
+        private readonly float _wallSnapLength = 1.0f;
 
         /// <summary>
         /// Posizione del muro in world space
@@ -65,6 +65,8 @@ namespace SyncedRush.Character.Movement
             if (crouchInput)
                 return MovementState.Air;
 
+            Slowdown();
+
             ProcessMovement();
 
             return MovementState.None;
@@ -94,7 +96,7 @@ namespace SyncedRush.Character.Movement
         {
             Vector3 moveDir = new(character.HorizontalVelocity.x, 0, character.HorizontalVelocity.y);
             float speed = moveDir.magnitude;
-            if (Mathf.Approximately(speed, 0f))
+            if (speed < character.Stats.WallRunMinSpeed)
             {
                 _isWallRunInvalid = true;
                 base.ProcessMovement();
@@ -261,6 +263,34 @@ namespace SyncedRush.Character.Movement
             jumpDir = jumpDir.normalized * jumpSpeed;
 
             character.TotalVelocity += jumpDir;
+        }
+
+        private void Slowdown()
+        {
+            Vector3 move = (character.IsServer || character.LocalInputHandler == null)
+                ? character.MoveDirection
+                : character.LocalMoveDirection;
+
+            Vector2 moveXY = new(move.x, move.z);
+            Vector2 velocityDir = character.HorizontalVelocity.normalized;
+
+            float totalDecel = 0f;
+
+            if (moveXY != Vector2.zero)
+            {
+                float dot = Vector2.Dot(moveXY, velocityDir);
+                if (dot < 0)
+                    totalDecel += -dot * character.Stats.WallRunBrake;
+            }
+
+            totalDecel += character.Stats.WallRunDeceleration;
+
+            {
+                character.HorizontalVelocity = Vector2.MoveTowards(
+                    character.HorizontalVelocity,
+                    Vector2.zero,
+                    Time.deltaTime * totalDecel);
+            }
         }
 
         private void ResetValues()

@@ -196,14 +196,14 @@ namespace SyncedRush.Character.Movement
                 character.HorizontalVelocity = Vector2.MoveTowards(
                     character.HorizontalVelocity,
                     moveDirXY * targetSpeed,
-                    Time.deltaTime * character.Stats.OverspeedDeceleration);
+                    Time.deltaTime * character.Stats.GroundOverspeedDeceleration);
             }
             else
             {
                 character.HorizontalVelocity = Vector2.MoveTowards(
                     character.HorizontalVelocity,
                     moveDirXY * targetSpeed,
-                    Time.deltaTime * targetSpeed * 10);
+                    Time.deltaTime * targetSpeed * character.Stats.GroundAccelDecel);
             }
         }
     }
