@@ -16,6 +16,7 @@ public class WeaponInventorySpawner : NetworkBehaviour
 
     [Header("Dependencies")]
     [SerializeField] private ClientComponentSwitcher componentSwitcher;
+    [SerializeField] private PlayerAnimationController animationController;
 
     private WeaponLoadoutState loadoutState;
 
@@ -67,16 +68,17 @@ public class WeaponInventorySpawner : NetworkBehaviour
         Cleanup();
 
         WeaponData data = weaponDatabase.GetDataById(weaponId);
-
-        // Check if weapon data exists in database
         if (data == null)
         {
             Debug.LogError($"[WeaponSpawner] Weapon ID {weaponId} not found.");
             return;
         }
 
+        animationController?.SetWeaponAnimations(data);
+
         SpawnModels(data);
     }
+
 
     //Spawning weapon models
     private void SpawnModels(WeaponData data)

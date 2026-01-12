@@ -105,10 +105,7 @@ public class WeaponController : MonoBehaviour
         isReloading = true;
 
         // Play reload animation if available
-        if (weaponAnimator != null && !string.IsNullOrEmpty(weaponData.reloadAnimationTrigger))
-        {
-            weaponAnimator.SetTrigger(weaponData.reloadAnimationTrigger);
-        }
+
 
         // Wait for the reload time (VEDI SE PUOI USARE UN EVENTO ALL'INTERNO DELL'ANIMAZIONE)
         yield return new WaitForSeconds(weaponData.reloadTime);

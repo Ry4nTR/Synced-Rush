@@ -6,6 +6,6 @@ AnimatorOverrideController:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Amrs_AR_Ovveride
+  m_Name: Arms_AR_Override
   m_Controller: {fileID: 9100000, guid: 62570f51804c77d44ab6457621829ba2, type: 2}
   m_Clips: []

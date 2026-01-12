@@ -65,12 +65,8 @@ public class WeaponData : ScriptableObject
     public GameObject impactEffectPrefab;
 
     [Header("Animation")]
-    public float aimSpeed; // Speed of transition to aiming
-    public string shootAnimationTrigger = "Shoot";
-    public string reloadAnimationTrigger = "Reload";
-    public string aimAnimationBool = "IsAiming";
-    public string walkAnimationBool = "IsWalking";
-    public string sprintAnimationBool = "IsSprinting";
+    public AnimatorOverrideController armsAnimatorOverride;
+    public AnimatorOverrideController fullBodyAnimatorOverride;
 
     [Header("Models & ModelParts")]
     public GameObject worldModelPrefab; // Third-person model prefab
