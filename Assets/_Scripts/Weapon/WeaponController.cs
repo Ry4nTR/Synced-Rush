@@ -13,7 +13,7 @@ public class WeaponController : MonoBehaviour
     private ShootingSystem shootingSystem;
     private WeaponNetworkHandler networkHandler;
     private Transform fireOrigin;
-    private Animator weaponAnimator;
+    private PlayerAnimationController playerAnimationController;
 
     private int currentAmmo;
     private int reserveAmmo;
@@ -34,6 +34,7 @@ public class WeaponController : MonoBehaviour
     {
         shootingSystem = GetComponent<ShootingSystem>();
         networkHandler = GetComponentInParent<WeaponNetworkHandler>();
+        playerAnimationController = GetComponentInParent<PlayerAnimationController>();
 
         AssignFireOrigin();
     }
@@ -88,6 +89,7 @@ public class WeaponController : MonoBehaviour
     public void SetAiming(bool aiming)
     {
         isAiming = aiming;
+        playerAnimationController?.SetAiming(aiming);
     }
 
     // Starts reloading if possible
