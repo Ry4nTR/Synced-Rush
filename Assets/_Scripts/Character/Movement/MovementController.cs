@@ -26,7 +26,7 @@ public class MovementController : NetworkBehaviour
     private CharacterMovementFSM _characterFSM;
     private NetworkPlayerInput _netInput;
     private PlayerInputHandler _inputHandler;
-    private Animator _animator;
+    private PlayerAnimationController _animController;
 
     /// <summary>
     /// Variabile di rete che memorizza la posizione autoritativa del server.
@@ -108,7 +108,7 @@ public class MovementController : NetworkBehaviour
     public GameplayInputData InputData => _netInput.ServerInput;
     public PlayerInputHandler LocalInputHandler => _inputHandler;
 
-    public Animator Anim => _animator;
+    public PlayerAnimationController AnimController => _animController;
 
     public Vector2 MoveInputDirection
     {
@@ -195,8 +195,8 @@ public class MovementController : NetworkBehaviour
         if (_inputHandler == null)
             _inputHandler = GetComponent<PlayerInputHandler>();
 
-        if (_animator == null)
-            _animator = GetComponentInChildren<Animator>();
+        if (_animController == null)
+            _animController = GetComponent<PlayerAnimationController>();
     }
 
     private void Update()

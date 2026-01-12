@@ -14,7 +14,6 @@ namespace SyncedRush.Character.Movement
         private Vector3 _wallDir = Vector3.zero;
         private Vector3 _expectedWallDir = Vector3.zero;
 
-        private ControllerColliderHit _wallRunStartInfo;
         private bool _isWallRunInvalid = false;
 
         public CharacterWallRunState(MovementController movementComponentReference) : base(movementComponentReference)
@@ -85,7 +84,6 @@ namespace SyncedRush.Character.Movement
 
             if (character.WallRunStartInfo != null)
             {
-                _wallRunStartInfo = character.WallRunStartInfo;
                 _wallPosition = character.WallRunStartInfo.point;
                 _wallDir = _wallPosition - character.CenterPosition;
                 _expectedWallDir = _wallDir;
@@ -301,7 +299,6 @@ namespace SyncedRush.Character.Movement
             _wallPosition = Vector3.zero;
             _wallDir = Vector3.zero;
             _expectedWallDir = Vector3.zero;
-            _wallRunStartInfo = null;
             _isWallRunInvalid = false;
         }
 
