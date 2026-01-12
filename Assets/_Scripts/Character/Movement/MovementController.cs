@@ -2,6 +2,16 @@
 using Unity.Netcode;
 using UnityEngine;
 
+namespace SyncedRush.Character.Movement
+{
+    public enum CharacterAbility
+    {
+        None = 0,
+        Jetpack = 1,
+        Grapple = 2,
+    }
+}
+
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(CharacterStats))]
 [RequireComponent(typeof(CharacterMovementFSM))]
@@ -89,6 +99,7 @@ public class MovementController : NetworkBehaviour
     public GameObject Orientation => _orientation;
     public LayerMask LayerMask => _groundLayerMask;
     public MovementState State => _characterFSM.CurrentStateEnum;
+    public CharacterAbility CurrentAbility { get; set; } = CharacterAbility.None;
     public bool IsOnGround { get; private set; }
     /// <summary>
     /// Posizione centrale della capsula del character in world space
