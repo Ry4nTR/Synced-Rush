@@ -52,11 +52,14 @@ namespace SyncedRush.Character.Movement
             if (crouchInput && !_blockCrouchInput)
                 return MovementState.Move;
 
+            if (character.CurrentAbility == CharacterAbility.Jetpack)
+            {
                 bool dashInput = (character.IsServer || character.LocalInputHandler == null)
-                ? Input.Ability
-                : character.LocalInputHandler.Ability;
-            if (dashInput)
-                return MovementState.Dash;
+                    ? Input.Ability
+                    : character.LocalInputHandler.Ability;
+                if (dashInput)
+                    return MovementState.Dash;
+            }
 
             Slide();
 

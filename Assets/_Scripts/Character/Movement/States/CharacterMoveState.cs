@@ -34,11 +34,14 @@ namespace SyncedRush.Character.Movement
             if (CheckSlideConditions())
                 return MovementState.Slide;
 
-            bool dashInput = (character.IsServer || character.LocalInputHandler == null)
+            if (character.CurrentAbility == CharacterAbility.Jetpack)
+            {
+                bool dashInput = (character.IsServer || character.LocalInputHandler == null)
                 ? Input.Ability
                 : character.LocalInputHandler.Ability;
-            if (dashInput)
-                return MovementState.Dash;
+                if (dashInput)
+                    return MovementState.Dash;
+            }
 
             Walk();
             SnapToGround();

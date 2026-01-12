@@ -29,22 +29,25 @@ namespace SyncedRush.Character.Movement
             if (_canWallRun && !crouchInput)
                 return MovementState.WallRun;
 
-            bool dashInput = (character.IsServer || character.LocalInputHandler == null)
-                ? Input.Ability
-                : character.LocalInputHandler.Ability;
-            if (dashInput)
-                return MovementState.Dash;
-
-            bool jetpackInput = (character.IsServer || character.LocalInputHandler == null)
-                ? Input.Jetpack
-                : character.LocalInputHandler.Jetpack;
-            if (jetpackInput)
+            if (character.CurrentAbility == CharacterAbility.Jetpack)
             {
-                if (!_blockJetpackInput)
-                    JetpackFly();
+                bool dashInput = (character.IsServer || character.LocalInputHandler == null)
+                    ? Input.Ability
+                    : character.LocalInputHandler.Ability;
+                if (dashInput)
+                    return MovementState.Dash;
+
+                bool jetpackInput = (character.IsServer || character.LocalInputHandler == null)
+                    ? Input.Jetpack
+                    : character.LocalInputHandler.Jetpack;
+                if (jetpackInput)
+                {
+                    if (!_blockJetpackInput)
+                        JetpackFly();
+                }
+                else
+                    _blockJetpackInput = false;
             }
-            else
-                _blockJetpackInput = false;
 
             Fall();
 

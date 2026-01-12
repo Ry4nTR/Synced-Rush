@@ -53,11 +53,14 @@ namespace SyncedRush.Character.Movement
                 return MovementState.Air;
             }
 
-            bool dashInput = (character.IsServer || character.LocalInputHandler == null)
-                ? Input.Ability
-                : character.LocalInputHandler.Ability;
-            if (dashInput)
-                return MovementState.Dash;
+            if (character.CurrentAbility == CharacterAbility.Jetpack)
+            {
+                bool dashInput = (character.IsServer || character.LocalInputHandler == null)
+                    ? Input.Ability
+                    : character.LocalInputHandler.Ability;
+                if (dashInput)
+                    return MovementState.Dash;
+            }
 
             bool crouchInput = (character.IsServer || character.LocalInputHandler == null)
                 ? Input.Crouch
