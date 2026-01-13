@@ -77,6 +77,8 @@ namespace SyncedRush.Character.Movement
         {
             base.EnterState();
 
+            character.AnimController.SetSliding(true);
+
             _blockCrouchInput = true;
 
             // When entering the slide state, apply an initial boost in the direction the
@@ -111,6 +113,8 @@ namespace SyncedRush.Character.Movement
 
         public override void ExitState()
         {
+            character.AnimController.SetSliding(false);
+
             if (_previousGroundNormal != Vector3.zero)
             {
                 character.TotalVelocity = Vector3.ProjectOnPlane(character.TotalVelocity, _previousGroundNormal);
