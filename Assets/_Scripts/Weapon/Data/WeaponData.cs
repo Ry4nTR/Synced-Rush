@@ -67,6 +67,10 @@ public class WeaponData : ScriptableObject
     [Header("Animation")]
     public AnimatorOverrideController armsAnimatorOverride;
     public AnimatorOverrideController fullBodyAnimatorOverride;
+    public float recoilWeight = 1f;
+    public float aimedRecoilMultiplier = 0.6f;
+    public float aimBlendSpeed = 12f;
+
 
     [Header("Models & ModelParts")]
     public GameObject worldModelPrefab; // Third-person model prefab

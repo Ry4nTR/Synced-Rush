@@ -1,5 +1,4 @@
 using System.Collections;
-using Unity.Services.Multiplayer;
 using UnityEngine;
 
 /// <summary>
@@ -21,10 +20,13 @@ public class WeaponController : MonoBehaviour
     private bool isReloading;
     private bool isAiming;
     private float nextFireTime;
+    private float aimWeight;
+    private float aimTarget;
 
     // Helper properties
     public float CurrentSpread => CalculateCurrentSpread();
     public bool CanShoot => !isReloading && currentAmmo > 0 && Time.time >= nextFireTime;
+    public bool IsAiming => isAiming;
 
     // Public getters for HUD
     public int CurrentAmmo => currentAmmo;
@@ -42,6 +44,8 @@ public class WeaponController : MonoBehaviour
     private void Update()
     {
         RecoverSpread(Time.deltaTime);
+
+        CalculateAimWeight();
     }
 
     // Initializes the weapon data
@@ -85,11 +89,20 @@ public class WeaponController : MonoBehaviour
         networkHandler?.NotifyShot(origin, direction, currentSpread);
     }
 
-    // Sets the aiming state
     public void SetAiming(bool aiming)
     {
-        isAiming = aiming;
-        playerAnimationController?.SetAiming(aiming);
+        aimTarget = aiming ? 1f : 0f;
+    }
+
+    public void CalculateAimWeight()
+    {
+        aimWeight = Mathf.MoveTowards(
+        aimWeight,
+        aimTarget,
+        weaponData.aimBlendSpeed * Time.deltaTime
+        );
+
+        playerAnimationController.SetAimWeight(aimWeight);
     }
 
     // Starts reloading if possible

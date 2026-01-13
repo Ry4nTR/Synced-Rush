@@ -74,6 +74,7 @@ public class WeaponInventorySpawner : NetworkBehaviour
             return;
         }
 
+        animationController.Equip();
         animationController?.SetWeaponAnimations(data);
 
         SpawnModels(data);

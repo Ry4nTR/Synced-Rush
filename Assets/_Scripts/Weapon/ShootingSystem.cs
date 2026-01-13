@@ -6,6 +6,7 @@ using UnityEngine;
 public class ShootingSystem : MonoBehaviour
 {
     private WeaponController weaponController;
+    private PlayerAnimationController playerAnimationController;
     private WeaponData weaponData;
     private Transform playerRoot;
 
@@ -17,6 +18,7 @@ public class ShootingSystem : MonoBehaviour
     private void Awake()
     {
         weaponController = GetComponent<WeaponController>();
+        playerAnimationController = GetComponentInParent<PlayerAnimationController>();
         weaponData = weaponController.weaponData;
         playerRoot = weaponController.transform.root;
     }
@@ -75,6 +77,13 @@ public class ShootingSystem : MonoBehaviour
 
             ShowBulletTracer(origin, endPoint);
         }
+
+        float recoil = weaponController.IsAiming
+        ? weaponData.recoilWeight * weaponData.aimedRecoilMultiplier
+        : weaponData.recoilWeight;
+
+        playerAnimationController.SetRecoilWeight(recoil);
+        playerAnimationController.Fire();
 
 
         PlayMuzzleFlash();

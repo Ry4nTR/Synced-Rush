@@ -17,14 +17,21 @@ public class PlayerAnimationController : MonoBehaviour
 
     #region Arms Parameters
 
-    public void SetAiming(bool value) =>
-        armsAnimator.SetBool("IsAiming", value);
+    public void SetMoveSpeed(float speed)
+    {
+        armsAnimator.SetFloat("MoveSpeed", speed);
+    }
 
-    public void SetWalking(bool value) =>
-        armsAnimator.SetBool("IsWalking", value);
+    public void SetAimWeight(float weight)
+    {
+        armsAnimator.SetFloat("AimWeight", weight);
+        armsAnimator.SetLayerWeight(1, weight);
+    }
 
-    public void SetSprinting(bool value) =>
-        armsAnimator.SetBool("IsSprinting", value);
+    public void SetRecoilWeight(float weight)
+    {
+        armsAnimator.SetFloat("RecoilWeight", weight);
+    }
 
     public void SetSliding(bool value) =>
         armsAnimator.SetBool("IsSliding", value);
