@@ -13,8 +13,17 @@ public class NetworkLobbyState : NetworkBehaviour
 
     private void Awake()
     {
+        // Ensure a single persistent instance
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
         Instance = this;
         Players = new NetworkList<NetLobbyPlayer>();
+
+        // Persist across scene loads so lobby and game scenes share the same lobby state
+        DontDestroyOnLoad(gameObject);
     }
 
     public override void OnNetworkSpawn()
@@ -42,12 +51,16 @@ public class NetworkLobbyState : NetworkBehaviour
 
         Debug.Log($"[SERVER] Client joined lobby: {clientId}");
 
+        // Initialize the player entry with default team and alive status.
+        // TeamId of -1 indicates unassigned; isAlive false until spawned in a round.
         Players.Add(new NetLobbyPlayer
         {
             clientId = clientId,
             name = PlayerProfile.PlayerName,
             isReady = false,
-            isHost = clientId == NetworkManager.ServerClientId
+            isHost = clientId == NetworkManager.ServerClientId,
+            teamId = -1,
+            isAlive = false
         });
     }
 

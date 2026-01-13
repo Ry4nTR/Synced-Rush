@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: Arena 1v1
   m_EditorClassIdentifier: Assembly-CSharp::MapDefinition
   mapName: Arena 1v1
-  sceneName: 
-  spawnsPerTeam: 4
+  sceneName: Arena1vs1
+  spawnsPerTeam: 2

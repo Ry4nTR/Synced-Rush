@@ -17,7 +17,7 @@ public class PlayerHUD : MonoBehaviour
 
     private void Update()
     {
-            UpdateAmmo();
+        UpdateAmmo();
     }
     private void OnDestroy()
     {

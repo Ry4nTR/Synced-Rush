@@ -88,59 +88,12 @@ public class LobbyManager : MonoBehaviour
         CurrentState = LobbyState.InGame;
     }
 
-    public void StartMatch()
-    {
-        //if (!CanStartMatch())
-            //return;
-
-        Debug.Log("MATCH STARTED — LOBBY OK");
-
-        /*
-        if (teamAssignmentMode == TeamAssignmentMode.Random)
-        {
-            AssignTeamsAutomatically();
-
-            if (!AreTeamsValid())
-            {
-                Debug.LogError("Team assignment failed. Match aborted.");
-                return;
-            }
-        }
-
-        CurrentState = LobbyState.InGame;
-
-        var roundManager = FindAnyObjectByType<RoundManager>();
-        roundManager.Initialize(this, selectedGamemode);
-
-        Debug.Log("Match started");
-        */
-    }
-
     public void OnMatchEnded(int winningTeamId)
     {
         CurrentState = LobbyState.PostMatch;
 
         Debug.Log($"Lobby entering PostMatch. Winning team: {winningTeamId}");
-
-        //ResetLobbyAfterMatch();
     }
-
-    /*
-    private void ResetLobbyAfterMatch()
-    {
-        foreach (var player in players)
-        {
-            player.isReady = false;
-            player.teamId = -1;
-            player.isAlive = false;
-        }
-
-        teamA.Clear();
-        teamB.Clear();
-
-        Debug.Log("Lobby reset after match");
-    }
-    */
 
     // =========================
     // GAMEMODE & MAP SETTING
@@ -153,11 +106,6 @@ public class LobbyManager : MonoBehaviour
         selectedGamemode = gamemode;
     }
 
-    public GamemodeDefinition GetSelectedGamemode()
-    {
-        return selectedGamemode;
-    }
-
     public void SetMap(MapDefinition map)
     {
         if (CurrentState != LobbyState.Open)
@@ -165,4 +113,16 @@ public class LobbyManager : MonoBehaviour
 
         selectedMap = map;
     }
+
+    public GamemodeDefinition GetSelectedGamemode()
+    {
+        return selectedGamemode;
+    }
+
+    public MapDefinition GetSelectedMap()
+    {
+        return selectedMap;
+    }
+
+
 }

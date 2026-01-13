@@ -8,13 +8,17 @@ public struct NetLobbyPlayer : INetworkSerializable, IEquatable<NetLobbyPlayer>
     public FixedString32Bytes name;
     public bool isReady;
     public bool isHost;
+    public int teamId;
+    public bool isAlive;
 
     public bool Equals(NetLobbyPlayer other)
     {
         return clientId == other.clientId &&
                name.Equals(other.name) &&
                isReady == other.isReady &&
-               isHost == other.isHost;
+               isHost == other.isHost &&
+               teamId == other.teamId &&
+               isAlive == other.isAlive;
     }
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer)
@@ -24,5 +28,7 @@ public struct NetLobbyPlayer : INetworkSerializable, IEquatable<NetLobbyPlayer>
         serializer.SerializeValue(ref name);
         serializer.SerializeValue(ref isReady);
         serializer.SerializeValue(ref isHost);
+        serializer.SerializeValue(ref teamId);
+        serializer.SerializeValue(ref isAlive);
     }
 }

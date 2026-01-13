@@ -52,17 +52,75 @@ public class LobbyPanelController : MonoBehaviour
     public void OnReadyPressed()
     {
         if (NetworkLobbyState.Instance == null)
-            return; 
+            return;
 
         NetworkLobbyState.Instance.ToggleReadyServerRpc(NetworkManager.Singleton.LocalClientId);
     }
 
     public void OnStartMatchPressed()
     {
+        StartMatchIfPossible();
+    }
+
+    // =========================
+    // Match start helpers
+    // =========================
+    private bool AreAllPlayersReady()
+    {
+        // Returns true if every player in the network lobby list has toggled ready
+        foreach (var p in NetworkLobbyState.Instance.Players)
+        {
+            if (!p.isReady)
+                return false;
+        }
+        return true;
+    }
+
+    private bool IsReadyToStart(int playerCount, bool allReady)
+    {
+        // Uses LobbyManager's existing validation to check player count, gamemode and map
+        return LobbyManager.Instance.CanStartMatch(playerCount, allReady);
+    }
+
+    private void StartMatchIfPossible()
+    {
+        // Only the host/server is allowed to start the match
         if (!NetworkManager.Singleton.IsHost)
             return;
 
-        Debug.Log("[LOBBY] Start Match pressed (validation later)");
+        // Ensure required managers exist
+        if (NetworkLobbyState.Instance == null || LobbyManager.Instance == null)
+        {
+            Debug.LogWarning("[LOBBY] Cannot start match: missing lobby state.");
+            return;
+        }
+
+        bool allReady = AreAllPlayersReady();
+        int playerCount = NetworkLobbyState.Instance.Players.Count;
+
+        if (!IsReadyToStart(playerCount, allReady))
+        {
+            Debug.LogWarning("[LOBBY] Cannot start match yet. Ensure a gamemode, map, and enough ready players.");
+            return;
+        }
+
+        // Lock lobby state to prevent changes while the match is running
+        LobbyManager.Instance.LockLobby();
+
+        // Retrieve selected gamemode and map
+        var gamemode = LobbyManager.Instance.GetSelectedGamemode();
+        var map = LobbyManager.Instance.GetSelectedMap();
+
+        // Acquire the RoundManager instance (it should persist across scenes)
+        var roundManager = RoundManager.Instance != null ? RoundManager.Instance : FindAnyObjectByType<RoundManager>();
+        if (roundManager == null)
+        {
+            Debug.LogError("[LOBBY] RoundManager not found; cannot start match.");
+            return;
+        }
+
+        // Start the match on the server
+        roundManager.StartMatch(LobbyManager.Instance, gamemode, map);
     }
 
     public void OnLeaveLobbyPressed()
@@ -84,7 +142,7 @@ public class LobbyPanelController : MonoBehaviour
     // =========================
     // NETWORK EVENTS
     // =========================
-    private void OnLobbyNameChanged( FixedString64Bytes oldValue, FixedString64Bytes newValue)
+    private void OnLobbyNameChanged(FixedString64Bytes oldValue, FixedString64Bytes newValue)
     {
         RefreshUI();
     }

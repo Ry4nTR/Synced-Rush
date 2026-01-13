@@ -5,14 +5,11 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 0
-    path: Assets/Scenes/Ro/MyScene.unity
+  - enabled: 1
+    path: Assets/Scenes/Ro/Arena1vs1.unity
     guid: d1cdc612fc08fd94f8d9f9304b003642
   - enabled: 1
-    path: Assets/Scenes/_TestingMainScene/WeaponTestingScene.unity
-    guid: bf5016dca784f194cb00c0460b977c90
-  - enabled: 1
-    path: Assets/Scenes/_TestingMainScene/TestMainScene.unity
+    path: Assets/Scenes/_TestingMainScene/TestMainMenuScene.unity
     guid: 2d9b7a1dae96ed1408016a4e18b3bce8
   m_configObjects:
     com.unity.input.settings: {fileID: 11400000, guid: dd8787bc8f016ff47911e565283b9940, type: 2}
