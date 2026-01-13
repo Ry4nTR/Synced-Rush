@@ -43,8 +43,13 @@ namespace SyncedRush.Character.Movement
                     return MovementState.Dash;
             }
 
+
             Walk();
             SnapToGround();
+
+            character.AnimController.SetMoveSpeed(character.HorizontalVelocity.magnitude,
+                character.Stats.WalkSpeed,
+                character.Stats.RunSpeed);
 
             ProcessMovement();
             return MovementState.None;
