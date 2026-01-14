@@ -68,6 +68,7 @@ public class CreateMatchPanelController : MonoBehaviour
         PlayerProfile.PlayerName = playerName;
 
         // 1. Start network host
+        MatchmakingManager.Instance.SetLocalPlayerName(playerName);
         MatchmakingManager.Instance.Host();
 
         // 2. Initialize LOCAL lobby cache (non-networked)
