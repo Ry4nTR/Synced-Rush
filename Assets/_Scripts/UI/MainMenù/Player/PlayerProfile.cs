@@ -2,7 +2,7 @@ using UnityEngine;
 
 public static class PlayerProfile
 {
-    private const string PlayerNameKey = "PLAYER_NAME";
+    private const string PlayerNameKey = "";
 
     public static string PlayerName
     {

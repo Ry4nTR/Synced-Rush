@@ -43,25 +43,27 @@ public class NetworkLobbyState : NetworkBehaviour
     private void OnClientConnected(ulong clientId)
     {
         // Prevent duplicates
-        foreach (var p in Players)
-        {
-            if (p.clientId == clientId)
+        for (int i = 0; i < Players.Count; i++)
+            if (Players[i].clientId == clientId)
                 return;
-        }
 
-        Debug.Log($"[SERVER] Client joined lobby: {clientId}");
+        string initialName = "Connecting...";
 
-        // Initialize the player entry with default team and alive status.
-        // TeamId of -1 indicates unassigned; isAlive false until spawned in a round.
+        // If this is the host (server client), we already know the local name on this machine
+        if (clientId == NetworkManager.ServerClientId && IsHost)
+            initialName = MatchmakingManager.Instance.LocalPlayerName;
+
         Players.Add(new NetLobbyPlayer
         {
             clientId = clientId,
-            name = PlayerProfile.PlayerName,
+            name = initialName,
             isReady = false,
             isHost = clientId == NetworkManager.ServerClientId,
             teamId = -1,
             isAlive = false
         });
+
+        Debug.Log($"[SERVER] Client joined lobby: {clientId}");
     }
 
     private void OnClientDisconnected(ulong clientId)
@@ -100,5 +102,24 @@ public class NetworkLobbyState : NetworkBehaviour
     public void SetLobbyNameServerRpc(string name)
     {
         LobbyName.Value = name;
+    }
+
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    public void SetPlayerNameServerRpc(string playerName, RpcParams rpcParams = default)
+    {
+        ulong senderId = rpcParams.Receive.SenderClientId;
+
+        for (int i = 0; i < Players.Count; i++)
+        {
+            if (Players[i].clientId == senderId)
+            {
+                var p = Players[i];
+                p.name = playerName;
+                Players[i] = p;
+                break;
+            }
+        }
+
+        Debug.Log($"[SERVER] Name set for {senderId}: {playerName}");
     }
 }

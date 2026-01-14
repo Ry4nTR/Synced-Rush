@@ -5,7 +5,7 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/Ro/Arena1vs1.unity
     guid: d1cdc612fc08fd94f8d9f9304b003642
   - enabled: 1

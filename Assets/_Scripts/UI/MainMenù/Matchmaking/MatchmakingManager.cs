@@ -8,10 +8,17 @@ public class MatchmakingManager : MonoBehaviour
 {
     public static MatchmakingManager Instance;
 
+    public string LocalPlayerName { get; private set; } = "";
+
     private void Awake()
     {
         Instance = this;
         DontDestroyOnLoad(gameObject);
+    }
+
+    public void SetLocalPlayerName(string name)
+    {
+        LocalPlayerName = name;
     }
 
     public void Host()

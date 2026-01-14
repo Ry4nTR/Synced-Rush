@@ -12,8 +12,7 @@ public class JoinMatchPanelController : MonoBehaviour
     [SerializeField] private PanelManager uiManager;
 
     private void Start()
-    { 
-
+    {
         playerNameInput.text = "";
     }
 
@@ -29,11 +28,12 @@ public class JoinMatchPanelController : MonoBehaviour
         if (string.IsNullOrEmpty(ip))
             return;
 
-        // Start client connection
-        MatchmakingManager.Instance.Join(ip);
-
         // Wait for actual network connection
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+
+        // Start client connection
+        MatchmakingManager.Instance.SetLocalPlayerName(playerName);
+        MatchmakingManager.Instance.Join(ip);
     }
 
     private void OnClientConnected(ulong clientId)
@@ -43,6 +43,10 @@ public class JoinMatchPanelController : MonoBehaviour
 
         NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
 
+        // Tell server our chosen name
+        NetworkLobbyState.Instance.SetPlayerNameServerRpc(MatchmakingManager.Instance.LocalPlayerName);
+
         uiManager.ShowLobby();
     }
+
 }
