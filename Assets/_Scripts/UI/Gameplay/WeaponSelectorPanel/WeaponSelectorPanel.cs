@@ -6,13 +6,14 @@ public class WeaponSelectorPanel : MonoBehaviour
 {
     private PlayerInput playerInput;
     private ClientComponentSwitcher componentSwitcher;
-    private UIManager uiManager;
+    private GameplayUIManager uiManager;
 
     private bool isOpen;
 
+
     private void Start()
     {
-        uiManager = UIManager.Instance;
+        uiManager = GameplayUIManager.Instance;
 
         // Bind when a client connects
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
@@ -51,20 +52,16 @@ public class WeaponSelectorPanel : MonoBehaviour
     {
         if (!isOpen)
         {
-            uiManager.ShowWeaponSelector();
+            uiManager.ShowLoadoutPanel();
             uiManager.HideHUD();
-
             componentSwitcher?.EnableUI();
-
             isOpen = true;
         }
         else
         {
-            uiManager.HideWeaponSelector();
+            uiManager.HideLoadoutPanel();
             uiManager.ShowHUD();
-
             componentSwitcher?.EnableGameplay();
-
             isOpen = false;
         }
     }
@@ -82,10 +79,9 @@ public class WeaponSelectorPanel : MonoBehaviour
         var loadout = player.GetComponent<WeaponLoadoutState>();
         loadout?.RequestEquip(weaponId);
 
-        uiManager.HideWeaponSelector();
+        uiManager.HideLoadoutPanel();
         uiManager.ShowHUD();
         componentSwitcher?.EnableGameplay();
-
         isOpen = false;
     }
 
@@ -94,4 +90,5 @@ public class WeaponSelectorPanel : MonoBehaviour
         if (NetworkManager.Singleton != null)
             NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
     }
+
 }

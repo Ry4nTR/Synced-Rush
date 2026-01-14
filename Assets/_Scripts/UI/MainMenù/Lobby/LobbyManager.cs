@@ -29,6 +29,8 @@ public class LobbyManager : MonoBehaviour
     [Header("Team Assignment")]
     [SerializeField] private TeamAssignmentMode teamAssignmentMode = TeamAssignmentMode.Random;
 
+    public TeamAssignmentMode TeamAssignmentMode => teamAssignmentMode;
+
 
     private void Awake()
     {
@@ -88,6 +90,42 @@ public class LobbyManager : MonoBehaviour
         CurrentState = LobbyState.InGame;
     }
 
+    // Randomly assigns players to two teams based on the selected gamemode's playersPerTeam.
+    // This should be called by the host before starting a match when teamAssignmentMode is Random.
+    public void AssignTeamsAutomatically()
+    {
+        var lobbyState = NetworkLobbyState.Instance;
+        if (lobbyState == null || selectedGamemode == null)
+            return;
+
+        var players = lobbyState.Players;
+        int totalPlayers = players.Count;
+        int perTeam = selectedGamemode.playersPerTeam;
+        if (perTeam <= 0)
+            perTeam = 1;
+
+        // Build list of indices and shuffle
+        var indices = new System.Collections.Generic.List<int>(totalPlayers);
+        for (int i = 0; i < totalPlayers; i++) indices.Add(i);
+        for (int i = indices.Count - 1; i > 0; i--)
+        {
+            int j = UnityEngine.Random.Range(0, i + 1);
+            var temp = indices[i];
+            indices[i] = indices[j];
+            indices[j] = temp;
+        }
+
+        // Assign teams sequentially based on playersPerTeam
+        for (int idx = 0; idx < indices.Count; idx++)
+        {
+            int playerIndex = indices[idx];
+            var p = players[playerIndex];
+            p.teamId = idx / perTeam;
+            p.isAlive = false;
+            players[playerIndex] = p;
+        }
+    }
+
     public void OnMatchEnded(int winningTeamId)
     {
         CurrentState = LobbyState.PostMatch;
@@ -106,6 +144,17 @@ public class LobbyManager : MonoBehaviour
         selectedGamemode = gamemode;
     }
 
+    public GamemodeDefinition GetSelectedGamemode()
+    {
+        return selectedGamemode;
+    }
+
+    // Returns the currently selected map definition. This is used by the host when starting a match.
+    public MapDefinition GetSelectedMap()
+    {
+        return selectedMap;
+    }
+
     public void SetMap(MapDefinition map)
     {
         if (CurrentState != LobbyState.Open)
@@ -113,16 +162,4 @@ public class LobbyManager : MonoBehaviour
 
         selectedMap = map;
     }
-
-    public GamemodeDefinition GetSelectedGamemode()
-    {
-        return selectedGamemode;
-    }
-
-    public MapDefinition GetSelectedMap()
-    {
-        return selectedMap;
-    }
-
-
 }

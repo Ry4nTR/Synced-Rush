@@ -1,8 +1,4 @@
-using System;
-using System.Collections;
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
 
 /// <summary>
 /// Manages the in–match UI panels for the player.  This includes the round
@@ -21,21 +17,12 @@ public class GameplayUIManager : MonoBehaviour
     public static GameplayUIManager Instance { get; private set; }
 
     [Header("Panels")]
-    [Tooltip("CanvasGroup used for the round countdown display")]
     [SerializeField] private CanvasGroup countdownPanel;
-    [SerializeField] private TMP_Text countdownText;
+    [SerializeField] private RoundCountdownPanel countdownController;
 
-    [Tooltip("CanvasGroup used for the weapon loadout selection UI")]
-    [SerializeField] private CanvasGroup loadoutPanel;
-
-    [Tooltip("CanvasGroup used for the main HUD (ammo, health, crosshair, etc.)")]
+    [SerializeField] private CanvasGroup weaponSelectorPanel;
     [SerializeField] private CanvasGroup hudPanel;
-
-    [Tooltip("CanvasGroup used for the in‑game pause or exit menu")]
-    [SerializeField] private CanvasGroup exitMenuPanel;
-
-    // Internal state
-    private Coroutine countdownRoutine;
+    [SerializeField] private CanvasGroup PausePanel;
 
     private void Awake()
     {
@@ -47,10 +34,10 @@ public class GameplayUIManager : MonoBehaviour
         }
         Instance = this;
 
-        // Panels default state: hide all except HUD (can be toggled externally)
+        // Hide non‑HUD panels by default
         HideCanvasGroup(countdownPanel);
-        HideCanvasGroup(loadoutPanel);
-        HideCanvasGroup(exitMenuPanel);
+        HideCanvasGroup(weaponSelectorPanel);
+        HideCanvasGroup(PausePanel);
         ShowCanvasGroup(hudPanel);
     }
 
@@ -74,12 +61,13 @@ public class GameplayUIManager : MonoBehaviour
 
     #region Public API
     /// <summary>
-    /// Displays the weapon loadout selection panel.  Typically called when a
-    /// round starts or when the player presses the loadout toggle action.
+    /// Displays the weapon loadout selection panel by delegating to its own
+    /// controller.  Typically called when a round starts or when the player
+    /// presses the loadout toggle action.
     /// </summary>
     public void ShowLoadoutPanel()
     {
-        ShowCanvasGroup(loadoutPanel);
+        ShowCanvasGroup(weaponSelectorPanel);
     }
 
     /// <summary>
@@ -87,7 +75,7 @@ public class GameplayUIManager : MonoBehaviour
     /// </summary>
     public void HideLoadoutPanel()
     {
-        HideCanvasGroup(loadoutPanel);
+        HideCanvasGroup(weaponSelectorPanel);
     }
 
     /// <summary>
@@ -96,11 +84,11 @@ public class GameplayUIManager : MonoBehaviour
     /// </summary>
     public void ToggleLoadoutPanel()
     {
-        if (loadoutPanel == null) return;
-        if (loadoutPanel.alpha > 0.5f)
-            HideLoadoutPanel();
+        if (weaponSelectorPanel == null) return;
+        if (weaponSelectorPanel.alpha > 0.5f)
+            HideCanvasGroup(weaponSelectorPanel);
         else
-            ShowLoadoutPanel();
+            ShowCanvasGroup(weaponSelectorPanel);
     }
 
     /// <summary>
@@ -124,8 +112,7 @@ public class GameplayUIManager : MonoBehaviour
     /// </summary>
     public void ShowExitMenu()
     {
-        ShowCanvasGroup(exitMenuPanel);
-        // Additional game‑pause logic could be inserted here.
+        ShowCanvasGroup(PausePanel);
     }
 
     /// <summary>
@@ -133,61 +120,37 @@ public class GameplayUIManager : MonoBehaviour
     /// </summary>
     public void HideExitMenu()
     {
-        HideCanvasGroup(exitMenuPanel);
+        HideCanvasGroup(PausePanel);
     }
 
     /// <summary>
-    /// Starts a pre‑round countdown.  Shows the countdown panel and updates the
-    /// provided text element every second.  When the timer ends, the panel is
-    /// hidden and a callback is invoked (if provided).
+    /// Starts a pre‑round countdown by delegating to the countdown panel.  Shows
+    /// the countdown UI and invokes a callback when finished.
     /// </summary>
     /// <param name="seconds">Duration of the countdown in seconds.</param>
     /// <param name="onFinished">Optional callback invoked when the timer hits zero.</param>
-    public void StartCountdown(float seconds, Action onFinished = null)
+    public void StartCountdown(float seconds, System.Action onFinished = null)
     {
-        // Stop any existing countdown
-        if (countdownRoutine != null)
-        {
-            StopCoroutine(countdownRoutine);
-            countdownRoutine = null;
-        }
-
+        if (countdownPanel == null || countdownController == null)
+            return;
         ShowCanvasGroup(countdownPanel);
-        countdownRoutine = StartCoroutine(CountdownCoroutine(seconds, onFinished));
+        countdownController.StartCountdown(seconds, () =>
+        {
+            HideCanvasGroup(countdownPanel);
+            onFinished?.Invoke();
+        });
     }
 
     /// <summary>
-    /// Immediately cancels an active countdown and hides the countdown panel.
+    /// Cancels an active countdown if one is running.
     /// </summary>
     public void CancelCountdown()
     {
-        if (countdownRoutine != null)
+        if (countdownController != null)
         {
-            StopCoroutine(countdownRoutine);
-            countdownRoutine = null;
+            countdownController.CancelCountdown();
         }
         HideCanvasGroup(countdownPanel);
-    }
-    #endregion
-
-    #region Internal coroutines
-    private IEnumerator CountdownCoroutine(float seconds, Action onFinished)
-    {
-        float remaining = Mathf.Max(0f, seconds);
-        while (remaining > 0f)
-        {
-            if (countdownText != null)
-                countdownText.text = Mathf.CeilToInt(remaining).ToString();
-            yield return null;
-            remaining -= Time.deltaTime;
-        }
-
-        // Ensure text is cleared at the end
-        if (countdownText != null)
-            countdownText.text = string.Empty;
-        HideCanvasGroup(countdownPanel);
-        countdownRoutine = null;
-        onFinished?.Invoke();
     }
     #endregion
 }

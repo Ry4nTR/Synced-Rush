@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -70,7 +69,9 @@ public class RoundManager : NetworkBehaviour
     }
 
     /// <summary>
-    /// Starts a match by loading the selected map scene and initializing the round system once the scene load completes.
+    /// Starts a match by loading the selected map scene and initializing the round
+    /// system once the scene load completes. This method should only be called
+    /// by the host/server.
     /// </summary>
     public void StartMatch(LobbyManager lobby, GamemodeDefinition mode, MapDefinition map)
     {
@@ -146,15 +147,21 @@ public class RoundManager : NetworkBehaviour
 
         Debug.Log("Preparing next round");
 
-        // Assign teams and reset alive state for each player before spawning
-        AssignTeams();
+        if (!IsServer) return;
+
+        // Spawn players using their assigned teams (set in the lobby)
         spawnManager.SpawnAllPlayers();
 
-        GameplayUtils.EnableGameplayForAllPlayers();
+        // Disable gameplay inputs for all players during the pre‑round countdown
+        GameplayUtils.DisableGameplayForAllPlayers();
 
-        CurrentState.Value = MatchState.InRound;
+        // Begin pre‑round countdown on all clients.  Clients will display
+        // the loadout panel and countdown timer.
+        float countdownDuration = gamemode != null ? gamemode.preRoundCountdown : 3f;
+        StartPreRoundClientRpc(countdownDuration);
 
-        Debug.Log("Round started");
+        // Start server coroutine to enable gameplay and update match state once countdown expires
+        StartCoroutine(BeginRoundAfterCountdown(countdownDuration));
     }
 
     public void EndRound(int winningTeamId)
@@ -227,62 +234,45 @@ public class RoundManager : NetworkBehaviour
     }
 
     // =========================
-    // Team Assignment
+    // Pre‑round Countdown
     // =========================
     /// <summary>
-    /// Assign players to teams before each round begins. Team distribution is based on the
-    /// selected gamemode's playersPerTeam value. Players are shuffled to randomize team
-    /// composition, then assigned sequentially. All players are marked as not alive prior
-    /// to spawning. This should only be called on the server.
+    /// Invoked on all clients at the start of a new round.  Shows the loadout
+    /// selection UI and starts the countdown timer for the specified duration.
     /// </summary>
-    private void AssignTeams()
+    /// <param name="duration">Length of the countdown in seconds.</param>
+    [ClientRpc]
+    private void StartPreRoundClientRpc(float duration)
     {
-        if (!IsServer)
-            return;
-
-        var lobbyState = NetworkLobbyState.Instance;
-        if (lobbyState == null)
+        // Only local clients handle UI.  Show the loadout panel and start the countdown.
+        var ui = GameplayUIManager.Instance;
+        if (ui != null)
         {
-            Debug.LogError("NetworkLobbyState instance not found. Cannot assign teams.");
-            return;
-        }
-
-        var players = lobbyState.Players;
-        int totalPlayers = players.Count;
-        if (gamemode == null)
-        {
-            Debug.LogWarning("Gamemode not set; defaulting to 1 player per team for assignment.");
-        }
-        int perTeam = gamemode != null ? gamemode.playersPerTeam : 1;
-        if (perTeam <= 0)
-        {
-            perTeam = 1;
-        }
-
-        // Create a list of indices and shuffle it to randomize team assignment
-        var indices = new System.Collections.Generic.List<int>(totalPlayers);
-        for (int i = 0; i < totalPlayers; i++) indices.Add(i);
-        // Fisher–Yates shuffle
-        for (int i = indices.Count - 1; i > 0; i--)
-        {
-            int j = UnityEngine.Random.Range(0, i + 1);
-            int temp = indices[i];
-            indices[i] = indices[j];
-            indices[j] = temp;
-        }
-
-        // Assign teams sequentially based on shuffled order
-        for (int index = 0; index < indices.Count; index++)
-        {
-            int playerIndex = indices[index];
-            var p = players[playerIndex];
-            // Team is determined by integer division by playersPerTeam (two teams: 0 or 1)
-            p.teamId = index / perTeam;
-            // Mark as not alive until spawn
-            p.isAlive = false;
-            players[playerIndex] = p;
+            ui.ShowLoadoutPanel();
+            ui.StartCountdown(duration, () =>
+            {
+                // Hide the loadout panel when the countdown finishes and show the HUD
+                ui.HideLoadoutPanel();
+                ui.ShowHUD();
+            });
         }
     }
 
+    /// <summary>
+    /// Server coroutine that waits for the pre‑round countdown to finish before
+    /// enabling gameplay and setting the match state to InRound.
+    /// </summary>
+    /// <param name="duration">Duration of the countdown.</param>
+    private IEnumerator BeginRoundAfterCountdown(float duration)
+    {
+        yield return new WaitForSeconds(duration);
 
+        // Re‑enable gameplay for all players now that the round is live
+        GameplayUtils.EnableGameplayForAllPlayers();
+
+        // Set the match state to InRound
+        CurrentState.Value = MatchState.InRound;
+
+        Debug.Log("Round started");
+    }
 }

@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public enum GamemodeType
 {
@@ -18,6 +18,10 @@ public class GamemodeDefinition : ScriptableObject
 
     [Header("Match Rules")]
     public int roundsToWin;
+
+    [Header("Round Timing")]
+    [Tooltip("Duration of the pre‑round countdown in seconds.  During this time players can select their loadout before the round starts.")]
+    public float preRoundCountdown = 10f;
 
     // =========================
     // Validation

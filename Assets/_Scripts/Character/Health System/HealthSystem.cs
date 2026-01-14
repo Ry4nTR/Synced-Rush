@@ -56,8 +56,10 @@ public class HealthSystem : NetworkBehaviour, IDamageable
 
         Debug.Log($"Player {combatIdentity.playerId} died");
 
-        // 🔴 IMPORTANT: notify round system
-        //deathTracker.NotifyPlayerDeath(combatIdentity.playerId);
+        if (deathTracker != null)
+        {
+            deathTracker.NotifyPlayerDeath(OwnerClientId);
+        }
 
         DisableGameplayClientRpc();
 

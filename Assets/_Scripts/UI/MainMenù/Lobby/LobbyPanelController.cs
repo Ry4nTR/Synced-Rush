@@ -62,6 +62,22 @@ public class LobbyPanelController : MonoBehaviour
         StartMatchIfPossible();
     }
 
+    public void OnLeaveLobbyPressed()
+    {
+        if (NetworkManager.Singleton.IsHost)
+        {
+            Debug.Log("[LOBBY] Host stopped the lobby");
+            NetworkManager.Singleton.Shutdown();
+        }
+        else
+        {
+            Debug.Log("[LOBBY] Client left the lobby");
+            NetworkManager.Singleton.Shutdown();
+        }
+
+        uiManager.ShowMainMenu();
+    }
+
     // =========================
     // Match start helpers
     // =========================
@@ -74,12 +90,6 @@ public class LobbyPanelController : MonoBehaviour
                 return false;
         }
         return true;
-    }
-
-    private bool IsReadyToStart(int playerCount, bool allReady)
-    {
-        // Uses LobbyManager's existing validation to check player count, gamemode and map
-        return LobbyManager.Instance.CanStartMatch(playerCount, allReady);
     }
 
     private void StartMatchIfPossible()
@@ -98,7 +108,7 @@ public class LobbyPanelController : MonoBehaviour
         bool allReady = AreAllPlayersReady();
         int playerCount = NetworkLobbyState.Instance.Players.Count;
 
-        if (!IsReadyToStart(playerCount, allReady))
+        if (!LobbyManager.Instance.CanStartMatch(playerCount, allReady))
         {
             Debug.LogWarning("[LOBBY] Cannot start match yet. Ensure a gamemode, map, and enough ready players.");
             return;
@@ -106,6 +116,14 @@ public class LobbyPanelController : MonoBehaviour
 
         // Lock lobby state to prevent changes while the match is running
         LobbyManager.Instance.LockLobby();
+
+        // Perform automatic team assignment if the lobby is set to Random.  Teams
+        // will be assigned only once before the match starts.
+        if (LobbyManager.Instance != null &&
+            LobbyManager.Instance.TeamAssignmentMode == TeamAssignmentMode.Random)
+        {
+            LobbyManager.Instance.AssignTeamsAutomatically();
+        }
 
         // Retrieve selected gamemode and map
         var gamemode = LobbyManager.Instance.GetSelectedGamemode();
@@ -121,22 +139,6 @@ public class LobbyPanelController : MonoBehaviour
 
         // Start the match on the server
         roundManager.StartMatch(LobbyManager.Instance, gamemode, map);
-    }
-
-    public void OnLeaveLobbyPressed()
-    {
-        if (NetworkManager.Singleton.IsHost)
-        {
-            Debug.Log("[LOBBY] Host stopped the lobby");
-            NetworkManager.Singleton.Shutdown();
-        }
-        else
-        {
-            Debug.Log("[LOBBY] Client left the lobby");
-            NetworkManager.Singleton.Shutdown();
-        }
-
-        uiManager.ShowMainMenu();
     }
 
     // =========================
