@@ -20,6 +20,7 @@ public class MovementController : NetworkBehaviour
     [SerializeField] private GameObject _orientation;
     [SerializeField] private Transform _cameraTransform;
     [SerializeField] private LayerMask _groundLayerMask;
+    [SerializeField] private CharacterAbility _currentAbility = CharacterAbility.None;
 
     private CharacterController _characterController;
     private CharacterStats _characterStats;
@@ -99,7 +100,7 @@ public class MovementController : NetworkBehaviour
     public GameObject Orientation => _orientation;
     public LayerMask LayerMask => _groundLayerMask;
     public MovementState State => _characterFSM.CurrentStateEnum;
-    public CharacterAbility CurrentAbility { get; set; } = CharacterAbility.None;
+    public CharacterAbility CurrentAbility { get => _currentAbility; set => _currentAbility = value; }
     public bool IsOnGround { get; private set; }
     /// <summary>
     /// Posizione centrale della capsula del character in world space
