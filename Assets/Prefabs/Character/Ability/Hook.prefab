@@ -103,6 +103,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 75f8d7a68e813ed41b296e008f033bdb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HookController
+  _layerMask:
+    serializedVersion: 2
+    m_Bits: 1536
 --- !u!1 &1351747687235130067
 GameObject:
   m_ObjectHideFlags: 0
