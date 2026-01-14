@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 2375b68a2863365499621bb635d82715
+guid: 69552df92b3943c47a6262a4026614e7
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
@@ -31,11 +31,11 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: Fire_AR
+      name: IdleLoopProva
       takeName: Scene
       internalID: -623603649343465320
       firstFrame: 0
-      lastFrame: 8
+      lastFrame: 80
       wrapMode: 0
       orientationOffsetY: 0
       level: 0

@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 3da65bd96cbdc7e49a7e6aee5c0860f8
+guid: 380b550224a2a5142babc9c7ae2446e8
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
@@ -31,11 +31,11 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: Fire_AR2
+      name: FireProva
       takeName: Scene
       internalID: -623603649343465320
       firstFrame: 0
-      lastFrame: 8
+      lastFrame: 4
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
