@@ -50,6 +50,9 @@ public class PlayerAnimationController : MonoBehaviour
     public void SetSliding(bool value) =>
         armsAnimator.SetBool("IsSliding", value);
 
+    public void SetGrounded(bool value) =>
+        armsAnimator.SetBool("IsGrounded", value);
+
     public void Fire() =>
         armsAnimator.SetTrigger("Fire");
 

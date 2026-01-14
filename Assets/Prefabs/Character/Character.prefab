@@ -231,7 +231,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3354322385
+  GlobalObjectIdHash: 2877608786
   InScenePlacedSourceGlobalObjectIdHash: 1514268395
   DeferredDespawnTick: 0
   Ownership: 1
@@ -442,6 +442,8 @@ MonoBehaviour:
   _groundLayerMask:
     serializedVersion: 2
     m_Bits: 1536
+  _currentAbility: 0
+  _hook: {fileID: 266383931767271499, guid: 8783b200c56318948b89c74a0e35fd9f, type: 3}
   reconciliationSmoothing: 0.06
   remoteSmoothing: 0.08
   reconciliationSnapDistance: 2
@@ -480,6 +482,8 @@ MonoBehaviour:
   _dashSpeed: 17
   _dashDuration: 0.3
   _jetpackAcceleration: 16
+  _hookMaxDistance: 50
+  _hookSpeed: 40
   _gravity: 9.81
 --- !u!114 &245510072461140579
 MonoBehaviour:

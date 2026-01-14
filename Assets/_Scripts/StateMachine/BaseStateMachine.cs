@@ -24,6 +24,7 @@ namespace SyncedRush.Generics
         public TStateEnum QueuedStateEnum { get; private set; }
         public TStateEnum PreviousStateEnum { get; private set; }
         public bool IsInitialized { get; private set; }
+        public bool LockState { get; set; } = false;
 
         protected void OnDestroy()
         {
@@ -48,8 +49,14 @@ namespace SyncedRush.Generics
             ChangeState(initialState);
         }
 
-        public void ChangeState(TStateEnum state, bool forceEnter = false)
+        public void ChangeState(TStateEnum state,
+            bool forceEnter = false,
+            bool ignoreEnter = false,
+            bool ignoreExit = false)
         {
+            if (LockState)
+                return;
+
             if (_states.TryGetValue(state, out TState newState))
             {
                 QueuedStateEnum = state;
@@ -58,14 +65,15 @@ namespace SyncedRush.Generics
                 if (!sameState)
                 {
                     PreviousStateEnum = CurrentStateEnum;
-                    CurrentState?.ExitState();
+                    if (!ignoreEnter)
+                        CurrentState?.ExitState();
                 }
 
                 QueuedStateEnum = default;
                 CurrentStateEnum = state;
                 CurrentState = newState;
 
-                if (forceEnter || !sameState)
+                if ((forceEnter || !sameState) && !ignoreEnter)
                 {
                     CurrentState.EnterState();
                     _forcedEnterRequested = false;

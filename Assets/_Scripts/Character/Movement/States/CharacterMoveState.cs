@@ -59,7 +59,7 @@ namespace SyncedRush.Character.Movement
         {
             base.EnterState();
 
-            //character.AnimController.SetWalking(true);
+            character.AnimController.SetGrounded(true);
 
             if (!(ParentStateMachine.PreviousStateEnum == MovementState.Air))
                 _blockCrouchInput = true;
@@ -69,7 +69,7 @@ namespace SyncedRush.Character.Movement
         }
         public override void ExitState()
         {
-            //character.AnimController.SetWalking(false);
+            character.AnimController.SetGrounded(false);
 
             if (_previousGroundNormal != Vector3.zero)
             {

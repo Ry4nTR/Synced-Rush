@@ -64,6 +64,12 @@ public class CharacterStats : MonoBehaviour
     /// <summary>Accelerazione del jetpack (m/s^2)</summary>
     [SerializeField] private float _jetpackAcceleration = 16f;
 
+    [Header("Grappling Hook Settings")]
+    /// <summary>Distanza massima raggiungibile dall'uncino in metri</summary>
+    [SerializeField] private float _hookMaxDistance = 50f;
+    /// <summary>Velocità (fissa) dell'uncino (m/s)</summary>
+    [SerializeField] private float _hookSpeed = 40f;
+
     [Header("Physics")]
     /// <summary>Accelerazione di gravitŕ (m/s^2)</summary>
     [SerializeField] private float _gravity = 9.81f;

@@ -21,6 +21,7 @@ public class MovementController : NetworkBehaviour
     [SerializeField] private Transform _cameraTransform;
     [SerializeField] private LayerMask _groundLayerMask;
     [SerializeField] private CharacterAbility _currentAbility = CharacterAbility.None;
+    [SerializeField] private GameObject _hook;
 
     private CharacterController _characterController;
     private CharacterStats _characterStats;
@@ -28,6 +29,7 @@ public class MovementController : NetworkBehaviour
     private NetworkPlayerInput _netInput;
     private PlayerInputHandler _inputHandler;
     private PlayerAnimationController _animController;
+    private HookController _hookController;
 
     /// <summary>
     /// Variabile di rete che memorizza la posizione autoritativa del server.
@@ -198,6 +200,11 @@ public class MovementController : NetworkBehaviour
 
         if (_animController == null)
             _animController = GetComponent<PlayerAnimationController>();
+
+        if (_hook != null)
+            _hookController = _hook.GetComponent<HookController>();
+        else
+            Debug.LogError("Non è stato settato il prefab dell'hook sul Character! (null reference)");
     }
 
     private void Update()
@@ -209,6 +216,7 @@ public class MovementController : NetworkBehaviour
         if (IsServer)
         {
             CheckGround();
+            GrappleHookAbility();
             _characterFSM.ProcessUpdate();
             _serverPosition.Value = transform.position;
             _lastProcessedSequence.Value = _netInput.ServerInput.Sequence;
@@ -219,6 +227,7 @@ public class MovementController : NetworkBehaviour
         if (IsOwner)
         {
             CheckGround();
+            GrappleHookAbility();
             _characterFSM.ProcessUpdate();
             _netInput.ConfirmInputUpTo(_lastProcessedSequence.Value);
 
@@ -284,6 +293,20 @@ public class MovementController : NetworkBehaviour
         info = _groundInfo;
 
         return IsOnGround;
+    }
+
+    private void GrappleHookAbility()
+    {
+        if (CurrentAbility == CharacterAbility.Grapple)
+        {
+            if (_hookController.IsHooked)
+            {
+                if (State != MovementState.GrappleHook)
+                {
+                    _characterFSM.ChangeState(MovementState.GrappleHook, false, false, true);
+                }
+            }
+        }
     }
 
     private void OnControllerColliderHit(ControllerColliderHit hit)
