@@ -5,6 +5,8 @@ namespace SyncedRush.Character.Movement
 {
 	public class CharacterGrappleHookState : CharacterMovementState
 	{
+        private bool _canWallRun = false;
+
         private HookController HookController { get { return character.HookController; } }
 
         public CharacterGrappleHookState(MovementController movementComponentReference) : base(movementComponentReference)
@@ -30,6 +32,8 @@ namespace SyncedRush.Character.Movement
         public override void EnterState()
         {
             base.EnterState();
+
+            _canWallRun = false;
         }
 
         public override void ProcessCollision(ControllerColliderHit hit)
@@ -50,11 +54,11 @@ namespace SyncedRush.Character.Movement
                 return;
             }
 
-            //if (CheckWallRunCondition(hit))
-            //{
-            //    character.WallRunStartInfo = hit;
-            //    _canWallRun = true;
-            //}
+            if (CheckWallRunCondition(hit))
+            {
+                character.WallRunStartInfo = hit;
+                _canWallRun = true;
+            }
         }
 
         private void HookPull()
@@ -63,6 +67,68 @@ namespace SyncedRush.Character.Movement
             moveDir.Normalize();
 
             character.TotalVelocity += (character.Stats.HookPull * Time.deltaTime * moveDir);
+        }
+
+        private bool CheckWallRunCondition(ControllerColliderHit hit)
+        {
+            if (character.HorizontalVelocity.magnitude < character.Stats.WallRunMinSpeed)
+                return false;
+
+            if (
+                hit.normal.y < 0.1f
+                && hit.normal.y > -0.1f
+                )
+            {
+
+                float skinWidth = character.Controller.skinWidth;
+                float rayLength = 1f + skinWidth;
+
+                Vector3 _wallDir = hit.point - character.CenterPosition;
+
+                _wallDir.y = 0f;
+
+                if (Mathf.Approximately(_wallDir.magnitude, 0))
+                    return false;
+
+                _wallDir.Normalize();
+
+                Vector3 startPosition = character.CenterPosition + _wallDir * (character.Controller.radius / 2f);
+
+                RaycastHit rayHit;
+                bool hasHit = Physics.Raycast(
+                    startPosition,
+                    _wallDir,
+                    out rayHit,
+                    rayLength,
+                    character.LayerMask
+                );
+
+                //TODO da rimuovere quando non serve più
+                Color rayColor = hasHit ? Color.green : Color.red;
+                Debug.DrawRay(startPosition, _wallDir * rayLength, rayColor, Time.deltaTime);
+
+                Vector2 hitN = new(rayHit.normal.x, rayHit.normal.z);
+                Vector2 lookDir = new(character.Orientation.transform.forward.x, character.Orientation.transform.forward.z);
+
+                float angle = Vector2.Angle(hitN, -lookDir);
+                Debug.Log("AirState " + angle); //TODO da rimuovere
+
+                Vector3 inputDir = (character.IsServer || character.LocalInputHandler == null)
+                    ? character.MoveDirection
+                    : character.LocalMoveDirection;
+
+                bool moveInputToWall = Vector3.Dot(inputDir, rayHit.normal) < 0;
+
+                if (hasHit
+                    && rayHit.normal.y < 0.1f
+                    && rayHit.normal.y > -0.1f
+                    && angle < character.Stats.WallRunLookAngleLimit
+                    && moveInputToWall)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
     }
