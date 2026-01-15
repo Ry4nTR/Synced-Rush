@@ -78,14 +78,7 @@ public class ShootingSystem : MonoBehaviour
             ShowBulletTracer(origin, endPoint);
         }
 
-        float recoil = weaponController.IsAiming
-        ? weaponData.recoilWeight * weaponData.aimedRecoilMultiplier
-        : weaponData.recoilWeight;
-
-        playerAnimationController.SetRecoilWeight(recoil);
-        playerAnimationController.Fire();
-
-
+        PlayFireAnimation();
         PlayMuzzleFlash();
         PlayShootSound();
     }
@@ -133,6 +126,19 @@ public class ShootingSystem : MonoBehaviour
         {
             AudioSource.PlayClipAtPoint(weaponData.shootSound, transform.position);
         }
+    }
+
+    private void PlayFireAnimation()
+    {
+        float recoil = weaponController.IsAiming
+        ? weaponData.recoilWeight * weaponData.aimedRecoilMultiplier
+        : weaponData.recoilWeight;
+
+        // 1. Set the weight
+        //playerAnimationController.SetRecoilWeight(recoil);
+
+        // 2. Trigger the animation
+        playerAnimationController.Fire();
     }
 
     // TEMPORARY: Draws the last raycast in the editor for debugging
