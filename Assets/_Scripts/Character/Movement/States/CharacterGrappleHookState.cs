@@ -32,6 +32,31 @@ namespace SyncedRush.Character.Movement
             base.EnterState();
         }
 
+        public override void ProcessCollision(ControllerColliderHit hit)
+        {
+
+            Vector3 currentVelocity = new(character.HorizontalVelocity.x, character.VerticalVelocity, character.HorizontalVelocity.y);
+
+            Vector3 projectedVelocity = Vector3.ProjectOnPlane(currentVelocity, hit.normal);
+
+            character.HorizontalVelocity = new Vector2(projectedVelocity.x, projectedVelocity.z);
+
+            if (hit.normal.y > 0.999f)
+                return;
+
+            if (hit.normal.y <= -0.95f && character.VerticalVelocity > 0f)
+            {
+                character.VerticalVelocity = -.1f;
+                return;
+            }
+
+            //if (CheckWallRunCondition(hit))
+            //{
+            //    character.WallRunStartInfo = hit;
+            //    _canWallRun = true;
+            //}
+        }
+
         private void HookPull()
         {
             Vector3 moveDir = HookController.transform.position - character.CenterPosition;
