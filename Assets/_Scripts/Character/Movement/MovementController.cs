@@ -311,7 +311,10 @@ public class MovementController : NetworkBehaviour
                 : LocalInputHandler.Ability;
             if (grappleInput)
             {
-                _hookController.Shoot(_cameraTransform.position, LookDirection, Stats.HookSpeed, Stats.HookMaxDistance);
+                if (_hookController.IsHooked || _hookController.IsShooting)
+                    _hookController.Retreat();
+                else
+                    _hookController.Shoot(_cameraTransform.position, LookDirection, Stats.HookSpeed, Stats.HookMaxDistance);
             }
 
             if (_hookController.IsHooked)
@@ -338,4 +341,3 @@ public class MovementController : NetworkBehaviour
         }
     }
 }
-    

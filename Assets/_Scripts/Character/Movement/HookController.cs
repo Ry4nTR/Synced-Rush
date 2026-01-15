@@ -39,6 +39,13 @@ public class HookController : MonoBehaviour
         transform.forward = direction;
     }
 
+    public void Retreat()
+    {
+        IsHooked = false;
+        IsShooting = false;
+        gameObject.SetActive(false);
+    }
+
     void Update()
     {
         if (IsHooked || !IsShooting) return;
