@@ -231,7 +231,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 2877608786
+  GlobalObjectIdHash: 3354322385
   InScenePlacedSourceGlobalObjectIdHash: 1514268395
   DeferredDespawnTick: 0
   Ownership: 1
@@ -484,6 +484,7 @@ MonoBehaviour:
   _jetpackAcceleration: 16
   _hookMaxDistance: 50
   _hookSpeed: 40
+  _hookPull: 30
   _gravity: 9.81
 --- !u!114 &245510072461140579
 MonoBehaviour:

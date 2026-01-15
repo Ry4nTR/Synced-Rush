@@ -1,6 +1,7 @@
 ﻿using SyncedRush.Character.Movement;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.TextCore.Text;
 
 namespace SyncedRush.Character.Movement
 {
@@ -112,6 +113,7 @@ public class MovementController : NetworkBehaviour
     public PlayerInputHandler LocalInputHandler => _inputHandler;
 
     public PlayerAnimationController AnimController => _animController;
+    public HookController HookController => _hookController;
 
     public Vector2 MoveInputDirection
     {
@@ -202,7 +204,10 @@ public class MovementController : NetworkBehaviour
             _animController = GetComponent<PlayerAnimationController>();
 
         if (_hook != null)
+        {
+            Instantiate(_hook);
             _hookController = _hook.GetComponent<HookController>();
+        }
         else
             Debug.LogError("Non è stato settato il prefab dell'hook sul Character! (null reference)");
     }
@@ -211,6 +216,8 @@ public class MovementController : NetworkBehaviour
     {
         if (!IsSpawned)
             return;
+
+        Debug.Log("IsOnGround:" + IsOnGround.ToString());
 
         // 1. Server: simulazione autorevole
         if (IsServer)
@@ -299,6 +306,14 @@ public class MovementController : NetworkBehaviour
     {
         if (CurrentAbility == CharacterAbility.Grapple)
         {
+            bool grappleInput = (IsServer || LocalInputHandler == null)
+                ? InputData.Ability
+                : LocalInputHandler.Ability;
+            if (grappleInput)
+            {
+                _hookController.Shoot(_cameraTransform.position, LookDirection, Stats.HookSpeed, Stats.HookMaxDistance);
+            }
+
             if (_hookController.IsHooked)
             {
                 if (State != MovementState.GrappleHook)

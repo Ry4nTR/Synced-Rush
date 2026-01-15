@@ -69,6 +69,8 @@ public class CharacterStats : MonoBehaviour
     [SerializeField] private float _hookMaxDistance = 50f;
     /// <summary>Velocità (fissa) dell'uncino (m/s)</summary>
     [SerializeField] private float _hookSpeed = 40f;
+    /// <summary>Forza di attrazione dell'uncino al giocatore (m/s^2)</summary>
+    [SerializeField] private float _hookPull = 30f;
 
     [Header("Physics")]
     /// <summary>Accelerazione di gravitŕ (m/s^2)</summary>
@@ -103,6 +105,10 @@ public class CharacterStats : MonoBehaviour
     public float DashDuration => _dashDuration;
 
     public float JetpackAcceleration => _jetpackAcceleration;
+
+    public float HookMaxDistance => _hookMaxDistance;
+    public float HookSpeed => _hookSpeed;
+    public float HookPull => _hookPull;
 
     public float Gravity => _gravity;
 }
