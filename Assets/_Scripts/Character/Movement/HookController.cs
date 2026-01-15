@@ -34,8 +34,8 @@ public class HookController : MonoBehaviour
         _startPosition = startPosition;
         transform.position = startPosition;
 
-        _direction = direction;
         direction.Normalize();
+        _direction = direction;
         transform.forward = direction;
     }
 
@@ -46,13 +46,18 @@ public class HookController : MonoBehaviour
         float distanceThisFrame = _speed * Time.deltaTime;
         float newDistance = _currentDistance + distanceThisFrame;
 
-        if (newDistance > _maxDistance)
+        //if (newDistance > _maxDistance)
+        //{
+        //    distanceThisFrame = newDistance - _maxDistance;
+        //    _currentDistance = _maxDistance;
+        //}
+        //else
+        //    _currentDistance = newDistance;
+
+        if (_currentDistance + distanceThisFrame > _maxDistance)
         {
-            distanceThisFrame = newDistance - _maxDistance;
-            _currentDistance = _maxDistance;
+            distanceThisFrame = _maxDistance - _currentDistance;
         }
-        else
-            _currentDistance = newDistance;
 
         if (Physics.Raycast(transform.position, _direction, out RaycastHit hit, distanceThisFrame, _layerMask))
         {
@@ -62,7 +67,8 @@ public class HookController : MonoBehaviour
         }
         else
         {
-            transform.Translate(_direction * distanceThisFrame);
+            //transform.Translate(_direction * distanceThisFrame);
+            transform.position += _direction * distanceThisFrame;
         }
 
         if (Vector3.Distance(_startPosition, transform.position) > _maxDistance)

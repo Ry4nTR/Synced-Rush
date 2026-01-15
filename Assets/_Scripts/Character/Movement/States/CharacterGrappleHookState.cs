@@ -22,6 +22,8 @@ namespace SyncedRush.Character.Movement
 
             HookPull();
 
+            ProcessMovement();
+
             return MovementState.None;
         }
 

@@ -205,7 +205,7 @@ public class MovementController : NetworkBehaviour
 
         if (_hook != null)
         {
-            Instantiate(_hook);
+            _hook = Instantiate(_hook);
             _hookController = _hook.GetComponent<HookController>();
         }
         else
