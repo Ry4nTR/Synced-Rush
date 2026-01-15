@@ -56,6 +56,9 @@ public class PlayerAnimationController : MonoBehaviour
     public void Fire() =>
         armsAnimator.SetTrigger("Fire");
 
+    public void Jump() =>
+        armsAnimator.SetTrigger("Jump");
+
     public void Reload() =>
         armsAnimator.SetTrigger("Reload");
 
