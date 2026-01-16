@@ -45,8 +45,8 @@ MonoBehaviour:
   impactEffectPrefab: {fileID: 0}
   armsAnimatorOverride: {fileID: 22100000, guid: b6829c77960f5954580935ab14407ebd, type: 2}
   fullBodyAnimatorOverride: {fileID: 22100000, guid: 35552480ce2b2fc4b99a9c99b75697fd, type: 2}
-  recoilWeight: 0.1
+  recoilWeight: 0.28
   aimedRecoilMultiplier: 0
   aimBlendSpeed: 10
-  worldModelPrefab: {fileID: 1019066457430675845, guid: 080dc2fb2db6aac4689ab72c23742add, type: 3}
+  worldModelPrefab: {fileID: 8029264584972445484, guid: 080dc2fb2db6aac4689ab72c23742add, type: 3}
   Muzzle: {fileID: 0}

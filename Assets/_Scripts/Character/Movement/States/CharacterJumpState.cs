@@ -14,6 +14,8 @@ namespace SyncedRush.Character.Movement
         {
             base.EnterState();
 
+            character.AnimController.Jump();
+
             Jump();
         }
 

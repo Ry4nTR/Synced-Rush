@@ -135,7 +135,7 @@ public class ShootingSystem : MonoBehaviour
         : weaponData.recoilWeight;
 
         // 1. Set the weight
-        //playerAnimationController.SetRecoilWeight(recoil);
+        playerAnimationController.armsAnimator.SetLayerWeight(2, recoil);
 
         // 2. Trigger the animation
         playerAnimationController.Fire();

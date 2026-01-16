@@ -3,7 +3,7 @@ using UnityEngine;
 public class PlayerAnimationController : MonoBehaviour
 {
     [Header("Animators")]
-    [SerializeField] private Animator armsAnimator;
+    [SerializeField] public Animator armsAnimator;
     [SerializeField] private Animator fullBodyAnimator;
 
     public void SetWeaponAnimations(WeaponData data)
@@ -40,11 +40,6 @@ public class PlayerAnimationController : MonoBehaviour
     {
         armsAnimator.SetFloat("AimWeight", weight);
         armsAnimator.SetLayerWeight(1, weight);
-    }
-
-    public void SetRecoilWeight(float weight)
-    {
-        armsAnimator.SetFloat("RecoilWeight", weight);
     }
 
     public void SetSliding(bool value) =>

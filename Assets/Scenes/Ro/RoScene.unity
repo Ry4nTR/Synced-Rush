@@ -3133,7 +3133,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2520700430663800747, guid: e48e038af74c2e34ba4f173faaacb22b, type: 3}
       propertyPath: ConnectionData.Port
-      value: 7777
+      value: 6666
       objectReference: {fileID: 0}
     - target: {fileID: 2520700430663800747, guid: e48e038af74c2e34ba4f173faaacb22b, type: 3}
       propertyPath: ConnectionData.Address
@@ -3173,7 +3173,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7427486159217281227, guid: e48e038af74c2e34ba4f173faaacb22b, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 8.83
       objectReference: {fileID: 0}
     - target: {fileID: 7427486159217281227, guid: e48e038af74c2e34ba4f173faaacb22b, type: 3}
       propertyPath: m_LocalPosition.z
