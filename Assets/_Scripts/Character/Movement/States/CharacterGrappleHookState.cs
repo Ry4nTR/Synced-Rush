@@ -1,10 +1,11 @@
-using SyncedRush.Character.Movement;
 using UnityEngine;
 
 namespace SyncedRush.Character.Movement
 {
 	public class CharacterGrappleHookState : CharacterMovementState
 	{
+        private float _headBodyDistance = 0f;
+
         private bool _canWallRun = false;
 
         private HookController HookController { get { return character.HookController; } }
@@ -22,6 +23,12 @@ namespace SyncedRush.Character.Movement
             if (!HookController.IsHooked)
                 return MovementState.Air;
 
+            if (_canWallRun)
+            {
+                HookController.Retreat();
+                return MovementState.WallRun;
+            }
+
             HookPull();
 
             ProcessMovement();
@@ -32,6 +39,8 @@ namespace SyncedRush.Character.Movement
         public override void EnterState()
         {
             base.EnterState();
+
+            _headBodyDistance = character.CameraPosition.y - character.CenterPosition.y;
 
             _canWallRun = false;
         }
@@ -59,6 +68,19 @@ namespace SyncedRush.Character.Movement
                 character.WallRunStartInfo = hit;
                 _canWallRun = true;
             }
+        }
+
+        protected override void ProcessMovement()
+        {
+            Vector3 _velocity = new(character.HorizontalVelocity.x, character.VerticalVelocity, character.HorizontalVelocity.y);
+            _velocity *= Time.deltaTime;
+
+            float center = Mathf.MoveTowards(0f, _headBodyDistance, Time.deltaTime * 2.5f);
+            _headBodyDistance -= center;
+
+            _velocity.y += center;
+
+            character.Controller.Move(_velocity);
         }
 
         private void HookPull()

@@ -1,7 +1,6 @@
 ﻿using SyncedRush.Character.Movement;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.TextCore.Text;
 
 namespace SyncedRush.Character.Movement
 {
@@ -109,6 +108,7 @@ public class MovementController : NetworkBehaviour
     /// Posizione centrale della capsula del character in world space
     /// </summary>
     public Vector3 CenterPosition => _characterController.transform.position + _characterController.center;
+    public Vector3 CameraPosition => _cameraTransform.position;
     public GameplayInputData InputData => _netInput.ServerInput;
     public PlayerInputHandler LocalInputHandler => _inputHandler;
 
@@ -169,10 +169,7 @@ public class MovementController : NetworkBehaviour
         }
     }
 
-    public Vector3 LookDirection
-    {
-        get { return _cameraTransform.forward; }
-    }
+    public Vector3 LookDirection => _cameraTransform.forward;
 
     // Lista di proprietà messe "nel posto sbagliato"
 
@@ -185,6 +182,8 @@ public class MovementController : NetworkBehaviour
 
     private void Awake()
     {
+        CurrentAbility = CharacterAbility.Grapple; //TODO DEBUG, da rimuovere
+
         if (_characterController == null)
             _characterController = GetComponent<CharacterController>();
 
