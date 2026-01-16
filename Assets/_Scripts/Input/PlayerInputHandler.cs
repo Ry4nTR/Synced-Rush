@@ -71,9 +71,6 @@ public class PlayerInputHandler : MonoBehaviour
         crouch = _controls.Player.Crouch.IsPressed();
 
         jetpack = _controls.Player.Jetpack.IsPressed();
-
-        // Debug
-        debugResetPos = _controls.Player.DebugResetPos.IsPressed();
     }
 
     // Discrete input edge-checking (this frame only)
@@ -82,6 +79,9 @@ public class PlayerInputHandler : MonoBehaviour
         jump = _controls.Player.Jump.WasPressedThisFrame();
         reload = _controls.Player.Reload.WasPressedThisFrame();
         ability = _controls.Player.Ability.WasPressedThisFrame();
+
+        // TODO Debug
+        debugResetPos = _controls.Player.DebugResetPos.WasPressedThisFrame();
     }
 
     public void SetCursorLocked(bool locked)
@@ -101,5 +101,8 @@ public class PlayerInputHandler : MonoBehaviour
         reload = false;
         ability = false;
         jetpack = false;
+
+        // TODO Debug
+        debugResetPos = false;
     }
 }

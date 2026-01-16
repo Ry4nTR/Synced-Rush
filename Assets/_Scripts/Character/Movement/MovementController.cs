@@ -207,7 +207,7 @@ public class MovementController : NetworkBehaviour
 
         _ability = new(this, hookCtrl);
 
-        Ability.CurrentAbility = CharacterAbility.Jetpack; //TODO DEBUG, da rimuovere
+        Ability.CurrentAbility = CharacterAbility.Grapple; //TODO DEBUG, da rimuovere
     }
 
     private void Update()
