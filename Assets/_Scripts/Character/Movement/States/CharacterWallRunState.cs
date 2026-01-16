@@ -54,12 +54,12 @@ namespace SyncedRush.Character.Movement
                 return MovementState.Air;
             }
 
-            if (character.CurrentAbility == CharacterAbility.Jetpack)
+            if (character.Ability.CurrentAbility == CharacterAbility.Jetpack)
             {
                 bool dashInput = (character.IsServer || character.LocalInputHandler == null)
                     ? Input.Ability
                     : character.LocalInputHandler.Ability;
-                if (dashInput)
+                if (dashInput && character.Ability.UseDash())
                     return MovementState.Dash;
             }
 

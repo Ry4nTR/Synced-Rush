@@ -20,16 +20,15 @@ public class MovementController : NetworkBehaviour
     [SerializeField] private GameObject _orientation;
     [SerializeField] private Transform _cameraTransform;
     [SerializeField] private LayerMask _groundLayerMask;
-    [SerializeField] private CharacterAbility _currentAbility = CharacterAbility.None;
     [SerializeField] private GameObject _hook;
 
     private CharacterController _characterController;
     private CharacterStats _characterStats;
     private CharacterMovementFSM _characterFSM;
+    private AbilityProcessor _ability;
     private NetworkPlayerInput _netInput;
     private PlayerInputHandler _inputHandler;
     private PlayerAnimationController _animController;
-    private HookController _hookController;
 
     /// <summary>
     /// Variabile di rete che memorizza la posizione autoritativa del server.
@@ -99,10 +98,10 @@ public class MovementController : NetworkBehaviour
 
     public CharacterController Controller => _characterController;
     public CharacterStats Stats => _characterStats;
+    public AbilityProcessor Ability => _ability;
     public GameObject Orientation => _orientation;
     public LayerMask LayerMask => _groundLayerMask;
     public MovementState State => _characterFSM.CurrentStateEnum;
-    public CharacterAbility CurrentAbility { get => _currentAbility; set => _currentAbility = value; }
     public bool IsOnGround { get; private set; }
     /// <summary>
     /// Posizione centrale della capsula del character in world space
@@ -111,10 +110,7 @@ public class MovementController : NetworkBehaviour
     public Vector3 CameraPosition => _cameraTransform.position;
     public GameplayInputData InputData => _netInput.ServerInput;
     public PlayerInputHandler LocalInputHandler => _inputHandler;
-
     public PlayerAnimationController AnimController => _animController;
-    public HookController HookController => _hookController;
-
     public Vector2 MoveInputDirection
     {
         get
@@ -182,8 +178,6 @@ public class MovementController : NetworkBehaviour
 
     private void Awake()
     {
-        CurrentAbility = CharacterAbility.Grapple; //TODO DEBUG, da rimuovere
-
         if (_characterController == null)
             _characterController = GetComponent<CharacterController>();
 
@@ -202,13 +196,18 @@ public class MovementController : NetworkBehaviour
         if (_animController == null)
             _animController = GetComponent<PlayerAnimationController>();
 
+        HookController hookCtrl = null;
         if (_hook != null)
         {
             _hook = Instantiate(_hook);
-            _hookController = _hook.GetComponent<HookController>();
+            hookCtrl = _hook.GetComponent<HookController>();
         }
         else
             Debug.LogError("Non è stato settato il prefab dell'hook sul Character! (null reference)");
+
+        _ability = new(this, hookCtrl);
+
+        Ability.CurrentAbility = CharacterAbility.Jetpack; //TODO DEBUG, da rimuovere
     }
 
     private void Update()
@@ -221,6 +220,7 @@ public class MovementController : NetworkBehaviour
         // 1. Server: simulazione autorevole
         if (IsServer)
         {
+            Ability.ProcessUpdate();
             CheckGround();
             GrappleHookAbility();
             _characterFSM.ProcessUpdate();
@@ -232,6 +232,7 @@ public class MovementController : NetworkBehaviour
         // 2. Owner: predizione + riconciliazione
         if (IsOwner)
         {
+            Ability.ProcessUpdate();
             CheckGround();
             GrappleHookAbility();
             _characterFSM.ProcessUpdate();
@@ -303,20 +304,20 @@ public class MovementController : NetworkBehaviour
 
     private void GrappleHookAbility()
     {
-        if (CurrentAbility == CharacterAbility.Grapple)
+        if (Ability.CurrentAbility == CharacterAbility.Grapple)
         {
             bool grappleInput = (IsServer || LocalInputHandler == null)
                 ? InputData.Ability
                 : LocalInputHandler.Ability;
             if (grappleInput)
             {
-                if (_hookController.IsHooked || _hookController.IsShooting)
-                    _hookController.Retreat();
+                if (Ability.HookController.IsHooked || Ability.HookController.IsShooting)
+                    Ability.HookController.Retreat();
                 else
-                    _hookController.Shoot(_cameraTransform.position, LookDirection, Stats.HookSpeed, Stats.HookMaxDistance);
+                    Ability.HookController.Shoot(_cameraTransform.position, LookDirection, Stats.HookSpeed, Stats.HookMaxDistance);
             }
 
-            if (_hookController.IsHooked)
+            if (Ability.HookController.IsHooked)
             {
                 if (State != MovementState.GrappleHook)
                 {

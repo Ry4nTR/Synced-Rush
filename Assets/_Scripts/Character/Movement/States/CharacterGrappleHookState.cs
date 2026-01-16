@@ -8,7 +8,7 @@ namespace SyncedRush.Character.Movement
 
         private bool _canWallRun = false;
 
-        private HookController HookController { get { return character.HookController; } }
+        private HookController HookController { get { return character.Ability.HookController; } }
 
         public CharacterGrappleHookState(MovementController movementComponentReference) : base(movementComponentReference)
         {

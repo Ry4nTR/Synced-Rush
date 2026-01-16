@@ -64,10 +64,22 @@ public class CharacterStats : MonoBehaviour
     [SerializeField] private float _dashSpeed = 17f;
     /// <summary>Durata del dash in secondi</summary>
     [SerializeField] private float _dashDuration = 0.3f;
+    /// <summary>carica massima del dash</summary>
+    [SerializeField] private float _dashkMaxCharge = 100;
+    /// <summary>Consumo carica dash all'uso</summary>
+    [SerializeField] private float _dashDrain = 50;
+    /// <summary>Guadagno di carica del jetpack al secondo</summary>
+    [SerializeField] private float _dashRecharge = 16.6f;
 
     [Header("Jetpack Settings")]
     /// <summary>Accelerazione del jetpack (m/s^2)</summary>
     [SerializeField] private float _jetpackAcceleration = 16f;
+    /// <summary>Carburante massimo del jetpack</summary>
+    [SerializeField] private float _jetpackMaxCharge = 100f;
+    /// <summary>Consumo carburante del jetpack al secondo</summary>
+    [SerializeField] private float _jetpackDrain = 20f;
+    /// <summary>Guadagno di carburante del jetpack al secondo</summary>
+    [SerializeField] private float _jetpackRecharge = 16.6f;
 
     [Header("Grappling Hook Settings")]
     /// <summary>Distanza massima raggiungibile dall'uncino in metri</summary>
@@ -112,8 +124,14 @@ public class CharacterStats : MonoBehaviour
 
     public float DashSpeed => _dashSpeed;
     public float DashDuration => _dashDuration;
+    public float DashMaxCharge => _dashkMaxCharge;
+    public float DashDrain => _dashDrain;
+    public float DashRecharge => _dashRecharge;
 
     public float JetpackAcceleration => _jetpackAcceleration;
+    public float JetpackMaxCharge => _jetpackMaxCharge;
+    public float JetpackDrain => _jetpackDrain;
+    public float JetpackRecharge => _jetpackRecharge;
 
     public float HookMaxDistance => _hookMaxDistance;
     public float HookSpeed => _hookSpeed;
