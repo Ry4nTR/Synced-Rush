@@ -23,12 +23,20 @@ namespace SyncedRush.Character.Movement
             if (!HookController.IsHooked)
                 return MovementState.Air;
 
+            if (CheckGround() && _headBodyDistance == 0f)
+            {
+                HookController.Retreat();
+                return MovementState.Move;
+            }
+
             if (_canWallRun)
             {
                 HookController.Retreat();
                 return MovementState.WallRun;
             }
 
+
+            AirMove();
             HookPull();
 
             ProcessMovement();
@@ -89,6 +97,39 @@ namespace SyncedRush.Character.Movement
             moveDir.Normalize();
 
             character.TotalVelocity += (character.Stats.HookPull * Time.deltaTime * moveDir);
+        }
+
+        private void AirMove()
+        {
+            Vector3 moveDir = (character.IsServer || character.LocalInputHandler == null)
+                ? character.MoveDirection
+                : character.LocalMoveDirection;
+
+            Vector2 moveDirXY = new(moveDir.x, moveDir.z);
+
+            bool isOverSpeed = character.HorizontalVelocity.magnitude > character.Stats.AirTargetSpeed;
+
+            float targetDeceleration = isOverSpeed
+                ? character.Stats.AirOverspeedDeceleration
+                : character.Stats.AirDeceleration;
+
+            character.HorizontalVelocity += character.Stats.AirAcceleration * Time.deltaTime * moveDirXY;
+
+            character.HorizontalVelocity = Vector2.MoveTowards(
+                character.HorizontalVelocity,
+                Vector2.zero,
+                Time.deltaTime * targetDeceleration);
+        }
+
+        private bool CheckGround()
+        {
+            if (character.IsOnGround && character.VerticalVelocity <= 0f)
+            {
+                character.VerticalVelocity = -.1f;
+                return true;
+            }
+            else
+                return false;
         }
 
         private bool CheckWallRunCondition(ControllerColliderHit hit)
