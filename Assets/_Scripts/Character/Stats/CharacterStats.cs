@@ -53,6 +53,11 @@ public class CharacterStats : MonoBehaviour
     [SerializeField] private float _wallRunMinimumSpeed = 3f;
     /// <summary>Angolazione massima per la visuale rispetto al muro consentita per correre su una parete</summary>
     [SerializeField] private float _wallRunLookAngleLimit = 110f;
+    /// <summary>Durata della spinta iniziale del wall run in secondi</summary>
+    [SerializeField] private float _wallRunInitialBoostDuration = 1f;
+    /// <summary>Forza di accelerazione della spinta iniziale del wall run (m/s^2)</summary>
+    [SerializeField] private float _wallRunInitialBoostAcceleration = 10f;
+
 
     [Header("Dash Settings")]
     /// <summary> </summary>
@@ -102,6 +107,8 @@ public class CharacterStats : MonoBehaviour
     public float WallRunBrake => _wallRunBrake;
     public float WallRunMinSpeed => _wallRunMinimumSpeed;
     public float WallRunLookAngleLimit => _wallRunLookAngleLimit;
+    public float WallRunInitialBoostDuration => _wallRunInitialBoostDuration;
+    public float WallRunInitialBoostAcceleration => _wallRunInitialBoostAcceleration;
 
     public float DashSpeed => _dashSpeed;
     public float DashDuration => _dashDuration;

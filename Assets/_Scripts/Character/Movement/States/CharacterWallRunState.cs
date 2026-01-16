@@ -7,6 +7,8 @@ namespace SyncedRush.Character.Movement
         private readonly float _stepDistance = 0.1f;
         private readonly float _wallSnapLength = 1.0f;
 
+        private float _enterBoostTimer = 0.0f;
+
         /// <summary>
         /// Posizione del muro in world space
         /// </summary>
@@ -67,6 +69,8 @@ namespace SyncedRush.Character.Movement
             if (crouchInput)
                 return MovementState.Air;
 
+            EnterBoost();
+
             Slowdown();
 
             ProcessMovement();
@@ -91,6 +95,8 @@ namespace SyncedRush.Character.Movement
             }
             else
                 _isWallRunInvalid = true;
+
+            _enterBoostTimer = character.Stats.WallRunInitialBoostDuration;
         }
 
         protected new void ProcessMovement()
@@ -264,6 +270,21 @@ namespace SyncedRush.Character.Movement
             jumpDir = jumpDir.normalized * jumpSpeed;
 
             character.TotalVelocity += jumpDir;
+        }
+
+        private void EnterBoost()
+        {
+            _enterBoostTimer = Mathf.MoveTowards(_enterBoostTimer, 0f, Time.deltaTime);
+
+            if (_enterBoostTimer > 0f)
+            {
+                character.HorizontalVelocity +=
+                        character.Stats.WallRunInitialBoostAcceleration
+                        * Time.deltaTime
+                        * character.HorizontalVelocity.normalized;
+            }
+
+
         }
 
         private void Slowdown()
