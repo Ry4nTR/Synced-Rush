@@ -35,8 +35,14 @@ namespace SyncedRush.Character.Movement
                 return MovementState.WallRun;
             }
 
+            if (Vector3.Distance(HookController.transform.position, character.CenterPosition) < character.Stats.HookMinDistance)
+            {
+                HookController.Retreat();
+                return MovementState.Air;
+            }
 
             AirMove();
+
             HookPull();
 
             ProcessMovement();
