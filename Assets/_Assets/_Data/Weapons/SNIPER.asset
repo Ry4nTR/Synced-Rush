@@ -21,9 +21,10 @@ MonoBehaviour:
   damage: 10
   fireRate: 0.17
   range: 77
-  criticalMultiplier: 1.5
   falloffStartDistance: 10
   falloffEndDistance: 77
+  falloffDistancePerStep: 0
+  damageReductionPerStep: 0
   minimumDamage: 0.1
   magazineSize: 30
   ammoReserve: 120
@@ -42,10 +43,11 @@ MonoBehaviour:
   muzzleFlashPrefab: {fileID: 0}
   bulletTracerPrefab: {fileID: 0}
   impactEffectPrefab: {fileID: 0}
-  aimSpeed: 1
-  shootAnimationTrigger: Shoot
-  reloadAnimationTrigger: Reload
-  aimAnimationBool: IsAiming
-  walkAnimationBool: IsWalking
-  sprintAnimationBool: IsSprinting
+  fullBodyControllerIndex: 2
+  armsAnimatorOverride: {fileID: 0}
+  fullBodyAnimatorOverride: {fileID: 0}
+  recoilWeight: 1
+  aimedRecoilMultiplier: 0.6
+  aimBlendSpeed: 12
   worldModelPrefab: {fileID: 1019066457430675845, guid: 9143fac5e3436574abc5989a2b7f5d73, type: 3}
+  Muzzle: {fileID: 0}

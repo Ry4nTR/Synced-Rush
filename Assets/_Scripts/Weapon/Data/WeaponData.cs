@@ -64,6 +64,10 @@ public class WeaponData : ScriptableObject
     public GameObject bulletTracerPrefab;
     public GameObject impactEffectPrefab;
 
+    [Header("Animation (Network Sync)")]
+    [Tooltip("Index in FullBodyNetworkAnimatorSync.fullBodyControllers[] (same order on all clients). 0 = default.")]
+    public ushort fullBodyControllerIndex = 0;
+
     [Header("Animation")]
     public AnimatorOverrideController armsAnimatorOverride;
     public AnimatorOverrideController fullBodyAnimatorOverride;
