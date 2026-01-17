@@ -41,9 +41,10 @@ public class PlayerAnimationController : MonoBehaviour
         }
     }
 
-    public void SetWeaponAnimation(Animator wAnimator)
+    public void SetWeaponAnimation(WeaponData data, Animator wAnimator)
     {
         weaponAnimator = wAnimator;
+        weaponAnimator.runtimeAnimatorController = data.weaponAnimatorOverride;
     }
 
     #region Arms & Fullbody Parameters

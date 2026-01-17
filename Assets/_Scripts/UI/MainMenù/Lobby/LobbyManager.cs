@@ -1,3 +1,4 @@
+using Unity.Netcode;
 using UnityEngine;
 
 public enum TeamAssignmentMode
@@ -29,7 +30,62 @@ public class LobbyManager : MonoBehaviour
     [Header("Team Assignment")]
     [SerializeField] private TeamAssignmentMode teamAssignmentMode = TeamAssignmentMode.Random;
 
+    /// <summary>
+    /// Gets the current team assignment mode (Random or Manual).
+    /// </summary>
     public TeamAssignmentMode TeamAssignmentMode => teamAssignmentMode;
+
+    /// <summary>
+    /// Sets the team assignment mode.  When set to Random, players will be
+    /// automatically assigned to teams when the match starts.  When set to
+    /// Manual, teams must be assigned by the host before starting the match.
+    /// </summary>
+    /// <param name="mode">Random or Manual.</param>
+    public void SetTeamAssignmentMode(TeamAssignmentMode mode)
+    {
+        teamAssignmentMode = mode;
+    }
+
+    /// <summary>
+    /// Assigns a player to a team.  This should be called by the host when
+    /// manual team assignment is enabled.  Internally forwards the request
+    /// to the NetworkLobbyState via a server RPC.
+    /// </summary>
+    /// <param name="clientId">Client ID of the player to assign.</param>
+    /// <param name="teamId">Team index (0 = Team A, 1 = Team B, etc.).</param>
+    public void SetPlayerTeam(ulong clientId, int teamId)
+    {
+        if (NetworkLobbyState.Instance == null)
+            return;
+        // Forward the call to the network state.  Since only the host can invoke
+        // this RPC, no extra checks are needed here.
+        NetworkLobbyState.Instance.SetPlayerTeamServerRpc(clientId, teamId);
+    }
+
+    /// <summary>
+    /// Resets lobby state after a match ends.  Clears players' ready and alive
+    /// flags and returns the lobby to the Open state so another match can be
+    /// started.  Team assignments are also cleared.  Should only be invoked
+    /// by the server/host.
+    /// </summary>
+    public void ResetLobbyAfterMatch()
+    {
+        var lobbyState = NetworkLobbyState.Instance;
+        if (lobbyState != null)
+        {
+            var players = lobbyState.Players;
+            for (int i = 0; i < players.Count; i++)
+            {
+                var p = players[i];
+                p.isReady = false;
+                p.isAlive = false;
+                p.teamId = -1;
+                players[i] = p;
+            }
+        }
+        // Unlock the lobby for another match
+        CurrentState = LobbyState.Open;
+    }
 
 
     private void Awake()
@@ -131,6 +187,15 @@ public class LobbyManager : MonoBehaviour
         CurrentState = LobbyState.PostMatch;
 
         Debug.Log($"Lobby entering PostMatch. Winning team: {winningTeamId}");
+
+        // Immediately reset lobby state so players must ready up again for the next match.
+        // This will clear ready/alive flags and remove team assignments.  If a final
+        // results panel is displayed on clients, the lobby remains unlocked to
+        // allow new matches after returning to the lobby UI.
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer)
+        {
+            ResetLobbyAfterMatch();
+        }
     }
 
     // =========================

@@ -18,6 +18,32 @@ public class RoundManager : NetworkBehaviour
     public int TeamAScore { get; private set; }
     public int TeamBScore { get; private set; }
 
+    // =========================
+    // Overtime & scoring state
+    // =========================
+    // Tracks which team won the last round and how many rounds in a row they
+    // have won.  Used to determine the winner during overtime.
+    private int lastWinningTeamId = -1;
+    private int consecutiveWins = 0;
+
+    // Flag indicating whether the match is currently in overtime (sudden death).
+    // Overtime starts when both teams reach the required roundsToWin value and
+    // continues until a team wins ConsecutiveWinsRequired rounds in a row.
+    private bool isOvertime = false;
+
+    // Number of consecutive round wins required during overtime to win the match.
+    private const int ConsecutiveWinsRequired = 2;
+
+    // Pre‑round countdown durations.  The first round of the match uses a
+    // longer countdown to give players more preparation time.  Subsequent
+    // rounds use a shorter countdown.  These can be tuned per gamemode via
+    // scriptable objects if desired.
+    [SerializeField] private float firstRoundCountdown = 10f;
+    [SerializeField] private float subsequentRoundCountdown = 5f;
+
+    // Indicates whether the upcoming round is the first round of the match.
+    private bool isFirstRound = true;
+
     private GamemodeDefinition gamemode;
     private LobbyManager lobbyManager;
     private SpawnManager spawnManager;
@@ -64,6 +90,12 @@ public class RoundManager : NetworkBehaviour
 
         TeamAScore = 0;
         TeamBScore = 0;
+
+        // Reset overtime state for a new match
+        isOvertime = false;
+        lastWinningTeamId = -1;
+        consecutiveWins = 0;
+        isFirstRound = true;
 
         StartNextRound();
     }
@@ -133,6 +165,12 @@ public class RoundManager : NetworkBehaviour
             TeamAScore = 0;
             TeamBScore = 0;
 
+            // Reset overtime and round tracking for the new match
+            isOvertime = false;
+            lastWinningTeamId = -1;
+            consecutiveWins = 0;
+            isFirstRound = true;
+
             // Start the first round
             StartNextRound();
         }
@@ -156,12 +194,18 @@ public class RoundManager : NetworkBehaviour
         GameplayUtils.DisableGameplayForAllPlayers();
 
         // Begin pre‑round countdown on all clients.  Clients will display
-        // the loadout panel and countdown timer.
-        float countdownDuration = gamemode != null ? gamemode.preRoundCountdown : 3f;
+        // the loadout panel and countdown timer.  The first round of the match
+        // uses a longer countdown to allow players more time to prepare, while
+        // subsequent rounds use a shorter countdown for a snappier flow.
+        float countdownDuration = isFirstRound ? firstRoundCountdown : subsequentRoundCountdown;
         StartPreRoundClientRpc(countdownDuration);
 
         // Start server coroutine to enable gameplay and update match state once countdown expires
         StartCoroutine(BeginRoundAfterCountdown(countdownDuration));
+
+        // After scheduling the next round, mark that the first round has been
+        // completed so that subsequent rounds use the shorter countdown.
+        isFirstRound = false;
     }
 
     public void EndRound(int winningTeamId)
@@ -175,6 +219,19 @@ public class RoundManager : NetworkBehaviour
         else if (winningTeamId == 1) TeamBScore++;
 
         Debug.Log($"Round ended. Score A:{TeamAScore} B:{TeamBScore}");
+
+        // Update the consecutive win tracker.  This always updates, even if
+        // overtime has not started yet.  The logic in CheckMatchEnd will
+        // determine when these values are used.
+        if (winningTeamId == lastWinningTeamId)
+        {
+            consecutiveWins++;
+        }
+        else
+        {
+            lastWinningTeamId = winningTeamId;
+            consecutiveWins = 1;
+        }
 
         GameplayUtils.DisableGameplayForAllPlayers();
 
@@ -192,8 +249,30 @@ public class RoundManager : NetworkBehaviour
     // =========================
     private void CheckMatchEnd()
     {
-        if (TeamAScore >= gamemode.roundsToWin ||
-            TeamBScore >= gamemode.roundsToWin)
+        // If overtime has not started yet, determine whether to enter overtime
+        // or simply continue playing.  Overtime begins only once both teams
+        // reach the required roundsToWin threshold.  Prior to that, the match
+        // continues until this condition is met.
+        if (!isOvertime)
+        {
+            // Check if both teams have reached the threshold.  If not, start
+            // another round without checking for match end.
+            if (TeamAScore < gamemode.roundsToWin || TeamBScore < gamemode.roundsToWin)
+            {
+                StartNextRound();
+                return;
+            }
+
+            // Both teams have met or exceeded the roundsToWin value → enter overtime.
+            isOvertime = true;
+            // Reset the consecutive win tracker for overtime so that the team
+            // that wins two rounds in a row AFTER overtime starts wins the match.
+            lastWinningTeamId = -1;
+            consecutiveWins = 0;
+        }
+
+        // Overtime logic: a team must win the required number of consecutive rounds.
+        if (consecutiveWins >= ConsecutiveWinsRequired)
         {
             EndMatch();
         }
@@ -208,11 +287,46 @@ public class RoundManager : NetworkBehaviour
         if (!IsServer) return;
 
         CurrentState.Value = MatchState.MatchEnd;
-
         int winningTeam = TeamAScore > TeamBScore ? 0 : 1;
         Debug.Log($"Match ended. Winning team: {winningTeam}");
 
+        // Begin a coroutine to display the final results to all clients, wait
+        // a short period, and then return to the lobby.  This ensures clients
+        // have time to view the scoreboard before the lobby state resets.
+        StartCoroutine(EndMatchSequence(winningTeam));
+    }
+
+    /// <summary>
+    /// Called on the server when the match ends.  Sends the final results to
+    /// clients via a client RPC, waits for a few seconds to allow players to
+    /// read the scoreboard, then notifies the lobby manager of the match end
+    /// which resets the lobby state.
+    /// </summary>
+    /// <param name="winningTeam">The ID of the winning team.</param>
+    private IEnumerator EndMatchSequence(int winningTeam)
+    {
+        // Show results to clients
+        ShowFinalResultsClientRpc(winningTeam, TeamAScore, TeamBScore);
+        // Wait for a few seconds before returning to the lobby
+        yield return new WaitForSeconds(5f);
+        // Inform lobby manager of match end and reset lobby state
         lobbyManager.OnMatchEnded(winningTeam);
+    }
+
+    /// <summary>
+    /// Client RPC to display the final match results.  This should invoke
+    /// appropriate UI elements on clients to show which team won and the final
+    /// scores.  For now it logs the results to the console; hooking into
+    /// GameplayUIManager can be done when that script becomes available.
+    /// </summary>
+    /// <param name="winningTeam">The team that won.</param>
+    /// <param name="teamAScore">Final score for Team A.</param>
+    /// <param name="teamBScore">Final score for Team B.</param>
+    [ClientRpc]
+    private void ShowFinalResultsClientRpc(int winningTeam, int teamAScore, int teamBScore)
+    {
+        // TODO: integrate with GameplayUIManager to show a results panel on clients.
+        Debug.Log($"[CLIENT] Match over. Team {winningTeam} wins {teamAScore}–{teamBScore}");
     }
 
     private void OnMatchStateChanged(MatchState oldState, MatchState newState)

@@ -34,8 +34,11 @@ public class LobbyPlayerListUI : MonoBehaviour
 
         foreach (var p in NetworkLobbyState.Instance.Players)
         {
+            // Display the player's name along with their host/client role
             string role = p.isHost ? " (HOST)" : " (CLIENT)";
-            string line = p.name.ToString() + role;
+            // Show team information if it has been assigned (>=0)
+            string teamInfo = p.teamId >= 0 ? $" [Team {p.teamId}]" : string.Empty;
+            string line = p.name.ToString() + role + teamInfo;
 
             if (p.isReady)
                 line += " [READY]";

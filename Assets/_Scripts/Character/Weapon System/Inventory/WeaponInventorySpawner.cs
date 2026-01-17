@@ -99,7 +99,7 @@ public class WeaponInventorySpawner : NetworkBehaviour
             componentSwitcher?.RegisterWeapon(wc, ss, wh);
 
             Animator weaponAnimator = currentWeapon.GetComponent<Animator>();
-            animationController.SetWeaponAnimation(weaponAnimator);
+            animationController.SetWeaponAnimation(data, weaponAnimator);
         }
         else
         {

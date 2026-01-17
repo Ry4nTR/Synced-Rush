@@ -568,6 +568,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAnimationController
   armsAnimator: {fileID: 4121773550202162793}
   fullBodyAnimator: {fileID: 311798812297858282}
+  weaponAnimator: {fileID: 0}
   fullBodyNetSync: {fileID: 2864843101338900412}
 --- !u!114 &7510125466554032796
 MonoBehaviour:
