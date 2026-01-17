@@ -5,6 +5,7 @@ public class PlayerAnimationController : MonoBehaviour
     [Header("Animators")]
     [SerializeField] public Animator armsAnimator;
     [SerializeField] private Animator fullBodyAnimator;
+    [SerializeField] private Animator weaponAnimator;
 
     [Header("Networking (FullBody)")]
     [SerializeField] private FullBodyNetworkAnimatorSync fullBodyNetSync;
@@ -40,6 +41,10 @@ public class PlayerAnimationController : MonoBehaviour
         }
     }
 
+    public void SetWeaponAnimation(Animator wAnimator)
+    {
+        weaponAnimator = wAnimator;
+    }
 
     #region Arms & Fullbody Parameters
 
@@ -122,6 +127,7 @@ public class PlayerAnimationController : MonoBehaviour
     {
         armsAnimator.SetTrigger(ReloadHash);
         fullBodyAnimator.SetTrigger(ReloadHash);
+        weaponAnimator.SetTrigger(ReloadHash);
 
         if (fullBodyNetSync != null)
             fullBodyNetSync.NetSetTrigger(ReloadHash);

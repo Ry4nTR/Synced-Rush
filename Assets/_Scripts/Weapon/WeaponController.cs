@@ -1,6 +1,8 @@
 using System.Collections;
 using UnityEngine;
 
+[RequireComponent(typeof(Animator))]
+
 /// <summary>
 /// Manages the runtime state of a weapon on a player.
 /// </summary>
@@ -13,6 +15,7 @@ public class WeaponController : MonoBehaviour
     private WeaponNetworkHandler networkHandler;
     private Transform fireOrigin;
     private PlayerAnimationController playerAnimationController;
+    private Animator Animator;
 
     private int currentAmmo;
     private int reserveAmmo;
@@ -37,6 +40,7 @@ public class WeaponController : MonoBehaviour
         shootingSystem = GetComponent<ShootingSystem>();
         networkHandler = GetComponentInParent<WeaponNetworkHandler>();
         playerAnimationController = GetComponentInParent<PlayerAnimationController>();
+        Animator = GetComponent<Animator>();
 
         AssignFireOrigin();
     }
@@ -111,6 +115,9 @@ public class WeaponController : MonoBehaviour
         if (isReloading || currentAmmo >= weaponData.magazineSize || reserveAmmo <= 0)
             return;
 
+        // Play reload animation if available
+        playerAnimationController.Reload();
+
         StartCoroutine(ReloadCoroutine());
     }
 
@@ -118,9 +125,6 @@ public class WeaponController : MonoBehaviour
     private IEnumerator ReloadCoroutine()
     {
         isReloading = true;
-
-        // Play reload animation if available
-
 
         // Wait for the reload time (VEDI SE PUOI USARE UN EVENTO ALL'INTERNO DELL'ANIMAZIONE)
         yield return new WaitForSeconds(weaponData.reloadTime);

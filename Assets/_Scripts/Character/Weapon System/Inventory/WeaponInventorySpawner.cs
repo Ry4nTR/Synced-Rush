@@ -74,12 +74,13 @@ public class WeaponInventorySpawner : NetworkBehaviour
             return;
         }
 
+        Animator animator = animationController.GetComponent<Animator>();
+
         animationController.Equip();
         animationController?.SetWeaponAnimations(data);
 
         SpawnModels(data);
     }
-
 
     //Spawning weapon models
     private void SpawnModels(WeaponData data)
@@ -96,6 +97,9 @@ public class WeaponInventorySpawner : NetworkBehaviour
             var wh = currentWeapon.GetComponentInParent<WeaponNetworkHandler>();
 
             componentSwitcher?.RegisterWeapon(wc, ss, wh);
+
+            Animator weaponAnimator = currentWeapon.GetComponent<Animator>();
+            animationController.SetWeaponAnimation(weaponAnimator);
         }
         else
         {
