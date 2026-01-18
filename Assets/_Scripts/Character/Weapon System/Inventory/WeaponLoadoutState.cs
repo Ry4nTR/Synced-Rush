@@ -15,7 +15,7 @@ public class WeaponLoadoutState : NetworkBehaviour
     {
         base.OnNetworkSpawn();
 
-        if (IsOwner && LocalWeaponSelection.SelectedWeaponId > 0)
+        if (IsOwner && LocalWeaponSelection.SelectedWeaponId >= 0)
             RequestEquipServerRpc(LocalWeaponSelection.SelectedWeaponId);
     }
 

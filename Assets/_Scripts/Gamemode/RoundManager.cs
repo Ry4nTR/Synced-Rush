@@ -18,26 +18,13 @@ public class RoundManager : NetworkBehaviour
     public int TeamAScore { get; private set; }
     public int TeamBScore { get; private set; }
 
-    // =========================
-    // Overtime & scoring state
-    // =========================
-    // Tracks which team won the last round and how many rounds in a row they
-    // have won.  Used to determine the winner during overtime.
     private int lastWinningTeamId = -1;
     private int consecutiveWins = 0;
 
-    // Flag indicating whether the match is currently in overtime (sudden death).
-    // Overtime starts when both teams reach the required roundsToWin value and
-    // continues until a team wins ConsecutiveWinsRequired rounds in a row.
     private bool isOvertime = false;
 
-    // Number of consecutive round wins required during overtime to win the match.
     private const int ConsecutiveWinsRequired = 2;
 
-    // Pre‑round countdown durations.  The first round of the match uses a
-    // longer countdown to give players more preparation time.  Subsequent
-    // rounds use a shorter countdown.  These can be tuned per gamemode via
-    // scriptable objects if desired.
     [SerializeField] private float firstRoundCountdown = 10f;
     [SerializeField] private float subsequentRoundCountdown = 5f;
 
@@ -100,11 +87,7 @@ public class RoundManager : NetworkBehaviour
         StartNextRound();
     }
 
-    /// <summary>
-    /// Starts a match by loading the selected map scene and initializing the round
-    /// system once the scene load completes. This method should only be called
-    /// by the host/server.
-    /// </summary>
+    // Starts a match by loading the selected map scene and initializing the round system once the scene load completes.
     public void StartMatch(LobbyManager lobby, GamemodeDefinition mode, MapDefinition map)
     {
         if (!IsServer)
@@ -118,7 +101,12 @@ public class RoundManager : NetworkBehaviour
         // Subscribe to scene events so we know when the map scene has finished loading
         NetworkManager.SceneManager.OnSceneEvent += OnSceneEvent;
 
-        // Attempt to load the map scene. Scenes must be added to the Build Settings.
+        // Attempt to load the map scene.
+        if (LoadingScreenManager.Instance != null)
+        {
+            LoadingScreenManager.Instance.Show();
+        }
+
         var status = NetworkManager.SceneManager.LoadScene(currentMap.sceneName, LoadSceneMode.Single);
         if (status != SceneEventProgressStatus.Started)
         {
@@ -128,8 +116,7 @@ public class RoundManager : NetworkBehaviour
         }
     }
 
-    // Callback for Netcode scene events. When the selected map finishes loading,
-    // initialize the round system and spawn players.
+    // When the selected map finishes loading, initialize the round system and spawn players.
     private void OnSceneEvent(SceneEvent sceneEvent)
     {
         // Only act on LoadEventCompleted events for the current map
@@ -171,6 +158,12 @@ public class RoundManager : NetworkBehaviour
             consecutiveWins = 0;
             isFirstRound = true;
 
+            // Hide the loading screen now that the map and managers are ready
+            if (LoadingScreenManager.Instance != null)
+            {
+                LoadingScreenManager.Instance.Hide();
+            }
+
             // Start the first round
             StartNextRound();
         }
@@ -193,10 +186,7 @@ public class RoundManager : NetworkBehaviour
         // Disable gameplay inputs for all players during the pre‑round countdown
         GameplayUtils.DisableGameplayForAllPlayers();
 
-        // Begin pre‑round countdown on all clients.  Clients will display
-        // the loadout panel and countdown timer.  The first round of the match
-        // uses a longer countdown to allow players more time to prepare, while
-        // subsequent rounds use a shorter countdown for a snappier flow.
+        // Begin pre‑round countdown on all clients.
         float countdownDuration = isFirstRound ? firstRoundCountdown : subsequentRoundCountdown;
         StartPreRoundClientRpc(countdownDuration);
 
@@ -220,9 +210,7 @@ public class RoundManager : NetworkBehaviour
 
         Debug.Log($"Round ended. Score A:{TeamAScore} B:{TeamBScore}");
 
-        // Update the consecutive win tracker.  This always updates, even if
-        // overtime has not started yet.  The logic in CheckMatchEnd will
-        // determine when these values are used.
+        // Update the consecutive win tracker.
         if (winningTeamId == lastWinningTeamId)
         {
             consecutiveWins++;
@@ -249,14 +237,11 @@ public class RoundManager : NetworkBehaviour
     // =========================
     private void CheckMatchEnd()
     {
-        // If overtime has not started yet, determine whether to enter overtime
-        // or simply continue playing.  Overtime begins only once both teams
-        // reach the required roundsToWin threshold.  Prior to that, the match
-        // continues until this condition is met.
+        // If overtime has not started yet, determine whether to enter overtime or simply continue playing.
         if (!isOvertime)
         {
-            // Check if both teams have reached the threshold.  If not, start
-            // another round without checking for match end.
+            // Check if both teams have reached the threshold.
+            // If not, start another round without checking for match end.
             if (TeamAScore < gamemode.roundsToWin || TeamBScore < gamemode.roundsToWin)
             {
                 StartNextRound();
@@ -290,19 +275,11 @@ public class RoundManager : NetworkBehaviour
         int winningTeam = TeamAScore > TeamBScore ? 0 : 1;
         Debug.Log($"Match ended. Winning team: {winningTeam}");
 
-        // Begin a coroutine to display the final results to all clients, wait
-        // a short period, and then return to the lobby.  This ensures clients
-        // have time to view the scoreboard before the lobby state resets.
+        // Begin a coroutine to display the final results to all clients
         StartCoroutine(EndMatchSequence(winningTeam));
     }
 
-    /// <summary>
-    /// Called on the server when the match ends.  Sends the final results to
-    /// clients via a client RPC, waits for a few seconds to allow players to
-    /// read the scoreboard, then notifies the lobby manager of the match end
-    /// which resets the lobby state.
-    /// </summary>
-    /// <param name="winningTeam">The ID of the winning team.</param>
+    // Called on the server when the match ends.
     private IEnumerator EndMatchSequence(int winningTeam)
     {
         // Show results to clients
@@ -313,15 +290,7 @@ public class RoundManager : NetworkBehaviour
         lobbyManager.OnMatchEnded(winningTeam);
     }
 
-    /// <summary>
-    /// Client RPC to display the final match results.  This should invoke
-    /// appropriate UI elements on clients to show which team won and the final
-    /// scores.  For now it logs the results to the console; hooking into
-    /// GameplayUIManager can be done when that script becomes available.
-    /// </summary>
-    /// <param name="winningTeam">The team that won.</param>
-    /// <param name="teamAScore">Final score for Team A.</param>
-    /// <param name="teamBScore">Final score for Team B.</param>
+    // Client RPC to display the final match results.
     [ClientRpc]
     private void ShowFinalResultsClientRpc(int winningTeam, int teamAScore, int teamBScore)
     {
@@ -350,14 +319,12 @@ public class RoundManager : NetworkBehaviour
     // =========================
     // Pre‑round Countdown
     // =========================
-    /// <summary>
-    /// Invoked on all clients at the start of a new round.  Shows the loadout
-    /// selection UI and starts the countdown timer for the specified duration.
-    /// </summary>
-    /// <param name="duration">Length of the countdown in seconds.</param>
+    // Invoked on all clients at the start of a new round.
     [ClientRpc]
     private void StartPreRoundClientRpc(float duration)
     {
+        GameplayUtils.DisableGameplayForAllPlayers();
+
         // Only local clients handle UI.  Show the loadout panel and start the countdown.
         var ui = GameplayUIManager.Instance;
         if (ui != null)
@@ -372,11 +339,8 @@ public class RoundManager : NetworkBehaviour
         }
     }
 
-    /// <summary>
-    /// Server coroutine that waits for the pre‑round countdown to finish before
-    /// enabling gameplay and setting the match state to InRound.
-    /// </summary>
-    /// <param name="duration">Duration of the countdown.</param>
+    // Server coroutine that waits for the pre‑round countdown to finish before
+    // enabling gameplay and setting the match state to InRound.
     private IEnumerator BeginRoundAfterCountdown(float duration)
     {
         yield return new WaitForSeconds(duration);

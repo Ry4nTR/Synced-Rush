@@ -1,16 +1,8 @@
 using UnityEngine;
+using System;
 
 /// <summary>
-/// Manages the in–match UI panels for the player.  This includes the round
-/// countdown panel, weapon loadout selection panel, HUD and pause/exit
-/// menus.  Panels are controlled via their CanvasGroup rather than
-/// enabling/disabling GameObjects so they can be faded in/out and
-/// maintain their layout.
-///
-/// The manager exposes methods that can be called by game logic (e.g.,
-/// RoundManager or input actions) to show or hide specific panels.  It
-/// also provides a countdown coroutine which updates a TMP_Text during
-/// the pre‑round timer.
+/// Manages the in–match UI panels for the player.
 /// </summary>
 public class GameplayUIManager : MonoBehaviour
 {
@@ -23,6 +15,13 @@ public class GameplayUIManager : MonoBehaviour
     [SerializeField] private CanvasGroup weaponSelectorPanel;
     [SerializeField] private CanvasGroup hudPanel;
     [SerializeField] private CanvasGroup PausePanel;
+
+    [Header("Weapon Selection")]
+    [Tooltip("Reference to the weapon selector panel used to equip weapons.")]
+    [SerializeField] private WeaponSelectorPanel weaponSelector;
+
+    [Tooltip("Weapon ID to equip automatically if the player has not selected a weapon by the end of the countdown.")]
+    [SerializeField] private int defaultWeaponId = 0;
 
     private void Awake()
     {
@@ -60,28 +59,16 @@ public class GameplayUIManager : MonoBehaviour
     #endregion
 
     #region Public API
-    /// <summary>
-    /// Displays the weapon loadout selection panel by delegating to its own
-    /// controller.  Typically called when a round starts or when the player
-    /// presses the loadout toggle action.
-    /// </summary>
     public void ShowLoadoutPanel()
     {
         ShowCanvasGroup(weaponSelectorPanel);
     }
 
-    /// <summary>
-    /// Hides the weapon loadout selection panel.
-    /// </summary>
     public void HideLoadoutPanel()
     {
         HideCanvasGroup(weaponSelectorPanel);
     }
 
-    /// <summary>
-    /// Toggles the loadout panel on or off.  If the panel is visible it will be
-    /// hidden, and vice‑versa.
-    /// </summary>
     public void ToggleLoadoutPanel()
     {
         if (weaponSelectorPanel == null) return;
@@ -91,17 +78,11 @@ public class GameplayUIManager : MonoBehaviour
             ShowCanvasGroup(weaponSelectorPanel);
     }
 
-    /// <summary>
-    /// Shows the main HUD.  Use this after hiding loadout or countdown panels.
-    /// </summary>
     public void ShowHUD()
     {
         ShowCanvasGroup(hudPanel);
     }
 
-    /// <summary>
-    /// Hides the main HUD.
-    /// </summary>
     public void HideHUD()
     {
         HideCanvasGroup(hudPanel);
@@ -127,19 +108,34 @@ public class GameplayUIManager : MonoBehaviour
     /// Starts a pre‑round countdown by delegating to the countdown panel.  Shows
     /// the countdown UI and invokes a callback when finished.
     /// </summary>
-    /// <param name="seconds">Duration of the countdown in seconds.</param>
-    /// <param name="onFinished">Optional callback invoked when the timer hits zero.</param>
     public void StartCountdown(float seconds, System.Action onFinished = null)
     {
         if (countdownPanel == null || countdownController == null)
             return;
         ShowCanvasGroup(countdownPanel);
+
+        weaponSelector.OpenPreRound();
+
+        // When the countdown finishes we need to ensure the player either has
+        // selected a weapon or is equipped with the default.  After assigning
+        // the weapon we hide the loadout panel and show the HUD before invoking
+        // any additional completion callback.
         countdownController.StartCountdown(seconds, () =>
         {
             HideCanvasGroup(countdownPanel);
+            OnCountdownFinished();
             onFinished?.Invoke();
         });
     }
+
+    /// <summary>
+    /// Invoked internally when the pre‑round countdown finishes.
+    /// </summary>
+    private void OnCountdownFinished()
+    {
+        weaponSelector.OnCountdownFinished();
+    }
+
 
     /// <summary>
     /// Cancels an active countdown if one is running.

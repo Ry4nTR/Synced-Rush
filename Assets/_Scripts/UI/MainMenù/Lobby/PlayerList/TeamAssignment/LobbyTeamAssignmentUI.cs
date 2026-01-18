@@ -1,96 +1,107 @@
+using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using Unity.Netcode;
-using Unity.Netcode.Components;
+using UnityEngine;
 
-/// <summary>
-/// Hosts a drag‑and‑drop team assignment UI in the lobby.  Players are
-/// represented by draggable list items which can be dropped into team zones.
-/// This script listens to the NetworkLobbyState.Players network list and
-/// rebuilds the UI whenever the list changes.  Only the host can drag
-/// players; clients will see an updated list but cannot interact.
-/// </summary>
 public class LobbyTeamAssignmentUI : MonoBehaviour
 {
+    [Header("Prefab")]
+    [SerializeField] private LobbyPlayerItemUI playerItemPrefab;
+
     [Header("Containers")]
-    [Tooltip("The container that holds players who have not yet been assigned a team.")]
     [SerializeField] private Transform unassignedContainer;
 
-    [Tooltip("List of drop zones corresponding to each team.  The index in this list is the team ID.")]
-    [SerializeField] private List<TeamDropZone> teamZones;
+    [Header("Team Drop Zones (Team A/B only)")]
+    [SerializeField] private List<TeamDropZone> teamDropZones = new();
 
-    [Header("Prefabs")]
-    [Tooltip("Prefab used to represent a player in the list.  Must contain a LobbyPlayerItemUI component.")]
-    [SerializeField] private GameObject playerItemPrefab;
+    private NetworkLobbyState lobbyState;
 
     private void OnEnable()
     {
-        Refresh();
-        if (NetworkLobbyState.Instance != null)
-        {
-            NetworkLobbyState.Instance.Players.OnListChanged += OnPlayersChanged;
-        }
+        // Start a safe init that waits until NetworkLobbyState exists
+        StartCoroutine(InitWhenReady());
     }
 
     private void OnDisable()
     {
-        if (NetworkLobbyState.Instance != null)
-        {
-            NetworkLobbyState.Instance.Players.OnListChanged -= OnPlayersChanged;
-        }
+        if (lobbyState != null && lobbyState.Players != null)
+            lobbyState.Players.OnListChanged -= OnPlayersChanged;
     }
 
-    private void OnPlayersChanged(NetworkListEvent<NetLobbyPlayer> _)
+    private IEnumerator InitWhenReady()
     {
-        Refresh();
+        // Wait for NetworkManager and NetworkLobbyState to exist
+        while (NetworkManager.Singleton == null || NetworkLobbyState.Instance == null)
+            yield return null;
+
+        lobbyState = NetworkLobbyState.Instance;
+
+        // Subscribe once
+        lobbyState.Players.OnListChanged -= OnPlayersChanged;
+        lobbyState.Players.OnListChanged += OnPlayersChanged;
+
+        // Build immediately
+        RebuildUI();
     }
 
-    /// <summary>
-    /// Rebuilds the player list UI.  Clears existing items and recreates
-    /// them based on the current network lobby state.  Players with an
-    /// assigned teamId are placed under their respective team drop zone;
-    /// others go into the unassigned container.
-    /// </summary>
-    public void Refresh()
+    private void OnPlayersChanged(Unity.Netcode.NetworkListEvent<NetLobbyPlayer> _)
     {
-        // Clear existing children from all containers
-        ClearChildren(unassignedContainer);
-        foreach (var zone in teamZones)
-        {
-            ClearChildren(zone.container);
-        }
+        RebuildUI();
+    }
 
-        // Rebuild from network state
-        if (NetworkLobbyState.Instance == null || playerItemPrefab == null)
+    private void RebuildUI()
+    {
+        if (playerItemPrefab == null)
+        {
+            Debug.LogError("[LobbyTeamAssignmentUI] Player Item Prefab is NOT assigned.");
             return;
+        }
 
-        foreach (var p in NetworkLobbyState.Instance.Players)
+        if (unassignedContainer == null)
         {
-            var go = Instantiate(playerItemPrefab);
-            var item = go.GetComponent<LobbyPlayerItemUI>();
-            if (item != null)
+            Debug.LogError("[LobbyTeamAssignmentUI] Unassigned Container is NOT assigned.");
+            return;
+        }
+
+        if (lobbyState == null)
+        {
+            Debug.LogWarning("[LobbyTeamAssignmentUI] No lobbyState yet.");
+            return;
+        }
+
+        // Clear existing items
+        ClearChildren(unassignedContainer);
+        foreach (var dz in teamDropZones)
+        {
+            if (dz != null && dz.Container != null)
+                ClearChildren(dz.Container);
+        }
+
+        bool isHost = NetworkManager.Singleton.IsHost;
+
+        // Recreate all items from the network list
+        foreach (var p in lobbyState.Players)
+        {
+            var item = Instantiate(playerItemPrefab);
+            item.SetData(p, isHost);
+
+            Transform parent = unassignedContainer;
+
+            // Team assignment
+            if (p.teamId >= 0)
             {
-                item.Initialize(p.clientId, p.name.ToString(), p.isReady, p.isHost);
+                var dz = teamDropZones.Find(z => z != null && z.TeamId == p.teamId);
+                if (dz != null && dz.Container != null)
+                    parent = dz.Container;
             }
 
-            // Assign to the correct team container or the unassigned container
-            int teamId = p.teamId;
-            if (teamId >= 0 && teamId < teamZones.Count)
-            {
-                go.transform.SetParent(teamZones[teamId].container, false);
-            }
-            else
-            {
-                go.transform.SetParent(unassignedContainer, false);
-            }
+            item.transform.SetParent(parent, false);
         }
     }
 
     private void ClearChildren(Transform parent)
     {
         for (int i = parent.childCount - 1; i >= 0; i--)
-        {
             Destroy(parent.GetChild(i).gameObject);
-        }
     }
 }

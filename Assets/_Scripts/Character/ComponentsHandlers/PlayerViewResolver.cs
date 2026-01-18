@@ -9,16 +9,12 @@ public class PlayerViewResolver : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        // Visual logic is CLIENT-ONLY
-        if (!IsClient)
-            return;
-
         ResolveView();
     }
 
     private void ResolveView()
     {
-        if (IsLocalPlayer)
+        if (IsOwner)
         {
             // Local player (FPS view)
             SetFullBodyVisible(false);

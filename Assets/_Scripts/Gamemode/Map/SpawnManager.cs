@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 
@@ -15,8 +15,16 @@ public class SpawnManager : MonoBehaviour
 
     public void Initialize(LobbyManager lobby)
     {
+        // At the start of a match we need to locate the map's spawn point data.
         if (spawnPoints == null)
-            Debug.LogError("MapSpawnPoints not found in scene");
+        {
+            spawnPoints = FindAnyObjectByType<MapSpawnPoints>();
+            if (spawnPoints == null)
+            {
+                Debug.LogError("MapSpawnPoints not found in scene");
+                return;
+            }
+        }
     }
 
     // =========================

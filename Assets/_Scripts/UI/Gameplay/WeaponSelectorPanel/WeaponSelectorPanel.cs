@@ -4,26 +4,29 @@ using UnityEngine.InputSystem;
 
 public class WeaponSelectorPanel : MonoBehaviour
 {
+    [SerializeField] private int defaultWeaponId = 0;
+
     private PlayerInput playerInput;
     private ClientComponentSwitcher componentSwitcher;
     private GameplayUIManager uiManager;
-
     private bool isOpen;
-
 
     private void Start()
     {
         uiManager = GameplayUIManager.Instance;
-
-        // Bind when a client connects
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+    }
+
+    private void OnDestroy()
+    {
+        if (NetworkManager.Singleton != null)
+            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
     }
 
     private void OnClientConnected(ulong clientId)
     {
         if (clientId != NetworkManager.Singleton.LocalClientId)
             return;
-
         TryBindPlayer();
     }
 
@@ -35,60 +38,70 @@ public class WeaponSelectorPanel : MonoBehaviour
         playerInput = player.GetComponent<PlayerInput>();
         componentSwitcher = player.GetComponent<ClientComponentSwitcher>();
 
-        // bind once
         var action = playerInput.actions["ToggleWeaponPanel"];
         action.performed -= OnTogglePerformed;
         action.performed += OnTogglePerformed;
     }
 
-    // =========================
-    // IN-GAME TOGGLE
-    // =========================
+    // Toggle loadout panel during a live match
     private void OnTogglePerformed(InputAction.CallbackContext ctx)
-    {
-        ToggleInGame();
-    }
-    private void ToggleInGame()
     {
         if (!isOpen)
         {
             uiManager.ShowLoadoutPanel();
             uiManager.HideHUD();
-            componentSwitcher?.EnableUI();
+            componentSwitcher?.SetState_Loadout();
             isOpen = true;
         }
         else
         {
             uiManager.HideLoadoutPanel();
             uiManager.ShowHUD();
-            componentSwitcher?.EnableGameplay();
+            componentSwitcher?.SetState_Gameplay();
             isOpen = false;
         }
     }
 
-    // =========================
-    // WEAPON SELECTION
-    // =========================
+    // Called by GameplayUIManager when the pre‑round countdown starts
+    public void OpenPreRound()
+    {
+        uiManager.ShowLoadoutPanel();
+        uiManager.HideHUD();
+        componentSwitcher?.SetState_Loadout();
+        isOpen = true;
+    }
+
+    // Called when the player clicks a weapon
     public void SelectWeapon(int weaponId)
     {
         LocalWeaponSelection.SelectedWeaponId = weaponId;
 
         var player = NetworkManager.Singleton.LocalClient?.PlayerObject;
-        if (player == null) return;
-
-        var loadout = player.GetComponent<WeaponLoadoutState>();
-        loadout?.RequestEquip(weaponId);
+        if (player != null)
+        {
+            var loadout = player.GetComponent<WeaponLoadoutState>();
+            loadout?.RequestEquip(weaponId);
+        }
 
         uiManager.HideLoadoutPanel();
         uiManager.ShowHUD();
-        componentSwitcher?.EnableGameplay();
+        componentSwitcher?.SetState_Gameplay();
         isOpen = false;
     }
 
-    private void OnDestroy()
+    // Called when the countdown finishes
+    public void OnCountdownFinished()
     {
-        if (NetworkManager.Singleton != null)
-            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
+        if (LocalWeaponSelection.SelectedWeaponId < 0)
+        {
+            SelectWeapon(defaultWeaponId);
+        }
+        else
+        {
+            uiManager.HideLoadoutPanel();
+            uiManager.ShowHUD();
+            componentSwitcher?.SetState_Gameplay();
+            isOpen = false;
+        }
     }
-
 }

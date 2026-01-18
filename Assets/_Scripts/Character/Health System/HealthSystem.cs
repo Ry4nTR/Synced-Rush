@@ -81,6 +81,6 @@ public class HealthSystem : NetworkBehaviour, IDamageable
     {
         var switcher = GetComponent<ClientComponentSwitcher>();
         if (switcher != null)
-            switcher.EnableUI();
+            switcher.SetState_UIMenu();
     }
 }

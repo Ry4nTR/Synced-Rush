@@ -100,6 +100,15 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": ""Press(pressPoint=1.401298E-45)"",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""ToggleExitPanel"",
+                    ""type"": ""Button"",
+                    ""id"": ""a08e37cb-e79a-4a6e-99cc-dc7e4027bc9e"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -111,6 +120,17 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""ToggleWeaponPanel"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""ed005a9d-f1f6-4fba-98cb-720c015021b1"",
+                    ""path"": ""<Keyboard>/escape"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ToggleExitPanel"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -733,6 +753,7 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
         // Global
         m_Global = asset.FindActionMap("Global", throwIfNotFound: true);
         m_Global_ToggleWeaponPanel = m_Global.FindAction("ToggleWeaponPanel", throwIfNotFound: true);
+        m_Global_ToggleExitPanel = m_Global.FindAction("ToggleExitPanel", throwIfNotFound: true);
         // Player
         m_Player = asset.FindActionMap("Player", throwIfNotFound: true);
         m_Player_Move = m_Player.FindAction("Move", throwIfNotFound: true);
@@ -836,6 +857,7 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
     private readonly InputActionMap m_Global;
     private List<IGlobalActions> m_GlobalActionsCallbackInterfaces = new List<IGlobalActions>();
     private readonly InputAction m_Global_ToggleWeaponPanel;
+    private readonly InputAction m_Global_ToggleExitPanel;
     /// <summary>
     /// Provides access to input actions defined in input action map "Global".
     /// </summary>
@@ -851,6 +873,10 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Global/ToggleWeaponPanel".
         /// </summary>
         public InputAction @ToggleWeaponPanel => m_Wrapper.m_Global_ToggleWeaponPanel;
+        /// <summary>
+        /// Provides access to the underlying input action "Global/ToggleExitPanel".
+        /// </summary>
+        public InputAction @ToggleExitPanel => m_Wrapper.m_Global_ToggleExitPanel;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -880,6 +906,9 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
             @ToggleWeaponPanel.started += instance.OnToggleWeaponPanel;
             @ToggleWeaponPanel.performed += instance.OnToggleWeaponPanel;
             @ToggleWeaponPanel.canceled += instance.OnToggleWeaponPanel;
+            @ToggleExitPanel.started += instance.OnToggleExitPanel;
+            @ToggleExitPanel.performed += instance.OnToggleExitPanel;
+            @ToggleExitPanel.canceled += instance.OnToggleExitPanel;
         }
 
         /// <summary>
@@ -894,6 +923,9 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
             @ToggleWeaponPanel.started -= instance.OnToggleWeaponPanel;
             @ToggleWeaponPanel.performed -= instance.OnToggleWeaponPanel;
             @ToggleWeaponPanel.canceled -= instance.OnToggleWeaponPanel;
+            @ToggleExitPanel.started -= instance.OnToggleExitPanel;
+            @ToggleExitPanel.performed -= instance.OnToggleExitPanel;
+            @ToggleExitPanel.canceled -= instance.OnToggleExitPanel;
         }
 
         /// <summary>
@@ -1287,6 +1319,13 @@ public partial class @PlayerInputSystem: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnToggleWeaponPanel(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "ToggleExitPanel" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnToggleExitPanel(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Player" which allows adding and removing callbacks.

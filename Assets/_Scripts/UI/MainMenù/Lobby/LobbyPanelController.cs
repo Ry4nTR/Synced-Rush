@@ -117,6 +117,19 @@ public class LobbyPanelController : MonoBehaviour
         // Lock lobby state to prevent changes while the match is running
         LobbyManager.Instance.LockLobby();
 
+        // Show a loading screen and hide the lobby UI so the player doesn't
+        // see both the lobby and in‑game UIs at the same time.  The loading
+        // screen will remain visible until the map scene finishes loading
+        // and RoundManager hides it.  Only do this on the host as clients
+        // receive the scene load automatically.
+        if (LoadingScreenManager.Instance != null)
+        {
+            LoadingScreenManager.Instance.Show();
+        }
+        // Optionally hide the lobby panel itself to avoid duplicated UI on
+        // scene load.  The panel will be re‑shown when returning to the lobby.
+        gameObject.SetActive(false);
+
         // Perform automatic team assignment if the lobby is set to Random.  Teams
         // will be assigned only once before the match starts.
         if (LobbyManager.Instance != null &&
@@ -137,7 +150,6 @@ public class LobbyPanelController : MonoBehaviour
             return;
         }
 
-        // Start the match on the server
         roundManager.StartMatch(LobbyManager.Instance, gamemode, map);
     }
 

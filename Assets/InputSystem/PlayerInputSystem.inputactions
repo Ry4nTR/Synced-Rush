@@ -14,6 +14,15 @@
                     "processors": "",
                     "interactions": "Press(pressPoint=1.401298E-45)",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "ToggleExitPanel",
+                    "type": "Button",
+                    "id": "a08e37cb-e79a-4a6e-99cc-dc7e4027bc9e",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -25,6 +34,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "ToggleWeaponPanel",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "ed005a9d-f1f6-4fba-98cb-720c015021b1",
+                    "path": "<Keyboard>/escape",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ToggleExitPanel",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

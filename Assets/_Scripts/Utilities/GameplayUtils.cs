@@ -1,5 +1,4 @@
 using Unity.Netcode;
-using UnityEngine;
 
 public static class GameplayUtils
 {
@@ -16,7 +15,7 @@ public static class GameplayUtils
             var switcher = playerObject.GetComponent<ClientComponentSwitcher>();
             if (switcher != null)
             {
-                switcher.EnableGameplay();
+                switcher.SetState_Gameplay();
             }
         }
     }
@@ -34,7 +33,7 @@ public static class GameplayUtils
             var switcher = playerObject.GetComponent<ClientComponentSwitcher>();
             if (switcher != null)
             {
-                switcher.EnableUI();
+                switcher.SetState_Loadout();
             }
         }
     }

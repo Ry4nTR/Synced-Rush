@@ -32,8 +32,6 @@ public class MatchmakingManager : MonoBehaviour
         if (NetworkManager.Singleton.StartHost())
         {
             Debug.Log("[NET] Host started");
-            Debug.Log("[NET] Host IP: " + GetLocalIP());
-            Debug.Log("[NET] Port: 7777");
         }
     }
 

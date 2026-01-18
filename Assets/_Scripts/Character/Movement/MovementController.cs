@@ -215,7 +215,7 @@ public class MovementController : NetworkBehaviour
         if (!IsSpawned)
             return;
 
-        Debug.Log("IsOnGround:" + IsOnGround.ToString());
+        //Debug.Log("IsOnGround:" + IsOnGround.ToString());
 
         // 1. Server: simulazione autorevole
         if (IsServer)

@@ -13,7 +13,6 @@ public class NetworkLobbyState : NetworkBehaviour
 
     private void Awake()
     {
-        // Ensure a single persistent instance
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -22,7 +21,6 @@ public class NetworkLobbyState : NetworkBehaviour
         Instance = this;
         Players = new NetworkList<NetLobbyPlayer>();
 
-        // Persist across scene loads so lobby and game scenes share the same lobby state
         DontDestroyOnLoad(gameObject);
     }
 

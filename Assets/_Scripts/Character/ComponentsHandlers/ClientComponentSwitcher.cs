@@ -101,12 +101,18 @@ public class ClientComponentSwitcher : NetworkBehaviour
         if (healthSystem != null) healthSystem.enabled = isServer;
 
 
-
-
         // Register the player to the UI Manager (IMPORTANT: after all components are set up)
         if (isOwner)
         {
-            uiManager.UIRegisterPlayer(gameObject);
+            // Attempt to fetch UIManager if it’s still null
+            if (uiManager == null)
+            {
+                uiManager = UIManager.Instance;
+            }
+            if (uiManager != null)
+            {
+                uiManager.UIRegisterPlayer(gameObject);
+            }
         }
     }
 
@@ -135,48 +141,46 @@ public class ClientComponentSwitcher : NetworkBehaviour
         if (weaponNetworkHandler != null) weaponNetworkHandler.enabled = isServer || isOwner;
     }
 
-    // Enables gameplay-related components for the owning client.
-    public void EnableGameplay()
+    public void SetState_UIMenu()
     {
-        if (!IsOwner) return;
+        playerInput.SwitchCurrentActionMap("UI");
+        inputHandler.ClearAllInputs();
+        inputHandler.enabled = false;
+        lookController.enabled = false;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
 
-        Debug.Log("Switching to Player action map");
+    public void SetState_Loadout()
+    {
+        // UI mode but keep ability to select weapons
+        playerInput.SwitchCurrentActionMap("UI");
+        inputHandler.ClearAllInputs();
+        inputHandler.enabled = false;
+        lookController.enabled = false;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
+    public void SetState_Gameplay()
+    {
         playerInput.SwitchCurrentActionMap("Player");
-
         inputHandler.enabled = true;
         lookController.enabled = true;
-
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
-    public void DisableGameplay()
+    public void LockCursorOnly()
     {
         if (!IsOwner) return;
 
-        Debug.Log("Disabling gameplay components");
-
+        // Keep UI map or switch to Player map – doesn't matter if inputs are disabled
         inputHandler.ClearAllInputs();
         inputHandler.enabled = false;
         lookController.enabled = false;
 
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-    }
-
-    // Enables UI-related components for the owning client.
-    public void EnableUI()
-    {
-        if (!IsOwner) return;
-
-        Debug.Log("Switching to UI action map");
-        playerInput.SwitchCurrentActionMap("UI");
-
-        inputHandler.ClearAllInputs();
-        inputHandler.enabled = false;
-        lookController.enabled = false;
-
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 }

@@ -2,85 +2,110 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using Unity.Netcode;
 
-/// <summary>
-/// Represents a single player in the lobby team assignment UI.  Supports
-/// dragging by the host to assign players to teams.  Clients will see
-/// the items but cannot drag them.  This script requires a CanvasGroup
-/// component for drag visual behaviour.
-/// </summary>
 public class LobbyPlayerItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
+    [Header("UI")]
     [SerializeField] private TextMeshProUGUI nameText;
     [SerializeField] private Image readyIndicator;
     [SerializeField] private Image hostIndicator;
     [SerializeField] private CanvasGroup canvasGroup;
+    [SerializeField] private GameObject dragHandle;
 
-    // The clientId of the player represented by this UI element
     public ulong ClientId { get; private set; }
 
-    // Original parent transform used to restore the item after dragging
+    private RectTransform rectTransform;
     private Transform originalParent;
-    // Reference to the root canvas to ensure the dragged item appears on top of other UI elements
+    private bool canDrag;
+
     private Canvas rootCanvas;
+    private RectTransform canvasRect;
+    private Vector2 pointerOffset;
 
     private void Awake()
     {
-        if (canvasGroup == null)
-            canvasGroup = GetComponent<CanvasGroup>();
-        rootCanvas = GetComponentInParent<Canvas>();
-        if (rootCanvas != null)
-        {
-            // Find the topmost canvas
-            var canvases = GetComponentsInParent<Canvas>();
-            rootCanvas = canvases.Length > 0 ? canvases[canvases.Length - 1] : rootCanvas;
-        }
+        rectTransform = GetComponent<RectTransform>();
+        if (canvasGroup == null) canvasGroup = GetComponent<CanvasGroup>();
     }
 
-    /// <summary>
-    /// Initializes this UI item with player data.
-    /// </summary>
-    public void Initialize(ulong clientId, string playerName, bool isReady, bool isHost)
+    public void SetData(NetLobbyPlayer p, bool isHostClient)
     {
-        ClientId = clientId;
-        if (nameText != null)
-            nameText.text = playerName;
-        if (readyIndicator != null)
-            readyIndicator.gameObject.SetActive(isReady);
-        if (hostIndicator != null)
-            hostIndicator.gameObject.SetActive(isHost);
+        ClientId = p.clientId;
+
+        canDrag = isHostClient; // host can drag everyone (including self)
+        if (dragHandle) dragHandle.SetActive(isHostClient);
+
+        if (nameText) nameText.text = p.name.ToString();
+        if (readyIndicator) readyIndicator.enabled = p.isReady;
+        if (hostIndicator) hostIndicator.enabled = p.isHost;
     }
 
-    // Drag handlers
+    private bool EnsureCanvas()
+    {
+        // Find the closest canvas at the moment we start dragging
+        if (rootCanvas == null)
+        {
+            rootCanvas = GetComponentInParent<Canvas>();
+            if (rootCanvas == null)
+                rootCanvas = FindAnyObjectByType<Canvas>(); // last resort
+        }
+
+        if (rootCanvas == null)
+            return false;
+
+        canvasRect = rootCanvas.transform as RectTransform;
+        return canvasRect != null;
+    }
+
     public void OnBeginDrag(PointerEventData eventData)
     {
-        // Only the host can drag items for team assignment
-        if (!NetworkManager.Singleton.IsHost)
+        if (!canDrag) return;
+
+        if (!EnsureCanvas())
+        {
+            Debug.LogError("[LobbyPlayerItemUI] No Canvas found for drag.");
             return;
+        }
+
         originalParent = transform.parent;
-        if (rootCanvas != null)
-            transform.SetParent(rootCanvas.transform, true);
+
         canvasGroup.blocksRaycasts = false;
+
+        // Put it on top so it renders above other UI while dragging
+        transform.SetParent(rootCanvas.transform, true);
+
+        // Compute cursor offset so it doesn't snap
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                canvasRect, eventData.position, eventData.pressEventCamera, out var localPointerPos))
+        {
+            pointerOffset = (Vector2)rectTransform.localPosition - localPointerPos;
+        }
+        else
+        {
+            pointerOffset = Vector2.zero;
+        }
     }
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (!NetworkManager.Singleton.IsHost)
-            return;
-        transform.position = eventData.position;
+        if (!canDrag) return;
+        if (canvasRect == null) return;
+
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                canvasRect, eventData.position, eventData.pressEventCamera, out var localPointerPos))
+        {
+            rectTransform.localPosition = localPointerPos + pointerOffset;
+        }
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        if (!NetworkManager.Singleton.IsHost)
-            return;
+        if (!canDrag) return;
+
         canvasGroup.blocksRaycasts = true;
-        // Return to original container if not dropped on a valid zone
-        if (eventData.pointerEnter == null || eventData.pointerEnter.GetComponent<TeamDropZone>() == null)
-        {
+
+        // If drop zone didn't reparent us, return to original parent
+        if (transform.parent == rootCanvas.transform && originalParent != null)
             transform.SetParent(originalParent, false);
-        }
-        transform.localPosition = Vector3.zero;
     }
 }
