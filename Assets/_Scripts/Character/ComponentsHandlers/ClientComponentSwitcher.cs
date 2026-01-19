@@ -1,4 +1,4 @@
-using SyncedRush.Character.Movement;
+ï»¿using SyncedRush.Character.Movement;
 using Unity.Cinemachine;
 using Unity.Netcode;
 using UnityEngine;
@@ -61,9 +61,6 @@ public class ClientComponentSwitcher : NetworkBehaviour
         // HEALTH component
         if (healthSystem != null) healthSystem.enabled = false;
 
-        // UI Manager get reference
-        if (uiManager == null) uiManager = UIManager.Instance;
-
         // --- Enable GLOBAL MAP (always on) ---
         var globalMap = playerInput.actions.FindActionMap("Global");
         if (globalMap != null)
@@ -101,24 +98,23 @@ public class ClientComponentSwitcher : NetworkBehaviour
         if (healthSystem != null) healthSystem.enabled = isServer;
 
 
-        // Register the player to the UI Manager (IMPORTANT: after all components are set up)
-        if (isOwner)
+        // Register the local player with the Gameplay UI once all components are initialized.
+        if (IsOwner)
         {
-            // Attempt to fetch UIManager if it’s still null
-            if (uiManager == null)
-            {
-                uiManager = UIManager.Instance;
-            }
-            if (uiManager != null)
-            {
-                uiManager.UIRegisterPlayer(gameObject);
-            }
+            GameplayUIManager.Instance?.RegisterPlayer(gameObject);
+
+            // IMPORTANT: store a static pointer so UI can always reach the local switcher
+            ClientComponentSwitcherLocal.Local = this;
         }
+
+        LogState("OnNetworkSpawn END");
+    }
+    public static class ClientComponentSwitcherLocal
+    {
+        public static ClientComponentSwitcher Local;
     }
 
-    // =========================
-    // Weapon Registration
-    // =========================
+
     // Registers weapon components it's spawned + Registers it to the UI Manager
     public void RegisterWeapon(WeaponController wc, ShootingSystem ss, WeaponNetworkHandler wh)
     {
@@ -130,7 +126,11 @@ public class ClientComponentSwitcher : NetworkBehaviour
 
         if (IsOwner)
         {
-            uiManager.UIRegisterWeapon(wc);
+            var gameplayUI = GameplayUIManager.Instance;
+            if (gameplayUI != null)
+            {
+                gameplayUI.RegisterWeapon(wc);
+            }
         }
     }
 
@@ -144,6 +144,9 @@ public class ClientComponentSwitcher : NetworkBehaviour
         if (weaponNetworkHandler != null) weaponNetworkHandler.enabled = isServer || isOwner;
     }
 
+    /// <summary>
+    /// SETS INPUT STATE TO UI MENU
+    /// </summary>
     public void SetState_UIMenu()
     {
         playerInput.SwitchCurrentActionMap("UI");
@@ -152,6 +155,8 @@ public class ClientComponentSwitcher : NetworkBehaviour
         lookController.enabled = false;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+
+        LogState("SetState_UIMenu");
     }
 
     public void SetState_Loadout()
@@ -163,6 +168,8 @@ public class ClientComponentSwitcher : NetworkBehaviour
         lookController.enabled = false;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+
+        LogState("SetState_Loadout");
     }
 
     public void SetState_Gameplay()
@@ -172,18 +179,23 @@ public class ClientComponentSwitcher : NetworkBehaviour
         lookController.enabled = true;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+        
+        LogState("SetState_Gameplay");
     }
 
-    public void LockCursorOnly()
+    private void LogState(string from)
     {
-        if (!IsOwner) return;
+        string map = playerInput != null && playerInput.currentActionMap != null
+            ? playerInput.currentActionMap.name
+            : "NULL";
 
-        // Keep UI map or switch to Player map – doesn't matter if inputs are disabled
-        inputHandler.ClearAllInputs();
-        inputHandler.enabled = false;
-        lookController.enabled = false;
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        Debug.Log(
+            $"[InputState] {from} | owner={IsOwner} server={IsServer} " +
+            $"map={map} inputHandler={(inputHandler ? inputHandler.enabled : false)} " +
+            $"look={(lookController ? lookController.enabled : false)} " +
+            $"cursorLock={Cursor.lockState} cursorVisible={Cursor.visible}",
+            this
+        );
     }
+
 }

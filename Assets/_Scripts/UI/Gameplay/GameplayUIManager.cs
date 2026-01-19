@@ -1,5 +1,6 @@
-using UnityEngine;
 using System;
+using UnityEngine;
+using static ClientComponentSwitcher;
 
 /// <summary>
 /// Manages the in–match UI panels for the player.
@@ -22,6 +23,10 @@ public class GameplayUIManager : MonoBehaviour
 
     [Tooltip("Weapon ID to equip automatically if the player has not selected a weapon by the end of the countdown.")]
     [SerializeField] private int defaultWeaponId = 0;
+
+    [Header("HUD")]
+    [Tooltip("Reference to the Player HUD responsible for displaying health and ammo.")]
+    [SerializeField] private PlayerHUD playerHUD;
 
     private void Awake()
     {
@@ -64,9 +69,11 @@ public class GameplayUIManager : MonoBehaviour
     /// </summary>
     public void ShowLoadoutPanel()
     {
+        Debug.Log("[UI] ShowLoadoutPanel -> forcing SetState_Loadout()");
+
         ShowCanvasGroup(weaponSelectorPanel);
 
-        GetLocalSwitcher()?.SetState_Loadout();
+        ClientComponentSwitcherLocal.Local?.SetState_Loadout();
     }
 
     public void HideLoadoutPanel()
@@ -109,7 +116,6 @@ public class GameplayUIManager : MonoBehaviour
         HideCanvasGroup(PausePanel);
     }
 
-
     /// <summary>
     /// COUNTDOWN PANEL 
     /// </summary>
@@ -122,10 +128,7 @@ public class GameplayUIManager : MonoBehaviour
 
         weaponSelector.OpenPreRound();
 
-        // When the countdown finishes we need to ensure the player either has
-        // selected a weapon or is equipped with the default.  After assigning
-        // the weapon we hide the loadout panel and show the HUD before invoking
-        // any additional completion callback.
+        // When the countdown finishes we need to ensure the player either has selected a weapon or is equipped with the default.
         countdownController.StartCountdown(seconds, () =>
         {
             HideCanvasGroup(countdownPanel);
@@ -137,6 +140,7 @@ public class GameplayUIManager : MonoBehaviour
     // Invoked internally when the pre‑round countdown finishes.
     private void OnCountdownFinished()
     {
+        // Delegate to the weapon selector panel.
         weaponSelector.OnCountdownFinished();
     }
 
@@ -156,10 +160,44 @@ public class GameplayUIManager : MonoBehaviour
     /// </summary>
     private static ClientComponentSwitcher GetLocalSwitcher()
     {
-        if (Unity.Netcode.NetworkManager.Singleton == null) return null;
-        var local = Unity.Netcode.NetworkManager.Singleton.LocalClient?.PlayerObject;
-        if (local == null) return null;
-        return local.GetComponent<ClientComponentSwitcher>();
+        var nm = Unity.Netcode.NetworkManager.Singleton;
+        if (nm == null)
+        {
+            Debug.Log("[UI] GetLocalSwitcher: NetworkManager.Singleton is NULL");
+            return null;
+        }
+
+        var po = nm.LocalClient?.PlayerObject;
+        if (po == null)
+        {
+            Debug.Log("[UI] GetLocalSwitcher: LocalClient.PlayerObject is NULL");
+            return null;
+        }
+
+        var sw = po.GetComponent<ClientComponentSwitcher>();
+        Debug.Log($"[UI] GetLocalSwitcher: switcher={(sw ? "OK" : "NULL")}");
+        return sw;
+    }
+
+
+    // Registers the local player with the HUD.
+    public void RegisterPlayer(GameObject player)
+    {
+        if (playerHUD != null)
+        {
+            playerHUD.BindPlayer(player);
+            ShowHUD();
+        }
+    }
+
+    // Registers the local player's weapon with the HUD.
+    public void RegisterWeapon(WeaponController weapon)
+    {
+        if (playerHUD != null)
+        {
+            playerHUD.BindWeapon(weapon);
+            ShowHUD();
+        }
     }
 
 }

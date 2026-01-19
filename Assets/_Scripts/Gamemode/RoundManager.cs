@@ -42,7 +42,7 @@ public class RoundManager : NetworkBehaviour
     // =========================
     private void Awake()
     {
-        // Ensure a single persistent instance
+        // Ensure a single persistent instance.
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -87,7 +87,7 @@ public class RoundManager : NetworkBehaviour
         StartNextRound();
     }
 
-    // Starts a match by loading the selected map scene and initializing the round system once the scene load completes.
+    // Starts a match by loading the selected map scene and initializing the round system.
     public void StartMatch(LobbyManager lobby, GamemodeDefinition mode, MapDefinition map)
     {
         if (!IsServer)
@@ -98,7 +98,7 @@ public class RoundManager : NetworkBehaviour
         gamemode = mode;
         currentMap = map;
 
-        // Subscribe to scene events so we know when the map scene has finished loading
+        // Subscribe to scene events so we know when the map scene has finished loading.
         NetworkManager.SceneManager.OnSceneEvent += OnSceneEvent;
 
         // Attempt to load the map scene.
@@ -323,19 +323,16 @@ public class RoundManager : NetworkBehaviour
     [ClientRpc]
     private void StartPreRoundClientRpc(float duration)
     {
-        GameplayUtils.DisableGameplayForAllPlayers();
+
+        Debug.Log($"[CLIENT] StartPreRoundClientRpc duration={duration} localId={NetworkManager.Singleton.LocalClientId}");
+
+        SetPreRoundInputStateClientRpc();
 
         // Only local clients handle UI.  Show the loadout panel and start the countdown.
         var ui = GameplayUIManager.Instance;
         if (ui != null)
         {
-            ui.ShowLoadoutPanel();
-            ui.StartCountdown(duration, () =>
-            {
-                // Hide the loadout panel when the countdown finishes and show the HUD
-                ui.HideLoadoutPanel();
-                ui.ShowHUD();
-            });
+            ui.StartCountdown(duration);
         }
     }
 
@@ -346,11 +343,38 @@ public class RoundManager : NetworkBehaviour
         yield return new WaitForSeconds(duration);
 
         // Re‑enable gameplay for all players now that the round is live
-        GameplayUtils.EnableGameplayForAllPlayers();
+        SetGameplayInputStateClientRpc();
 
         // Set the match state to InRound
         CurrentState.Value = MatchState.InRound;
 
         Debug.Log("Round started");
     }
+
+
+
+    [ClientRpc]
+    private void SetPreRoundInputStateClientRpc()
+    {
+        var localPlayer = NetworkManager.Singleton.LocalClient?.PlayerObject;
+        if (localPlayer == null) return;
+
+        var switcher = localPlayer.GetComponent<ClientComponentSwitcher>();
+        switcher?.SetState_Loadout();
+
+        Debug.Log("[CLIENT] SetPreRoundInputStateClientRpc applied");
+    }
+
+    [ClientRpc]
+    private void SetGameplayInputStateClientRpc()
+    {
+        var localPlayer = NetworkManager.Singleton.LocalClient?.PlayerObject;
+        if (localPlayer == null) return;
+
+        var switcher = localPlayer.GetComponent<ClientComponentSwitcher>();
+        switcher?.SetState_Gameplay();
+
+        Debug.Log("[CLIENT] SetGameplayInputStateClientRpc applied");
+    }
+
 }

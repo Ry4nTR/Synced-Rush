@@ -2,6 +2,9 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+/// <summary>
+/// Handles the weapon selection interface for the local player.
+/// </summary>
 public class WeaponSelectorPanel : MonoBehaviour
 {
     [SerializeField] private int defaultWeaponId = 0;
@@ -65,10 +68,13 @@ public class WeaponSelectorPanel : MonoBehaviour
     // Called by GameplayUIManager when the pre‑round countdown starts
     public void OpenPreRound()
     {
+        // Enter UI mode so the player can interact with the panel.
         componentSwitcher?.SetState_Loadout();
+
+        // Show the loadout panel and hide the HUD during pre‑round selection.
         uiManager.ShowLoadoutPanel();
         uiManager.HideHUD();
-        
+
         isOpen = true;
     }
 
@@ -99,6 +105,8 @@ public class WeaponSelectorPanel : MonoBehaviour
         }
         else
         {
+            // No selection was needed because the player already chose a
+            // weapon.  Hide the panel and switch back to gameplay input.
             componentSwitcher?.SetState_Gameplay();
             uiManager.HideLoadoutPanel();
             uiManager.ShowHUD();
