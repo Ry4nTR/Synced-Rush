@@ -59,9 +59,14 @@ public class GameplayUIManager : MonoBehaviour
     #endregion
 
     #region Public API
+    /// <summary>
+    /// LOADOUT-PANEL
+    /// </summary>
     public void ShowLoadoutPanel()
     {
         ShowCanvasGroup(weaponSelectorPanel);
+
+        GetLocalSwitcher()?.SetState_Loadout();
     }
 
     public void HideLoadoutPanel()
@@ -78,6 +83,9 @@ public class GameplayUIManager : MonoBehaviour
             ShowCanvasGroup(weaponSelectorPanel);
     }
 
+    /// <summary>
+    /// HUD
+    /// </summary>
     public void ShowHUD()
     {
         ShowCanvasGroup(hudPanel);
@@ -89,25 +97,23 @@ public class GameplayUIManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Displays the exit/pause menu panel.  Pauses gameplay if necessary.
+    /// EXIT MENU
     /// </summary>
     public void ShowExitMenu()
     {
         ShowCanvasGroup(PausePanel);
     }
 
-    /// <summary>
-    /// Hides the exit/pause menu panel.
-    /// </summary>
     public void HideExitMenu()
     {
         HideCanvasGroup(PausePanel);
     }
 
+
     /// <summary>
-    /// Starts a pre‑round countdown by delegating to the countdown panel.  Shows
-    /// the countdown UI and invokes a callback when finished.
+    /// COUNTDOWN PANEL 
     /// </summary>
+    // Starts a pre‑round countdown by delegating to the countdown panel.
     public void StartCountdown(float seconds, System.Action onFinished = null)
     {
         if (countdownPanel == null || countdownController == null)
@@ -128,18 +134,13 @@ public class GameplayUIManager : MonoBehaviour
         });
     }
 
-    /// <summary>
-    /// Invoked internally when the pre‑round countdown finishes.
-    /// </summary>
+    // Invoked internally when the pre‑round countdown finishes.
     private void OnCountdownFinished()
     {
         weaponSelector.OnCountdownFinished();
     }
 
-
-    /// <summary>
-    /// Cancels an active countdown if one is running.
-    /// </summary>
+    // Cancels an active countdown if one is running.
     public void CancelCountdown()
     {
         if (countdownController != null)
@@ -149,4 +150,16 @@ public class GameplayUIManager : MonoBehaviour
         HideCanvasGroup(countdownPanel);
     }
     #endregion
+
+    /// <summary>
+    /// INTERNALS
+    /// </summary>
+    private static ClientComponentSwitcher GetLocalSwitcher()
+    {
+        if (Unity.Netcode.NetworkManager.Singleton == null) return null;
+        var local = Unity.Netcode.NetworkManager.Singleton.LocalClient?.PlayerObject;
+        if (local == null) return null;
+        return local.GetComponent<ClientComponentSwitcher>();
+    }
+
 }

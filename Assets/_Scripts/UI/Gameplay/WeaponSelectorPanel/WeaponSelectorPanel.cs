@@ -65,9 +65,10 @@ public class WeaponSelectorPanel : MonoBehaviour
     // Called by GameplayUIManager when the pre‑round countdown starts
     public void OpenPreRound()
     {
+        componentSwitcher?.SetState_Loadout();
         uiManager.ShowLoadoutPanel();
         uiManager.HideHUD();
-        componentSwitcher?.SetState_Loadout();
+        
         isOpen = true;
     }
 
@@ -98,9 +99,9 @@ public class WeaponSelectorPanel : MonoBehaviour
         }
         else
         {
+            componentSwitcher?.SetState_Gameplay();
             uiManager.HideLoadoutPanel();
             uiManager.ShowHUD();
-            componentSwitcher?.SetState_Gameplay();
             isOpen = false;
         }
     }

@@ -116,6 +116,9 @@ public class ClientComponentSwitcher : NetworkBehaviour
         }
     }
 
+    // =========================
+    // Weapon Registration
+    // =========================
     // Registers weapon components it's spawned + Registers it to the UI Manager
     public void RegisterWeapon(WeaponController wc, ShootingSystem ss, WeaponNetworkHandler wh)
     {
