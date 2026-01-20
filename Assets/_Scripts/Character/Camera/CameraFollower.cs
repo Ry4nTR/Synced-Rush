@@ -6,7 +6,7 @@ public class CameraFollower : MonoBehaviour
     public CinemachineCamera vcam;
     public Camera viewmodelCam;
 
-    void LateUpdate()
+    void Update()
     {
         if (vcam == null) return;
 

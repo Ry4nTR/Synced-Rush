@@ -1755,6 +1755,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 513759771489454473, guid: d494f0ae6db941649a041f321c89861f, type: 3}
+      propertyPath: panel
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 2994460773406158446, guid: d494f0ae6db941649a041f321c89861f, type: 3}
       propertyPath: m_Pivot.x
       value: 0
@@ -1835,9 +1839,61 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3041951800166487670, guid: d494f0ae6db941649a041f321c89861f, type: 3}
+      propertyPath: weaponSelectorPanel
+      value: 
+      objectReference: {fileID: 2063303455198035249}
+    - target: {fileID: 3493820812825458673, guid: d494f0ae6db941649a041f321c89861f, type: 3}
+      propertyPath: panel
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 3503247842683619072, guid: d494f0ae6db941649a041f321c89861f, type: 3}
+      propertyPath: panel
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 4023198620876566887, guid: d494f0ae6db941649a041f321c89861f, type: 3}
       propertyPath: m_Name
       value: TestingCanvas
+      objectReference: {fileID: 0}
+    - target: {fileID: 4135155187644991620, guid: d494f0ae6db941649a041f321c89861f, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 2063303455198035250}
+    - target: {fileID: 4135155187644991620, guid: d494f0ae6db941649a041f321c89861f, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: SelectWeapon
+      objectReference: {fileID: 0}
+    - target: {fileID: 4135155187644991620, guid: d494f0ae6db941649a041f321c89861f, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
+      value: DevWeaponSelectorPanel, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 7036342495424642480, guid: d494f0ae6db941649a041f321c89861f, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 2063303455198035250}
+    - target: {fileID: 7036342495424642480, guid: d494f0ae6db941649a041f321c89861f, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: SelectWeapon
+      objectReference: {fileID: 0}
+    - target: {fileID: 7036342495424642480, guid: d494f0ae6db941649a041f321c89861f, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
+      value: DevWeaponSelectorPanel, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 7100997418660949366, guid: d494f0ae6db941649a041f321c89861f, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 2063303455198035250}
+    - target: {fileID: 7100997418660949366, guid: d494f0ae6db941649a041f321c89861f, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: SelectWeapon
+      objectReference: {fileID: 0}
+    - target: {fileID: 7100997418660949366, guid: d494f0ae6db941649a041f321c89861f, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
+      value: DevWeaponSelectorPanel, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 8548606239128830723, guid: d494f0ae6db941649a041f321c89861f, type: 3}
+      propertyPath: weaponSelectorPanel
+      value: 
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -3216,6 +3272,22 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e48e038af74c2e34ba4f173faaacb22b, type: 3}
+--- !u!225 &2063303455198035249 stripped
+CanvasGroup:
+  m_CorrespondingSourceObject: {fileID: 7170886871437610950, guid: d494f0ae6db941649a041f321c89861f, type: 3}
+  m_PrefabInstance: {fileID: 1084559401}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2063303455198035250 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6191695052026703458, guid: d494f0ae6db941649a041f321c89861f, type: 3}
+  m_PrefabInstance: {fileID: 1084559401}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae00b891e46637440a881a68d1971639, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DevWeaponSelectorPanel
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

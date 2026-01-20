@@ -3274,10 +3274,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: GamePlayCanva
       objectReference: {fileID: 0}
-    - target: {fileID: 3439693170082392238, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
-      propertyPath: weaponSelector
-      value: 
-      objectReference: {fileID: 5387473849874298617}
     - target: {fileID: 3761552388010608383, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
       propertyPath: m_Pivot.x
       value: 0
@@ -3363,17 +3359,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
---- !u!114 &5387473849874298617 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7080892540731810298, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
-  m_PrefabInstance: {fileID: 5387473849874298616}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 225d01f26f0edf845955164e671b773c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::WeaponSelectorPanel
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -24,17 +24,6 @@ public class RoundCountdownPanel : MonoBehaviour
         routine = StartCoroutine(CountdownCoroutine(seconds, onFinished));
     }
 
-    public void CancelCountdown()
-    {
-        if (routine != null)
-        {
-            StopCoroutine(routine);
-            routine = null;
-        }
-        if (countdownText != null)
-            countdownText.text = string.Empty;
-    }
-
     private IEnumerator CountdownCoroutine(float seconds, Action onFinished)
     {
         float remaining = Mathf.Max(0f, seconds);
@@ -49,5 +38,16 @@ public class RoundCountdownPanel : MonoBehaviour
             countdownText.text = string.Empty;
         routine = null;
         onFinished?.Invoke();
+    }
+
+    public void CancelCountdown() 
+    { 
+        if (routine != null)
+        {
+            StopCoroutine(routine);
+            routine = null;
+        }
+        if (countdownText != null)
+            countdownText.text = string.Empty;
     }
 }

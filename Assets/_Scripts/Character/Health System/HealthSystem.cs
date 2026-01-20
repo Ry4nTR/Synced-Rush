@@ -82,8 +82,7 @@ public class HealthSystem : NetworkBehaviour, IDamageable
         var switcher = GetComponent<ClientComponentSwitcher>();
         if (switcher != null)
         {
-            // When the player dies, disable gameplay inputs and allow
-            // UI interaction (e.g. scoreboard or spectator view).
+            // When the player dies, disable gameplay inputs and allow UI interaction
             switcher.SetState_Loadout();
         }
     }

@@ -55,6 +55,8 @@ public class WeaponController : MonoBehaviour
     // Initializes the weapon data
     public void Initialize(WeaponData data)
     {
+        Debug.Log($"[WeaponController] Initialize weapon={data.name} mag={data.magazineSize} reserve={data.ammoReserve}", this);
+
         weaponData = data;
         currentAmmo = weaponData.magazineSize;
         reserveAmmo = weaponData.ammoReserve;

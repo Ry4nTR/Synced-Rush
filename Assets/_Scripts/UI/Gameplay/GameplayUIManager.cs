@@ -1,6 +1,5 @@
-using System;
 using UnityEngine;
-using static ClientComponentSwitcher;
+using System;
 
 /// <summary>
 /// Manages the in–match UI panels for the player.
@@ -20,9 +19,6 @@ public class GameplayUIManager : MonoBehaviour
     [Header("Weapon Selection")]
     [Tooltip("Reference to the weapon selector panel used to equip weapons.")]
     [SerializeField] private WeaponSelectorPanel weaponSelector;
-
-    [Tooltip("Weapon ID to equip automatically if the player has not selected a weapon by the end of the countdown.")]
-    [SerializeField] private int defaultWeaponId = 0;
 
     [Header("HUD")]
     [Tooltip("Reference to the Player HUD responsible for displaying health and ammo.")]
@@ -69,11 +65,10 @@ public class GameplayUIManager : MonoBehaviour
     /// </summary>
     public void ShowLoadoutPanel()
     {
-        Debug.Log("[UI] ShowLoadoutPanel -> forcing SetState_Loadout()");
-
+        // Show the loadout panel so the player can pick a weapon.  We do
+        // not modify input state here; RoundManager handles the input
+        // switching during pre‑round.
         ShowCanvasGroup(weaponSelectorPanel);
-
-        ClientComponentSwitcherLocal.Local?.SetState_Loadout();
     }
 
     public void HideLoadoutPanel()
@@ -158,28 +153,6 @@ public class GameplayUIManager : MonoBehaviour
     /// <summary>
     /// INTERNALS
     /// </summary>
-    private static ClientComponentSwitcher GetLocalSwitcher()
-    {
-        var nm = Unity.Netcode.NetworkManager.Singleton;
-        if (nm == null)
-        {
-            Debug.Log("[UI] GetLocalSwitcher: NetworkManager.Singleton is NULL");
-            return null;
-        }
-
-        var po = nm.LocalClient?.PlayerObject;
-        if (po == null)
-        {
-            Debug.Log("[UI] GetLocalSwitcher: LocalClient.PlayerObject is NULL");
-            return null;
-        }
-
-        var sw = po.GetComponent<ClientComponentSwitcher>();
-        Debug.Log($"[UI] GetLocalSwitcher: switcher={(sw ? "OK" : "NULL")}");
-        return sw;
-    }
-
-
     // Registers the local player with the HUD.
     public void RegisterPlayer(GameObject player)
     {

@@ -1,4 +1,5 @@
 ﻿using Unity.Netcode;
+using UnityEngine;
 
 /// <summary>
 /// Owns the networked weapon loadout state.
@@ -24,6 +25,8 @@ public class WeaponLoadoutState : NetworkBehaviour
     {
         if (!IsOwner && !IsServer) return;
 
+        Debug.Log($"[WeaponLoadoutState] RequestEquip({weaponId}) IsOwner={IsOwner} IsServer={IsServer} OwnerClientId={OwnerClientId}", this);
+
         RequestEquipServerRpc(weaponId);
     }
 
@@ -31,6 +34,10 @@ public class WeaponLoadoutState : NetworkBehaviour
     [ServerRpc]
     private void RequestEquipServerRpc(int weaponId, ServerRpcParams rpcParams = default)
     {
+        Debug.Log($"[WeaponLoadoutState] ServerRpc RequestEquipServerRpc({weaponId}) from sender={rpcParams.Receive.SenderClientId} on server IsServer={IsServer}", this);
+
         EquippedWeaponId.Value = weaponId;
+
+        Debug.Log($"[WeaponLoadoutState] EquippedWeaponId set to {EquippedWeaponId.Value} (server)", this);
     }
 }

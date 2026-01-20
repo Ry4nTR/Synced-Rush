@@ -192,8 +192,8 @@ GameObject:
   - component: {fileID: 5704255815838417518}
   - component: {fileID: -5584705844747821917}
   - component: {fileID: 3468843234944903985}
-  - component: {fileID: 7345408544588076399}
   - component: {fileID: 7510125466554032796}
+  - component: {fileID: 7345408544588076399}
   - component: {fileID: -1213673637414683771}
   - component: {fileID: 3812799252896454869}
   m_Layer: 6
@@ -554,6 +554,20 @@ MonoBehaviour:
   tpsWeaponSocket: {fileID: 5479678249993434959}
   componentSwitcher: {fileID: 2123195640468736219}
   animationController: {fileID: 7345408544588076399}
+--- !u!114 &7510125466554032796
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2338101018676570622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89bfefa810b3dd147ba50cf09f94be89, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponNetworkHandler
+  ShowTopMostFoldoutHeaderGroup: 1
+  weaponDatabase: {fileID: 11400000, guid: ee9ff1f69c7b7854db6be0df288af04f, type: 2}
 --- !u!114 &7345408544588076399
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -570,20 +584,6 @@ MonoBehaviour:
   fullBodyAnimator: {fileID: 311798812297858282}
   weaponAnimator: {fileID: 0}
   fullBodyNetSync: {fileID: 2864843101338900412}
---- !u!114 &7510125466554032796
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2338101018676570622}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 89bfefa810b3dd147ba50cf09f94be89, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::WeaponNetworkHandler
-  ShowTopMostFoldoutHeaderGroup: 1
-  weaponDatabase: {fileID: 11400000, guid: ee9ff1f69c7b7854db6be0df288af04f, type: 2}
 --- !u!114 &-1213673637414683771
 MonoBehaviour:
   m_ObjectHideFlags: 0

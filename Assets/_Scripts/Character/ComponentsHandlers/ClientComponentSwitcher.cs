@@ -98,22 +98,43 @@ public class ClientComponentSwitcher : NetworkBehaviour
         if (healthSystem != null) healthSystem.enabled = isServer;
 
 
-        // Register the local player with the Gameplay UI once all components are initialized.
+        // Register the local player with the active UI once all components are initialized.
+        if (isOwner)
+        {
+            // Cache the local switcher so other systems can find it even if
+            // NetworkManager.LocalClient.PlayerObject is temporarily null.
+            ClientComponentSwitcherLocal.Local = this;
+
+            // Prefer the new GameplayUIManager if present; fallback to the legacy UIManager.
+            var gameplayUI = GameplayUIManager.Instance;
+            if (gameplayUI != null)
+            {
+                gameplayUI.RegisterPlayer(gameObject);
+            }
+            else if (uiManager != null)
+            {
+                uiManager.UIRegisterPlayer(gameObject);
+            }
+        }
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        base.OnNetworkDespawn();
+
+        // Clear the local pointer when the object despawns on the owner.
         if (IsOwner)
         {
-            GameplayUIManager.Instance?.RegisterPlayer(gameObject);
-
-            // IMPORTANT: store a static pointer so UI can always reach the local switcher
-            ClientComponentSwitcherLocal.Local = this;
+            if (ClientComponentSwitcherLocal.Local == this)
+                ClientComponentSwitcherLocal.Local = null;
         }
-
-        LogState("OnNetworkSpawn END");
     }
+
+    // Holds a static reference to the local client's component switcher.
     public static class ClientComponentSwitcherLocal
     {
         public static ClientComponentSwitcher Local;
     }
-
 
     // Registers weapon components it's spawned + Registers it to the UI Manager
     public void RegisterWeapon(WeaponController wc, ShootingSystem ss, WeaponNetworkHandler wh)
@@ -126,10 +147,16 @@ public class ClientComponentSwitcher : NetworkBehaviour
 
         if (IsOwner)
         {
+            // When owned, register the weapon with whichever UI manager is available.
             var gameplayUI = GameplayUIManager.Instance;
             if (gameplayUI != null)
             {
                 gameplayUI.RegisterWeapon(wc);
+            }
+            else if (uiManager != null)
+            {
+                // Fallback: register with the old UIManager so ammo displays update
+                uiManager.UIRegisterWeapon(wc);
             }
         }
     }
@@ -179,7 +206,7 @@ public class ClientComponentSwitcher : NetworkBehaviour
         lookController.enabled = true;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-        
+
         LogState("SetState_Gameplay");
     }
 

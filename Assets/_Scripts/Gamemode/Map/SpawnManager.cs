@@ -94,7 +94,10 @@ public class SpawnManager : MonoBehaviour
         }
 
         // Spawn the network object with ownership assigned to the appropriate client
-        networkObject.SpawnWithOwnership(player.clientId);
+        networkObject.SpawnAsPlayerObject(player.clientId, true);
+
+        Debug.Log($"[SpawnManager] Spawned character netId={networkObject.NetworkObjectId} " +
+          $"owner={networkObject.OwnerClientId} isPlayerObject={networkObject.IsPlayerObject}");
 
         // Mark the lobby player as alive
         player.isAlive = true;

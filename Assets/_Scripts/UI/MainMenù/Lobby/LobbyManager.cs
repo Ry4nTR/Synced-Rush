@@ -139,7 +139,6 @@ public class LobbyManager : MonoBehaviour
 
     public void LockLobby()
     {
-        Debug.Log("Lobby locked");
         CurrentState = LobbyState.InGame;
     }
 

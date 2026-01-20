@@ -120,8 +120,6 @@ public class NetworkLobbyState : NetworkBehaviour
                 break;
             }
         }
-
-        Debug.Log($"[SERVER] Name set for {senderId}: {playerName}");
     }
 
     // Set a player's team ID.

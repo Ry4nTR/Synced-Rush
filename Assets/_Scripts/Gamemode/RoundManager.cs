@@ -54,39 +54,6 @@ public class RoundManager : NetworkBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
-    public override void OnNetworkSpawn()
-    {
-        if (IsClient)
-        {
-            CurrentState.OnValueChanged += OnMatchStateChanged;
-        }
-    }
-
-    public void Initialize(LobbyManager lobby, GamemodeDefinition mode)
-    {
-        if (!IsServer) return;
-
-        lobbyManager = lobby;
-        gamemode = mode;
-
-        spawnManager = FindAnyObjectByType<SpawnManager>();
-        spawnManager.Initialize(lobby);
-
-        deathTracker = FindAnyObjectByType<RoundDeathTracker>();
-        deathTracker.Initialize(lobby, this);
-
-        TeamAScore = 0;
-        TeamBScore = 0;
-
-        // Reset overtime state for a new match
-        isOvertime = false;
-        lastWinningTeamId = -1;
-        consecutiveWins = 0;
-        isFirstRound = true;
-
-        StartNextRound();
-    }
-
     // Starts a match by loading the selected map scene and initializing the round system.
     public void StartMatch(LobbyManager lobby, GamemodeDefinition mode, MapDefinition map)
     {
@@ -170,7 +137,7 @@ public class RoundManager : NetworkBehaviour
     }
 
     // =========================
-    // Round Management
+    // Round Flow
     // =========================
     private void StartNextRound()
     {
@@ -178,19 +145,19 @@ public class RoundManager : NetworkBehaviour
 
         Debug.Log("Preparing next round");
 
-        if (!IsServer) return;
-
         // Spawn players using their assigned teams (set in the lobby)
         spawnManager.SpawnAllPlayers();
 
-        // Disable gameplay inputs for all players during the pre‑round countdown
-        GameplayUtils.DisableGameplayForAllPlayers();
-
-        // Begin pre‑round countdown on all clients.
+        // Determine how long this pre‑round countdown should be.  The first
+        // round uses a longer countdown to allow players time to pick a loadout.
         float countdownDuration = isFirstRound ? firstRoundCountdown : subsequentRoundCountdown;
+
+        // Instruct all clients to enter pre‑round UI state and display the
+        // loadout panel, then begin the countdown locally.
         StartPreRoundClientRpc(countdownDuration);
 
-        // Start server coroutine to enable gameplay and update match state once countdown expires
+        // Start a server‑side coroutine that waits for the countdown to
+        // expire and then switches the match state to InRound.
         StartCoroutine(BeginRoundAfterCountdown(countdownDuration));
 
         // After scheduling the next round, mark that the first round has been
@@ -298,24 +265,6 @@ public class RoundManager : NetworkBehaviour
         Debug.Log($"[CLIENT] Match over. Team {winningTeam} wins {teamAScore}–{teamBScore}");
     }
 
-    private void OnMatchStateChanged(MatchState oldState, MatchState newState)
-    {
-        Debug.Log($"MatchState changed: {oldState} → {newState}");
-
-        switch (newState)
-        {
-            case MatchState.InRound:
-                GameplayUtils.EnableGameplayForAllPlayers();
-                break;
-
-            case MatchState.RoundEnd:
-            case MatchState.MatchEnd:
-            case MatchState.Lobby:
-                GameplayUtils.DisableGameplayForAllPlayers();
-                break;
-        }
-    }
-
     // =========================
     // Pre‑round Countdown
     // =========================
@@ -332,7 +281,13 @@ public class RoundManager : NetworkBehaviour
         var ui = GameplayUIManager.Instance;
         if (ui != null)
         {
-            ui.StartCountdown(duration);
+            ui.ShowLoadoutPanel();
+            ui.StartCountdown(duration, () =>
+            {
+                // Hide the loadout panel when the countdown finishes and show the HUD
+                ui.HideLoadoutPanel();
+                ui.ShowHUD();
+            });
         }
     }
 
@@ -352,29 +307,56 @@ public class RoundManager : NetworkBehaviour
     }
 
 
-
+    // =========================
+    // SET INPUT STATE
+    // =========================
     [ClientRpc]
     private void SetPreRoundInputStateClientRpc()
     {
-        var localPlayer = NetworkManager.Singleton.LocalClient?.PlayerObject;
-        if (localPlayer == null) return;
+        // Attempt to get the local player's input switcher.  This may
+        // return null immediately after a scene load if the PlayerObject
+        // has not yet been assigned.  In that case, fall back to the
+        // statically cached switcher stored by ClientComponentSwitcher.
+        var switcher = GetLocalSwitcherSafe();
+        if (switcher == null)
+        {
+            Debug.LogWarning("[CLIENT] SetPreRoundInputStateClientRpc: switcher NULL");
+            return;
+        }
 
-        var switcher = localPlayer.GetComponent<ClientComponentSwitcher>();
-        switcher?.SetState_Loadout();
-
-        Debug.Log("[CLIENT] SetPreRoundInputStateClientRpc applied");
+        switcher.SetState_Loadout();
     }
 
     [ClientRpc]
     private void SetGameplayInputStateClientRpc()
     {
-        var localPlayer = NetworkManager.Singleton.LocalClient?.PlayerObject;
-        if (localPlayer == null) return;
+        var switcher = GetLocalSwitcherSafe();
+        if (switcher == null)
+        {
+            Debug.LogWarning("[CLIENT] SetGameplayInputStateClientRpc: switcher NULL");
+            return;
+        }
 
-        var switcher = localPlayer.GetComponent<ClientComponentSwitcher>();
-        switcher?.SetState_Gameplay();
+        switcher.SetState_Gameplay();
+    }
 
-        Debug.Log("[CLIENT] SetGameplayInputStateClientRpc applied");
+    /// <summary>
+    /// Helper to obtain the ClientComponentSwitcher for the local player.
+    /// </summary>
+    private ClientComponentSwitcher GetLocalSwitcherSafe()
+    {
+        var nm = NetworkManager.Singleton;
+        if (nm != null)
+        {
+            var po = nm.LocalClient?.PlayerObject;
+            if (po != null)
+            {
+                var c = po.GetComponent<ClientComponentSwitcher>();
+                if (c != null) return c;
+            }
+        }
+        // Fall back to static cache set in ClientComponentSwitcher
+        return ClientComponentSwitcher.ClientComponentSwitcherLocal.Local;
     }
 
 }
