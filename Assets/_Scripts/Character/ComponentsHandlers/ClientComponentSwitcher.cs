@@ -109,6 +109,8 @@ public class ClientComponentSwitcher : NetworkBehaviour
             var gameplayUI = GameplayUIManager.Instance;
             if (gameplayUI != null)
             {
+                Debug.Log($"[ClientComponentSwitcher] Owner OnNetworkSpawn. GameplayUIManager.Instance={(GameplayUIManager.Instance ? "OK" : "NULL")}", this);
+
                 gameplayUI.RegisterPlayer(gameObject);
             }
             else if (uiManager != null)
@@ -151,6 +153,8 @@ public class ClientComponentSwitcher : NetworkBehaviour
             var gameplayUI = GameplayUIManager.Instance;
             if (gameplayUI != null)
             {
+                Debug.Log($"[ClientComponentSwitcher] Owner RegisterWeapon wc={(wc ? wc.name : "NULL")} GameplayUIManager.Instance={(GameplayUIManager.Instance ? "OK" : "NULL")}", this);
+
                 gameplayUI.RegisterWeapon(wc);
             }
             else if (uiManager != null)

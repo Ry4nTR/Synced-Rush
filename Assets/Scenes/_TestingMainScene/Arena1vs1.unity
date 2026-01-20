@@ -3274,6 +3274,22 @@ PrefabInstance:
       propertyPath: m_Name
       value: GamePlayCanva
       objectReference: {fileID: 0}
+    - target: {fileID: 3439693170082392238, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
+      propertyPath: hudPanel.root
+      value: 
+      objectReference: {fileID: 5387473849874298618}
+    - target: {fileID: 3439693170082392238, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
+      propertyPath: pausePanel.root
+      value: 
+      objectReference: {fileID: 5387473849874298617}
+    - target: {fileID: 3439693170082392238, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
+      propertyPath: loadoutPanel.root
+      value: 
+      objectReference: {fileID: 5387473849874298619}
+    - target: {fileID: 3439693170082392238, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
+      propertyPath: countdownPanel.root
+      value: 
+      objectReference: {fileID: 5387473849874298620}
     - target: {fileID: 3761552388010608383, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
       propertyPath: m_Pivot.x
       value: 0
@@ -3359,6 +3375,26 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
+--- !u!1 &5387473849874298617 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2202997695786275803, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
+  m_PrefabInstance: {fileID: 5387473849874298616}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &5387473849874298618 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4304327775841966281, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
+  m_PrefabInstance: {fileID: 5387473849874298616}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &5387473849874298619 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8422121197731216490, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
+  m_PrefabInstance: {fileID: 5387473849874298616}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &5387473849874298620 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4871457131376491884, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
+  m_PrefabInstance: {fileID: 5387473849874298616}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -1,32 +1,58 @@
 using UnityEngine;
-using System;
 
 /// <summary>
 /// Manages the in–match UI panels for the player.
+/// Assign ONLY the panel root GameObjects in the inspector.
+/// The manager will auto-find CanvasGroups and panel scripts from those roots.
 /// </summary>
 public class GameplayUIManager : MonoBehaviour
 {
     public static GameplayUIManager Instance { get; private set; }
 
-    [Header("Panels")]
-    [SerializeField] private CanvasGroup countdownPanel;
-    [SerializeField] private RoundCountdownPanel countdownController;
+    [System.Serializable]
+    private class PanelRoot
+    {
+        [Tooltip("Root GameObject for the panel (usually the panel container in the Canvas).")]
+        public GameObject root;
 
-    [SerializeField] private CanvasGroup weaponSelectorPanel;
-    [SerializeField] private CanvasGroup hudPanel;
-    [SerializeField] private CanvasGroup PausePanel;
+        [HideInInspector] public CanvasGroup cg;
 
-    [Header("Weapon Selection")]
-    [Tooltip("Reference to the weapon selector panel used to equip weapons.")]
-    [SerializeField] private WeaponSelectorPanel weaponSelector;
+        public bool IsAssigned => root != null;
 
-    [Header("HUD")]
-    [Tooltip("Reference to the Player HUD responsible for displaying health and ammo.")]
-    [SerializeField] private PlayerHUD playerHUD;
+        public void Cache(string label, MonoBehaviour owner)
+        {
+            cg = null;
+
+            if (root == null)
+            {
+                Debug.LogWarning($"[GameplayUIManager] Panel '{label}' root is NULL (not assigned).", owner);
+                return;
+            }
+
+            // Prefer CanvasGroup on the root, otherwise search in children.
+            cg = root.GetComponent<CanvasGroup>();
+            if (cg == null)
+                cg = root.GetComponentInChildren<CanvasGroup>(true);
+
+            if (cg == null)
+                Debug.LogError($"[GameplayUIManager] Panel '{label}' root '{root.name}' has no CanvasGroup (on root or children).", owner);
+        }
+    }
+
+    [Header("Panel Roots (assign ONLY these)")]
+    [SerializeField] private PanelRoot countdownPanel;
+    [SerializeField] private PanelRoot loadoutPanel;
+    [SerializeField] private PanelRoot hudPanel;
+    [SerializeField] private PanelRoot pausePanel;
+
+    // Auto-cached controllers (found from roots)
+    private RoundCountdownPanel countdownController;
+    private WeaponSelectorPanel weaponSelector;
+    private PlayerHUD playerHUD;
 
     private void Awake()
     {
-        // Enforce singleton pattern
+        // Singleton
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -34,14 +60,51 @@ public class GameplayUIManager : MonoBehaviour
         }
         Instance = this;
 
-        // Hide non‑HUD panels by default
-        HideCanvasGroup(countdownPanel);
-        HideCanvasGroup(weaponSelectorPanel);
-        HideCanvasGroup(PausePanel);
-        ShowCanvasGroup(hudPanel);
+        // Cache CanvasGroups from roots
+        countdownPanel.Cache("Countdown", this);
+        loadoutPanel.Cache("Loadout", this);
+        hudPanel.Cache("HUD", this);
+        pausePanel.Cache("Pause", this);
+
+        // Cache required controllers from roots
+        countdownController = FindOnRootOrChildren<RoundCountdownPanel>(countdownPanel.root, "CountdownController");
+        weaponSelector = FindOnRootOrChildren<WeaponSelectorPanel>(loadoutPanel.root, "WeaponSelectorPanel");
+        playerHUD = FindOnRootOrChildren<PlayerHUD>(hudPanel.root, "PlayerHUD");
+
+        // Default visibility
+        HideCanvasGroup(countdownPanel.cg);
+        HideCanvasGroup(loadoutPanel.cg);
+        HideCanvasGroup(pausePanel.cg);
+        ShowCanvasGroup(hudPanel.cg);
+
+        // Debug summary (very useful)
+        Debug.Log(
+            $"[GameplayUIManager] Awake | " +
+            $"CountdownRoot={(countdownPanel.root ? countdownPanel.root.name : "NULL")} cg={(countdownPanel.cg ? "OK" : "NULL")} ctrl={(countdownController ? "OK" : "NULL")} | " +
+            $"LoadoutRoot={(loadoutPanel.root ? loadoutPanel.root.name : "NULL")} cg={(loadoutPanel.cg ? "OK" : "NULL")} selector={(weaponSelector ? "OK" : "NULL")} | " +
+            $"HUDRoot={(hudPanel.root ? hudPanel.root.name : "NULL")} cg={(hudPanel.cg ? "OK" : "NULL")} hud={(playerHUD ? "OK" : "NULL")} | " +
+            $"PauseRoot={(pausePanel.root ? pausePanel.root.name : "NULL")} cg={(pausePanel.cg ? "OK" : "NULL")}",
+            this
+        );
     }
 
-    #region Panel control helpers
+    private T FindOnRootOrChildren<T>(GameObject root, string label) where T : Component
+    {
+        if (root == null)
+            return null;
+
+        var found = root.GetComponent<T>();
+        if (found != null) return found;
+
+        found = root.GetComponentInChildren<T>(true);
+        if (found == null)
+        {
+            Debug.LogError($"[GameplayUIManager] Missing component '{typeof(T).Name}' for {label} under root '{root.name}'.", this);
+        }
+        return found;
+    }
+
+    #region CanvasGroup helpers
     private void ShowCanvasGroup(CanvasGroup cg)
     {
         if (!cg) return;
@@ -59,118 +122,98 @@ public class GameplayUIManager : MonoBehaviour
     }
     #endregion
 
-    #region Public API
-    /// <summary>
-    /// LOADOUT-PANEL
-    /// </summary>
-    public void ShowLoadoutPanel()
-    {
-        // Show the loadout panel so the player can pick a weapon.  We do
-        // not modify input state here; RoundManager handles the input
-        // switching during pre‑round.
-        ShowCanvasGroup(weaponSelectorPanel);
-    }
+    #region Panels API
 
-    public void HideLoadoutPanel()
-    {
-        HideCanvasGroup(weaponSelectorPanel);
-    }
+    // LOADOUT
+    public void ShowLoadoutPanel() => ShowCanvasGroup(loadoutPanel.cg);
+    public void HideLoadoutPanel() => HideCanvasGroup(loadoutPanel.cg);
 
     public void ToggleLoadoutPanel()
     {
-        if (weaponSelectorPanel == null) return;
-        if (weaponSelectorPanel.alpha > 0.5f)
-            HideCanvasGroup(weaponSelectorPanel);
-        else
-            ShowCanvasGroup(weaponSelectorPanel);
+        if (loadoutPanel.cg == null) return;
+        if (loadoutPanel.cg.alpha > 0.5f) HideCanvasGroup(loadoutPanel.cg);
+        else ShowCanvasGroup(loadoutPanel.cg);
     }
 
-    /// <summary>
-    /// HUD
-    /// </summary>
-    public void ShowHUD()
-    {
-        ShowCanvasGroup(hudPanel);
-    }
+    // HUD
+    public void ShowHUD() => ShowCanvasGroup(hudPanel.cg);
+    public void HideHUD() => HideCanvasGroup(hudPanel.cg);
 
-    public void HideHUD()
-    {
-        HideCanvasGroup(hudPanel);
-    }
+    // PAUSE
+    public void ShowExitMenu() => ShowCanvasGroup(pausePanel.cg);
+    public void HideExitMenu() => HideCanvasGroup(pausePanel.cg);
 
-    /// <summary>
-    /// EXIT MENU
-    /// </summary>
-    public void ShowExitMenu()
-    {
-        ShowCanvasGroup(PausePanel);
-    }
-
-    public void HideExitMenu()
-    {
-        HideCanvasGroup(PausePanel);
-    }
-
-    /// <summary>
-    /// COUNTDOWN PANEL 
-    /// </summary>
-    // Starts a pre‑round countdown by delegating to the countdown panel.
+    // COUNTDOWN
     public void StartCountdown(float seconds, System.Action onFinished = null)
     {
-        if (countdownPanel == null || countdownController == null)
+        if (countdownPanel.cg == null || countdownController == null)
+        {
+            Debug.LogError("[GameplayUIManager] Cannot StartCountdown: countdown panel or controller missing.", this);
+            onFinished?.Invoke();
             return;
-        ShowCanvasGroup(countdownPanel);
+        }
 
-        weaponSelector.OpenPreRound();
+        ShowCanvasGroup(countdownPanel.cg);
 
-        // When the countdown finishes we need to ensure the player either has selected a weapon or is equipped with the default.
+        if (weaponSelector == null)
+            Debug.LogError("[GameplayUIManager] WeaponSelectorPanel missing (cannot OpenPreRound).", this);
+        else
+            weaponSelector.OpenPreRound();
+
         countdownController.StartCountdown(seconds, () =>
         {
-            HideCanvasGroup(countdownPanel);
+            HideCanvasGroup(countdownPanel.cg);
             OnCountdownFinished();
             onFinished?.Invoke();
         });
     }
 
-    // Invoked internally when the pre‑round countdown finishes.
     private void OnCountdownFinished()
     {
-        // Delegate to the weapon selector panel.
+        if (weaponSelector == null)
+        {
+            Debug.LogError("[GameplayUIManager] OnCountdownFinished: weaponSelector missing.", this);
+            return;
+        }
+
         weaponSelector.OnCountdownFinished();
     }
 
-    // Cancels an active countdown if one is running.
     public void CancelCountdown()
     {
         if (countdownController != null)
-        {
             countdownController.CancelCountdown();
-        }
-        HideCanvasGroup(countdownPanel);
+
+        HideCanvasGroup(countdownPanel.cg);
     }
+
     #endregion
 
-    /// <summary>
-    /// INTERNALS
-    /// </summary>
-    // Registers the local player with the HUD.
+    #region Binding API (player & weapon)
+
     public void RegisterPlayer(GameObject player)
     {
-        if (playerHUD != null)
+        if (playerHUD == null)
         {
-            playerHUD.BindPlayer(player);
-            ShowHUD();
+            Debug.LogError("[GameplayUIManager] RegisterPlayer failed: PlayerHUD is NULL. Check HUD root assignment.", this);
+            return;
         }
+
+        playerHUD.BindPlayer(player);
+        ShowHUD();
     }
 
-    // Registers the local player's weapon with the HUD.
     public void RegisterWeapon(WeaponController weapon)
     {
-        if (playerHUD != null)
+        if (playerHUD == null)
         {
-            playerHUD.BindWeapon(weapon);
-            ShowHUD();
+            Debug.LogError("[GameplayUIManager] RegisterWeapon failed: PlayerHUD is NULL. Check HUD root assignment.", this);
+            return;
         }
+
+        playerHUD.BindWeapon(weapon);
+        ShowHUD();
     }
 
+    #endregion
 }
