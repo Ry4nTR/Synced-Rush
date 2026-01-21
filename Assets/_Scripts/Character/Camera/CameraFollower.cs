@@ -8,13 +8,12 @@ public class CameraFollower : MonoBehaviour
 
     void LateUpdate()
     {
-        if (vcam == null) return;
-
-        var state = vcam.State;
+        if (vcam == null || viewmodelCam == null)
+            return;
 
         viewmodelCam.transform.SetPositionAndRotation(
-            state.GetFinalPosition(),
-            state.GetFinalOrientation()
+            vcam.transform.position,
+            vcam.transform.rotation
         );
     }
 }

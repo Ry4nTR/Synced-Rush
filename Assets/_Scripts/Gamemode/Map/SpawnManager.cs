@@ -72,6 +72,28 @@ public class SpawnManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Despawn all currently spawned player objects.
+    /// </summary>
+    public void DespawnAllPlayers()
+    {
+        if (!NetworkManager.Singleton.IsServer) return;
+
+        foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
+        {
+            var playerObject = client.PlayerObject;
+            if (playerObject == null) continue;
+
+            var netObj = playerObject.GetComponent<NetworkObject>();
+            if (netObj != null && netObj.IsSpawned)
+            {
+                // Pass 'true' so the underlying GameObject is destroyed on clients as well.
+                netObj.Despawn(true);
+            }
+        }
+    }
+
+
     // =========================
     // Internal
     // =========================

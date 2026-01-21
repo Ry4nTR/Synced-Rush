@@ -16,7 +16,6 @@ public class HealthSystem : NetworkBehaviour, IDamageable
         NetworkVariableWritePermission.Server
     );
 
-    private PlayerCombatIdentity combatIdentity;
     private RoundDeathTracker deathTracker;
 
     public float CurrentHealth => currentHealth.Value;
@@ -25,7 +24,6 @@ public class HealthSystem : NetworkBehaviour, IDamageable
     {
         base.OnNetworkSpawn();
 
-        combatIdentity = GetComponent<PlayerCombatIdentity>();
         deathTracker = FindAnyObjectByType<RoundDeathTracker>();
 
         if (IsServer && currentHealth.Value <= 0f)
@@ -54,7 +52,8 @@ public class HealthSystem : NetworkBehaviour, IDamageable
         if (!IsServer)
             return;
 
-        Debug.Log($"Player {combatIdentity.playerId} died");
+        // Log the owner client ID instead of requiring a PlayerCombatIdentity component.  
+        Debug.Log($"Player {OwnerClientId} died");
 
         if (deathTracker != null)
         {

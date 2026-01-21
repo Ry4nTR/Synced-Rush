@@ -9,6 +9,9 @@ using UnityEngine.InputSystem;
 /// </summary>
 public class ClientComponentSwitcher : NetworkBehaviour
 {
+    [SerializeField] private string gameplayMapName = "Player";
+    [SerializeField] private string uiMapName = "UI";
+
     [Header("Input")]
     [SerializeField] private PlayerInput playerInput;
     [SerializeField] private PlayerInputHandler inputHandler;
@@ -109,8 +112,6 @@ public class ClientComponentSwitcher : NetworkBehaviour
             var gameplayUI = GameplayUIManager.Instance;
             if (gameplayUI != null)
             {
-                Debug.Log($"[ClientComponentSwitcher] Owner OnNetworkSpawn. GameplayUIManager.Instance={(GameplayUIManager.Instance ? "OK" : "NULL")}", this);
-
                 gameplayUI.RegisterPlayer(gameObject);
             }
             else if (uiManager != null)
@@ -153,8 +154,6 @@ public class ClientComponentSwitcher : NetworkBehaviour
             var gameplayUI = GameplayUIManager.Instance;
             if (gameplayUI != null)
             {
-                Debug.Log($"[ClientComponentSwitcher] Owner RegisterWeapon wc={(wc ? wc.name : "NULL")} GameplayUIManager.Instance={(GameplayUIManager.Instance ? "OK" : "NULL")}", this);
-
                 gameplayUI.RegisterWeapon(wc);
             }
             else if (uiManager != null)
@@ -180,38 +179,54 @@ public class ClientComponentSwitcher : NetworkBehaviour
     /// </summary>
     public void SetState_UIMenu()
     {
-        playerInput.SwitchCurrentActionMap("UI");
+        // Ensure PlayerInput is enabled before switching to UI map
+        if (playerInput != null && !playerInput.enabled)
+            playerInput.enabled = true;
+
+        playerInput.SwitchCurrentActionMap(uiMapName);
         inputHandler.ClearAllInputs();
         inputHandler.enabled = false;
         lookController.enabled = false;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        LogState("SetState_UIMenu");
+        //LogState("SetState_UIMenu");
     }
 
     public void SetState_Loadout()
     {
         // UI mode but keep ability to select weapons
-        playerInput.SwitchCurrentActionMap("UI");
+        if (playerInput != null && !playerInput.enabled)
+            playerInput.enabled = true;
+
+        playerInput.SwitchCurrentActionMap(uiMapName);
         inputHandler.ClearAllInputs();
         inputHandler.enabled = false;
         lookController.enabled = false;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        LogState("SetState_Loadout");
+        //LogState("SetState_Loadout");
     }
 
     public void SetState_Gameplay()
     {
-        playerInput.SwitchCurrentActionMap("Player");
+        // Ensure PlayerInput is enabled before switching maps
+        if (playerInput != null && !playerInput.enabled)
+            playerInput.enabled = true;
+
+        // Switch to gameplay map
+        playerInput.SwitchCurrentActionMap(gameplayMapName);
+
+        // Enable gameplay input + look
+        inputHandler.ClearAllInputs();
         inputHandler.enabled = true;
         lookController.enabled = true;
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
-        LogState("SetState_Gameplay");
+        //LogState("SetState_Gameplay");
     }
 
     private void LogState(string from)

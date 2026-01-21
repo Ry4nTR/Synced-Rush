@@ -41,6 +41,7 @@ public class MovementController : NetworkBehaviour
     // =========================
     [Header("References")]
     [SerializeField] private Transform _visualRoot;
+    private bool _ownerHasInitialServerPos;
 
     // =========================
     // Server Replication
@@ -183,11 +184,22 @@ public class MovementController : NetworkBehaviour
 
     private void OnServerPositionChanged(Vector3 oldPos, Vector3 newPos)
     {
-        if (IsOwner || IsServer) return;
+        // Remote client smoothing (what you already do)
+        if (!IsOwner && !IsServer)
+        {
+            _remoteFrom = transform.position;
+            _remoteTo = newPos;
+            _remoteT = 0f;
+            return;
+        }
 
-        _remoteFrom = transform.position;
-        _remoteTo = newPos;
-        _remoteT = 0f;
+        // OWNER: first authoritative position after spawn -> hard snap capsule
+        if (IsOwner && !IsServer && !_ownerHasInitialServerPos)
+        {
+            transform.position = newPos;
+            if (_visualRoot != null) _visualRoot.localPosition = Vector3.zero;
+            _ownerHasInitialServerPos = true;
+        }
     }
 
     public override void OnNetworkDespawn()
@@ -271,11 +283,16 @@ public class MovementController : NetworkBehaviour
             Vector3 offset = authoritative - predicted;
             float dist = offset.magnitude;
 
-            if (_visualRoot != null)
+            if (dist > reconciliationSnapDistance)
             {
-                if (dist > reconciliationSnapDistance)
-                    _visualRoot.localPosition = offset;
-                else
+                // Big error -> fix the REAL capsule, not only visuals
+                transform.position = authoritative;
+                if (_visualRoot != null) _visualRoot.localPosition = Vector3.zero;
+            }
+            else
+            {
+                // Small error -> smooth visually
+                if (_visualRoot != null)
                     _visualRoot.localPosition = Vector3.Lerp(
                         _visualRoot.localPosition,
                         offset,

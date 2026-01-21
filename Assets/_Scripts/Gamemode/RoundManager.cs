@@ -25,8 +25,8 @@ public class RoundManager : NetworkBehaviour
 
     private const int ConsecutiveWinsRequired = 2;
 
-    [SerializeField] private float firstRoundCountdown = 10f;
-    [SerializeField] private float subsequentRoundCountdown = 5f;
+    [SerializeField] private float firstRoundCountdown = 15f;
+    [SerializeField] private float subsequentRoundCountdown = 10f;
 
     // Indicates whether the upcoming round is the first round of the match.
     private bool isFirstRound = true;
@@ -145,11 +145,13 @@ public class RoundManager : NetworkBehaviour
 
         Debug.Log("Preparing next round");
 
+        // Despawn all currently spawned players
+        spawnManager.DespawnAllPlayers();
+
         // Spawn players using their assigned teams (set in the lobby)
         spawnManager.SpawnAllPlayers();
 
-        // Determine how long this pre‑round countdown should be.  The first
-        // round uses a longer countdown to allow players time to pick a loadout.
+        // The first round uses a longer countdown to allow players time to pick a loadout.
         float countdownDuration = isFirstRound ? firstRoundCountdown : subsequentRoundCountdown;
 
         // Instruct all clients to enter pre‑round UI state and display the

@@ -31,8 +31,6 @@ public class PlayerHUD : MonoBehaviour
 
     public void BindPlayer(GameObject player)
     {
-        Debug.Log($"[PlayerHUD] BindPlayer player={(player ? player.name : "NULL")} health={(player ? player.GetComponent<HealthSystem>() : null)} healthText={(healthText ? "OK" : "NULL")}", this);
-
         if (health != null)
             health.currentHealth.OnValueChanged -= OnHealthChanged;
 
@@ -46,8 +44,6 @@ public class PlayerHUD : MonoBehaviour
 
     public void BindWeapon(WeaponController weaponController)
     {
-        Debug.Log($"[PlayerHUD] BindWeapon weapon={(weaponController ? weaponController.name : "NULL")} ammoText={(ammoText ? "OK" : "NULL")}", this);
-
         weapon = weaponController;
         UpdateAmmo();
     }

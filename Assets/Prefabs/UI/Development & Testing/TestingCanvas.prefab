@@ -118,7 +118,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIManager
   connectionPanel: {fileID: 3762024181543640265}
-  weaponSelectorPanel: {fileID: 0}
+  weaponSelectorPanel: {fileID: 7170886871437610950}
   hudPanel: {fileID: 7590725758162815621}
   playerHUD: {fileID: 277169479396684312}
 --- !u!1001 &2008429011959165263
@@ -581,5 +581,10 @@ PrefabInstance:
 --- !u!224 &6316252352642982080 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 3537629452872324659, guid: 03079d0958be928438f0173bb196fd44, type: 3}
+  m_PrefabInstance: {fileID: 7403910306544006899}
+  m_PrefabAsset: {fileID: 0}
+--- !u!225 &7170886871437610950 stripped
+CanvasGroup:
+  m_CorrespondingSourceObject: {fileID: 377144238869428533, guid: 03079d0958be928438f0173bb196fd44, type: 3}
   m_PrefabInstance: {fileID: 7403910306544006899}
   m_PrefabAsset: {fileID: 0}

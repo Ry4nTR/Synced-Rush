@@ -51,12 +51,8 @@ public class WeaponActionHandler : NetworkBehaviour
 
         if (weaponController == null && Time.time >= nextLogTime)
         {
-            Debug.Log($"[WeaponActionHandler] No WeaponController found in children yet (player={name})", this);
+            //Debug.Log($"[WeaponActionHandler] No WeaponController found in children yet (player={name})", this);
             nextLogTime = Time.time + 1f;
-        }
-        else if (weaponController != null)
-        {
-            Debug.Log($"[WeaponActionHandler] Acquired WeaponController: {weaponController.name}", this);
         }
     }
 }

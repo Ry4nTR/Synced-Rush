@@ -78,6 +78,7 @@ public class GameplayUIManager : MonoBehaviour
         ShowCanvasGroup(hudPanel.cg);
 
         // Debug summary (very useful)
+        /*
         Debug.Log(
             $"[GameplayUIManager] Awake | " +
             $"CountdownRoot={(countdownPanel.root ? countdownPanel.root.name : "NULL")} cg={(countdownPanel.cg ? "OK" : "NULL")} ctrl={(countdownController ? "OK" : "NULL")} | " +
@@ -86,6 +87,7 @@ public class GameplayUIManager : MonoBehaviour
             $"PauseRoot={(pausePanel.root ? pausePanel.root.name : "NULL")} cg={(pausePanel.cg ? "OK" : "NULL")}",
             this
         );
+        */
     }
 
     private T FindOnRootOrChildren<T>(GameObject root, string label) where T : Component
