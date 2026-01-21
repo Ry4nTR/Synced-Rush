@@ -20,7 +20,7 @@ public class WeaponLoadoutState : NetworkBehaviour
             RequestEquipServerRpc(LocalWeaponSelection.SelectedWeaponId);
     }
 
-    //Called by WeaponSelectorPanel
+    //Called by LoadoutSelectorPanel
     public void RequestEquip(int weaponId)
     {
         if (!IsOwner && !IsServer) return;

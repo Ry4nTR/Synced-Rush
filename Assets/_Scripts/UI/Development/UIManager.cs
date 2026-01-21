@@ -10,7 +10,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private CanvasGroup hudPanel;
 
     [Header("HUD")]
-    [SerializeField] private PlayerHUD playerHUD;
+    [SerializeField] private DevHUD HUD;
 
     private void Awake()
     {
@@ -81,13 +81,13 @@ public class UIManager : MonoBehaviour
 
     public void UIRegisterPlayer(GameObject player)
     {
-        playerHUD.BindPlayer(player);
+        //HUD.TryBind(player);
 
         ShowHUD();
     }
     public void UIRegisterWeapon(WeaponController weapon)
     {
-        playerHUD.BindWeapon(weapon);
+        //HUD.BindWeapon(weapon);
 
         ShowHUD();
     }

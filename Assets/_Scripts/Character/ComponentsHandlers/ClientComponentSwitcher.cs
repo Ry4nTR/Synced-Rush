@@ -9,12 +9,15 @@ using UnityEngine.InputSystem;
 /// </summary>
 public class ClientComponentSwitcher : NetworkBehaviour
 {
-    [SerializeField] private string gameplayMapName = "Player";
-    [SerializeField] private string uiMapName = "UI";
-
     [Header("Input")]
     [SerializeField] private PlayerInput playerInput;
     [SerializeField] private PlayerInputHandler inputHandler;
+
+    [Header("Action Map Names")]
+    [Tooltip("Name of the action map used for gameplay (movement/shooting). This should match the map name in the Input Action asset.")]
+    [SerializeField] private string gameplayMapName = "Player";
+    [Tooltip("Name of the action map used for UI interactions (menus/loadout). This should match the map name in the Input Action asset.")]
+    [SerializeField] private string uiMapName = "UI";
 
     [Header("Character Components (Owner Only)")]
     [SerializeField] private LookController lookController;
@@ -65,9 +68,12 @@ public class ClientComponentSwitcher : NetworkBehaviour
         if (healthSystem != null) healthSystem.enabled = false;
 
         // --- Enable GLOBAL MAP (always on) ---
-        var globalMap = playerInput.actions.FindActionMap("Global");
-        if (globalMap != null)
-            globalMap.Enable();
+        if (playerInput != null && playerInput.actions != null)
+        {
+            var globalMap = playerInput.actions.FindActionMap("Global");
+            if (globalMap != null)
+                globalMap.Enable();
+        }
     }
 
     public override void OnNetworkSpawn()
@@ -179,14 +185,19 @@ public class ClientComponentSwitcher : NetworkBehaviour
     /// </summary>
     public void SetState_UIMenu()
     {
-        // Ensure PlayerInput is enabled before switching to UI map
+        // Ensure input is enabled before switching maps
         if (playerInput != null && !playerInput.enabled)
             playerInput.enabled = true;
-
-        playerInput.SwitchCurrentActionMap(uiMapName);
-        inputHandler.ClearAllInputs();
-        inputHandler.enabled = false;
-        lookController.enabled = false;
+        // Switch to UI map
+        if (playerInput != null)
+            playerInput.SwitchCurrentActionMap(uiMapName);
+        if (inputHandler != null)
+        {
+            inputHandler.ClearAllInputs();
+            inputHandler.enabled = false;
+        }
+        if (lookController != null)
+            lookController.enabled = false;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
@@ -195,14 +206,18 @@ public class ClientComponentSwitcher : NetworkBehaviour
 
     public void SetState_Loadout()
     {
-        // UI mode but keep ability to select weapons
+        // UI mode but keep ability to select weapons/abilities
         if (playerInput != null && !playerInput.enabled)
             playerInput.enabled = true;
-
-        playerInput.SwitchCurrentActionMap(uiMapName);
-        inputHandler.ClearAllInputs();
-        inputHandler.enabled = false;
-        lookController.enabled = false;
+        if (playerInput != null)
+            playerInput.SwitchCurrentActionMap(uiMapName);
+        if (inputHandler != null)
+        {
+            inputHandler.ClearAllInputs();
+            inputHandler.enabled = false;
+        }
+        if (lookController != null)
+            lookController.enabled = false;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
@@ -211,18 +226,19 @@ public class ClientComponentSwitcher : NetworkBehaviour
 
     public void SetState_Gameplay()
     {
-        // Ensure PlayerInput is enabled before switching maps
+        // Ensure input is enabled before switching maps
         if (playerInput != null && !playerInput.enabled)
             playerInput.enabled = true;
-
         // Switch to gameplay map
-        playerInput.SwitchCurrentActionMap(gameplayMapName);
-
-        // Enable gameplay input + look
-        inputHandler.ClearAllInputs();
-        inputHandler.enabled = true;
-        lookController.enabled = true;
-
+        if (playerInput != null)
+            playerInput.SwitchCurrentActionMap(gameplayMapName);
+        if (inputHandler != null)
+        {
+            inputHandler.ClearAllInputs();
+            inputHandler.enabled = true;
+        }
+        if (lookController != null)
+            lookController.enabled = true;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 

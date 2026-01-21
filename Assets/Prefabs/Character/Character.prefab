@@ -231,7 +231,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 2877608786
+  GlobalObjectIdHash: 3354322385
   InScenePlacedSourceGlobalObjectIdHash: 1514268395
   DeferredDespawnTick: 0
   Ownership: 1
@@ -274,6 +274,8 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   playerInput: {fileID: 5363198753706274393}
   inputHandler: {fileID: 831554826967024705}
+  gameplayMapName: Player
+  uiMapName: UI
   lookController: {fileID: 7529996170362948438}
   moveController: {fileID: -2986967647247276543}
   movementFSM: {fileID: 245510072461140579}
@@ -443,11 +445,10 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 1536
   _hook: {fileID: 266383931767271499, guid: 8783b200c56318948b89c74a0e35fd9f, type: 3}
-  reconciliationSmoothing: 0.06
-  remoteSmoothing: 0.08
-  reconciliationSnapDistance: 2
-  remoteLerpTime: 0.08
   _visualRoot: {fileID: 5959273353806796432}
+  remoteLerpTime: 0.08
+  reconciliationSnapDistance: 10
+  reconciliationSmoothing: 12
 --- !u!114 &2476011265268299710
 MonoBehaviour:
   m_ObjectHideFlags: 0

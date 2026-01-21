@@ -166,25 +166,34 @@ public class MovementController : NetworkBehaviour
     {
         base.OnNetworkSpawn();
 
+        // Server sets the initial authoritative position
         if (IsServer)
+        {
             _serverPosition.Value = transform.position;
+        }
 
+        // Initialise remote interpolation data on clients (non-server)
         if (!IsServer)
         {
             _remoteFrom = transform.position;
             _remoteTo = transform.position;
             _remoteT = 1f;
-
-            _serverPosition.OnValueChanged += OnServerPositionChanged;
         }
 
-        if (_visualRoot != null)
-            _visualRoot.localPosition = Vector3.zero;
+        // Subscribe to server position changes so remote clients can interpolate
+        _serverPosition.OnValueChanged += OnServerPositionChanged;
     }
 
+    public override void OnNetworkDespawn()
+    {
+        base.OnNetworkDespawn();
+        _serverPosition.OnValueChanged -= OnServerPositionChanged;
+    }
+
+    // remote interpolation and snaps the owner to the correct spawn position
     private void OnServerPositionChanged(Vector3 oldPos, Vector3 newPos)
     {
-        // Remote client smoothing (what you already do)
+        // Remote clients (not owner/server) interpolate between positions
         if (!IsOwner && !IsServer)
         {
             _remoteFrom = transform.position;
@@ -193,21 +202,14 @@ public class MovementController : NetworkBehaviour
             return;
         }
 
-        // OWNER: first authoritative position after spawn -> hard snap capsule
+        // Owner: snap to the first authoritative position received after spawn
         if (IsOwner && !IsServer && !_ownerHasInitialServerPos)
         {
             transform.position = newPos;
-            if (_visualRoot != null) _visualRoot.localPosition = Vector3.zero;
+            if (_visualRoot != null)
+                _visualRoot.localPosition = Vector3.zero;
             _ownerHasInitialServerPos = true;
         }
-    }
-
-    public override void OnNetworkDespawn()
-    {
-        base.OnNetworkDespawn();
-
-        if (_hook != null)
-            Destroy(_hook);
     }
 
     private void Awake()
@@ -230,34 +232,49 @@ public class MovementController : NetworkBehaviour
         if (_animController == null)
             _animController = GetComponent<PlayerAnimationController>();
 
+        // Spawn the grapple hook locally and parent it to the character so it
+        // despawns with the player.  We keep a separate instance from the prefab
+        // to avoid overwriting the prefab reference.
         HookController hookCtrl = null;
         if (_hook != null)
         {
-            _hook = Instantiate(_hook);
-            hookCtrl = _hook.GetComponent<HookController>();
+            var parent = transform;
+            var instance = Instantiate(_hook, parent);
+            instance.transform.localPosition = Vector3.zero;
+            instance.transform.localRotation = Quaternion.identity;
+            _hook = instance;
+            hookCtrl = instance.GetComponent<HookController>();
         }
         else
+        {
             Debug.LogError("Non è stato settato il prefab dell'hook sul Character! (null reference)");
+        }
 
         _ability = new(this, hookCtrl);
 
-        Ability.CurrentAbility = CharacterAbility.Grapple; //TODO DEBUG, da rimuovere
+        // Set the initial ability based on the player's local selection.  If none
+        // selected, default to Grapple for backwards compatibility.
+        if (LocalAbilitySelection.SelectedAbility != CharacterAbility.None)
+            Ability.CurrentAbility = LocalAbilitySelection.SelectedAbility;
+        else
+            Ability.CurrentAbility = CharacterAbility.Grapple;
     }
 
     private void Update()
     {
-        if (!IsSpawned) return;
+        if (!IsSpawned)
+            return;
 
-        //Debug.Log("IsOnGround:" + IsOnGround.ToString());
-
-        // After IsSpawned check, before server/owner/remote branching:
-        if (!IsOwner && _visualRoot != null && _visualRoot.localPosition != Vector3.zero)
+        // Reset any visual offset for remote clients. Only the owning
+        // client uses the visual root for reconciliation; remote clients
+        // should always have zero local offset so the model aligns with
+        // the capsule.
+        if (!IsOwner && !IsServer && _visualRoot != null && _visualRoot.localPosition != Vector3.zero)
         {
-            // Remote players should NOT keep any reconciliation visual offset.
             _visualRoot.localPosition = Vector3.zero;
         }
 
-        // 1. Server: simulazione autorevole
+        // 1. Server: authoritative simulation
         if (IsServer)
         {
             Ability.ProcessUpdate();
@@ -269,7 +286,7 @@ public class MovementController : NetworkBehaviour
             return;
         }
 
-        // 2. Owner: predizione + riconciliazione
+        // 2. Owner: prediction + reconciliation
         if (IsOwner)
         {
             Ability.ProcessUpdate();
@@ -283,28 +300,38 @@ public class MovementController : NetworkBehaviour
             Vector3 offset = authoritative - predicted;
             float dist = offset.magnitude;
 
-            if (dist > reconciliationSnapDistance)
+            bool highSpeed =
+                State == MovementState.Dash ||
+                (Ability.CurrentAbility == CharacterAbility.Jetpack && Ability.UsingJetpack);
+
+            float snapDist = highSpeed ? 10f : reconciliationSnapDistance;
+
+            if (dist > snapDist)
             {
-                // Big error -> fix the REAL capsule, not only visuals
                 transform.position = authoritative;
-                if (_visualRoot != null) _visualRoot.localPosition = Vector3.zero;
+
+                // IMPORTANT: if we hard-snap, clear any visual offset
+                if (_visualRoot != null)
+                    _visualRoot.localPosition = Vector3.zero;
             }
             else
             {
-                // Small error -> smooth visually
                 if (_visualRoot != null)
-                    _visualRoot.localPosition = Vector3.Lerp(
-                        _visualRoot.localPosition,
-                        offset,
-                        reconciliationSmoothing
-                    );
+                {
+                    float t = 1f - Mathf.Exp(-reconciliationSmoothing * Time.deltaTime);
+                    _visualRoot.localPosition = Vector3.Lerp(_visualRoot.localPosition, offset, t);
+                }
             }
+
             return;
         }
 
-        // 3. Client remoto: smooth between server updates (prevents jitter)
+        // 3. Remote client: smooth movement between server updates
+        // Increment interpolation progress based on deltaTime and lerp time
         _remoteT += Time.deltaTime / Mathf.Max(0.001f, remoteLerpTime);
-        transform.position = Vector3.Lerp(_remoteFrom, _remoteTo, Mathf.Clamp01(_remoteT));
+        float lerpFactor = Mathf.Clamp01(_remoteT);
+        Vector3 newPos = Vector3.Lerp(_remoteFrom, _remoteTo, lerpFactor);
+        transform.position = newPos;
     }
 
 

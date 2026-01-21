@@ -17,7 +17,7 @@ public class LANConnectionUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI hostIpText;
 
     [Header("Optional")]
-    [SerializeField] private WeaponSelectorPanel weaponSelectorPanel;
+    [SerializeField] private LoadoutSelectorPanel weaponSelectorPanel;
 
     private void Awake()
     {

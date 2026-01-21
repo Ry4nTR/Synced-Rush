@@ -1,9 +1,11 @@
 using UnityEngine;
 using Unity.Netcode;
+using UnityEngine.SceneManagement;
 
 public class ExitMenuPanel : MonoBehaviour
 {
-    // These methods can be assigned to UI button OnClick events in the inspector
+    [SerializeField] private string mainMenuSceneName = "MainMenu";
+
     public void OnOptionsButton()
     {
         // Show options panel or settings menu here
@@ -11,10 +13,12 @@ public class ExitMenuPanel : MonoBehaviour
 
     public void OnExitButton()
     {
-        // Shut down the network and return to the main menu
         if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
         {
             NetworkManager.Singleton.Shutdown();
         }
+
+        if (!string.IsNullOrWhiteSpace(mainMenuSceneName))
+            SceneManager.LoadScene(mainMenuSceneName);
     }
 }

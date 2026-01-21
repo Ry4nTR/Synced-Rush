@@ -10,9 +10,6 @@ using UnityEngine.InputSystem;
 /// </summary>
 public class DevWeaponSelectorPanel : MonoBehaviour
 {
-    [SerializeField]
-    private int defaultWeaponId = 0;
-
     private UIManager ui;
     private ClientComponentSwitcher componentSwitcher;
     private PlayerInput playerInput;
@@ -26,10 +23,16 @@ public class DevWeaponSelectorPanel : MonoBehaviour
 
         componentSwitcher = player.GetComponent<ClientComponentSwitcher>();
         playerInput = player.GetComponent<PlayerInput>();
+        Debug.Log("Player input found: " + (playerInput != null));
 
         // Bind the toggle action to open/close the panel during gameplay.
         var action = playerInput.actions["ToggleWeaponPanel"];
-        action.performed += OnTogglePerformed;
+        if (action != null)
+        {
+            // Ensure the toggle is enabled globally so it works across maps
+            action.Enable();
+            action.performed += OnTogglePerformed;
+        }
     }
 
     private void OnDestroy()
@@ -83,23 +86,6 @@ public class DevWeaponSelectorPanel : MonoBehaviour
         {
             var loadout = player.GetComponent<WeaponLoadoutState>();
             loadout?.RequestEquip(weaponId);
-        }
-        ClosePanel();
-    }
-
-    /// <summary>
-    /// Called when the pre‑round countdown finishes.  Equips the
-    /// default weapon if none was selected and closes the panel.
-    /// </summary>
-    public void OnCountdownFinished()
-    {
-        if (LocalWeaponSelection.SelectedWeaponId < 0)
-        {
-            SelectWeapon(defaultWeaponId);
-        }
-        else
-        {
-            ClosePanel();
         }
     }
 }
