@@ -120,7 +120,7 @@ MonoBehaviour:
   connectionPanel: {fileID: 3762024181543640265}
   weaponSelectorPanel: {fileID: 7170886871437610950}
   hudPanel: {fileID: 7590725758162815621}
-  playerHUD: {fileID: 277169479396684312}
+  playerHUD: {fileID: 0}
 --- !u!1001 &2008429011959165263
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -131,7 +131,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1971371267993279951, guid: 9b087335ba9f27d46bc338bede1b0863, type: 3}
       propertyPath: m_Name
-      value: HUD
+      value: TestHUD
       objectReference: {fileID: 0}
     - target: {fileID: 4494659912564592834, guid: 9b087335ba9f27d46bc338bede1b0863, type: 3}
       propertyPath: m_Pivot.x
@@ -213,22 +213,32 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 1731611687937557335, guid: 9b087335ba9f27d46bc338bede1b0863, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1971371267993279951, guid: 9b087335ba9f27d46bc338bede1b0863, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 958113315499434124}
   m_SourcePrefab: {fileID: 100100000, guid: 9b087335ba9f27d46bc338bede1b0863, type: 3}
---- !u!114 &277169479396684312 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1731611687937557335, guid: 9b087335ba9f27d46bc338bede1b0863, type: 3}
+--- !u!1 &37410001111526528 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1971371267993279951, guid: 9b087335ba9f27d46bc338bede1b0863, type: 3}
   m_PrefabInstance: {fileID: 2008429011959165263}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+--- !u!114 &958113315499434124
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 37410001111526528}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4ca8754f75b05fc49aadf1688769c280, type: 3}
+  m_Script: {fileID: 11500000, guid: b95f2912d7c43a5488bfa2a28c67a902, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerHUD
+  m_EditorClassIdentifier: Assembly-CSharp::DevHUD
 --- !u!114 &1220660589793791501 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 806135388418637634, guid: 9b087335ba9f27d46bc338bede1b0863, type: 3}

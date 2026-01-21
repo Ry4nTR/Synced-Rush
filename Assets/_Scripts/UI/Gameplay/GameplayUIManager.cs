@@ -1,4 +1,6 @@
 using UnityEngine;
+using Unity.Netcode;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Manages the in–match UI panels for the player.
@@ -44,11 +46,18 @@ public class GameplayUIManager : MonoBehaviour
     [SerializeField] private PanelRoot loadoutPanel;
     [SerializeField] private PanelRoot hudPanel;
     [SerializeField] private PanelRoot pausePanel;
+    [SerializeField] private PanelRoot scorePanel;
 
     // Auto-cached controllers (found from roots)
     private RoundCountdownPanel countdownController;
-    private WeaponSelectorPanel weaponSelector;
+    private LoadoutSelectorPanel weaponSelector;
     private PlayerHUD playerHUD;
+    private ScorePanel scoreController;
+
+    // Input binding for pause/exit
+    private PlayerInput _playerInput;
+    private ClientComponentSwitcher _switcher;
+    private bool _exitOpen;
 
     private void Awake()
     {
@@ -65,29 +74,75 @@ public class GameplayUIManager : MonoBehaviour
         loadoutPanel.Cache("Loadout", this);
         hudPanel.Cache("HUD", this);
         pausePanel.Cache("Pause", this);
+        scorePanel.Cache("Score", this);
 
         // Cache required controllers from roots
         countdownController = FindOnRootOrChildren<RoundCountdownPanel>(countdownPanel.root, "CountdownController");
-        weaponSelector = FindOnRootOrChildren<WeaponSelectorPanel>(loadoutPanel.root, "WeaponSelectorPanel");
+        weaponSelector = FindOnRootOrChildren<LoadoutSelectorPanel>(loadoutPanel.root, "LoadoutSelectorPanel");
         playerHUD = FindOnRootOrChildren<PlayerHUD>(hudPanel.root, "PlayerHUD");
+        scoreController = FindOnRootOrChildren<ScorePanel>(scorePanel.root, "ScorePanel");
 
         // Default visibility
         HideCanvasGroup(countdownPanel.cg);
         HideCanvasGroup(loadoutPanel.cg);
         HideCanvasGroup(pausePanel.cg);
+        HideCanvasGroup(scorePanel.cg);
         ShowCanvasGroup(hudPanel.cg);
 
-        // Debug summary (very useful)
-        /*
-        Debug.Log(
-            $"[GameplayUIManager] Awake | " +
-            $"CountdownRoot={(countdownPanel.root ? countdownPanel.root.name : "NULL")} cg={(countdownPanel.cg ? "OK" : "NULL")} ctrl={(countdownController ? "OK" : "NULL")} | " +
-            $"LoadoutRoot={(loadoutPanel.root ? loadoutPanel.root.name : "NULL")} cg={(loadoutPanel.cg ? "OK" : "NULL")} selector={(weaponSelector ? "OK" : "NULL")} | " +
-            $"HUDRoot={(hudPanel.root ? hudPanel.root.name : "NULL")} cg={(hudPanel.cg ? "OK" : "NULL")} hud={(playerHUD ? "OK" : "NULL")} | " +
-            $"PauseRoot={(pausePanel.root ? pausePanel.root.name : "NULL")} cg={(pausePanel.cg ? "OK" : "NULL")}",
-            this
-        );
-        */
+        // Bind local input when the local client connects.
+        if (NetworkManager.Singleton != null)
+            NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+    }
+
+    private void OnDestroy()
+    {
+        if (NetworkManager.Singleton != null)
+            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
+
+        if (_playerInput != null)
+        {
+            var a = _playerInput.actions["ToggleExitPanel"];
+            if (a != null) a.performed -= OnToggleExitPerformed;
+        }
+    }
+
+    private void OnClientConnected(ulong clientId)
+    {
+        if (NetworkManager.Singleton == null) return;
+        if (clientId != NetworkManager.Singleton.LocalClientId) return;
+        TryBindLocalInput();
+    }
+
+    private void TryBindLocalInput()
+    {
+        var player = NetworkManager.Singleton?.LocalClient?.PlayerObject;
+        if (player == null) return;
+
+        _playerInput = player.GetComponent<PlayerInput>();
+        _switcher = player.GetComponent<ClientComponentSwitcher>();
+
+        if (_playerInput == null || _playerInput.actions == null)
+        {
+            Debug.LogWarning("[GameplayUIManager] Cannot bind ToggleExitPanel: PlayerInput/actions missing.", this);
+            return;
+        }
+
+        var action = _playerInput.actions["ToggleExitPanel"];
+        if (action == null)
+        {
+            Debug.LogWarning("[GameplayUIManager] Action 'ToggleExitPanel' not found. Check Global action map.", this);
+            return;
+        }
+
+        // Enable explicitly so it keeps working across action map switches.
+        action.Enable();
+        action.performed -= OnToggleExitPerformed;
+        action.performed += OnToggleExitPerformed;
+    }
+
+    private void OnToggleExitPerformed(InputAction.CallbackContext ctx)
+    {
+        ToggleExitMenu();
     }
 
     private T FindOnRootOrChildren<T>(GameObject root, string label) where T : Component
@@ -130,20 +185,44 @@ public class GameplayUIManager : MonoBehaviour
     public void ShowLoadoutPanel() => ShowCanvasGroup(loadoutPanel.cg);
     public void HideLoadoutPanel() => HideCanvasGroup(loadoutPanel.cg);
 
-    public void ToggleLoadoutPanel()
-    {
-        if (loadoutPanel.cg == null) return;
-        if (loadoutPanel.cg.alpha > 0.5f) HideCanvasGroup(loadoutPanel.cg);
-        else ShowCanvasGroup(loadoutPanel.cg);
-    }
-
     // HUD
     public void ShowHUD() => ShowCanvasGroup(hudPanel.cg);
     public void HideHUD() => HideCanvasGroup(hudPanel.cg);
 
-    // PAUSE
+    // PAUSE/EXIT
     public void ShowExitMenu() => ShowCanvasGroup(pausePanel.cg);
     public void HideExitMenu() => HideCanvasGroup(pausePanel.cg);
+
+    public void ToggleExitMenu()
+    {
+        if (pausePanel.cg == null) return;
+
+        _exitOpen = pausePanel.cg.alpha <= 0.5f;
+        if (_exitOpen)
+        {
+            ShowExitMenu();
+            HideHUD();
+            _switcher?.SetState_UIMenu();
+        }
+        else
+        {
+            HideExitMenu();
+            ShowHUD();
+            _switcher?.SetState_Gameplay();
+        }
+    }
+
+    // SCORE
+    public void ShowScorePanel(int teamAScore, int teamBScore, bool matchOver)
+    {
+        if (scorePanel.cg == null || scoreController == null)
+            return;
+
+        scoreController.ShowScores(teamAScore, teamBScore, matchOver);
+        ShowCanvasGroup(scorePanel.cg);
+    }
+
+    public void HideScorePanel() => HideCanvasGroup(scorePanel.cg);
 
     // COUNTDOWN
     public void StartCountdown(float seconds, System.Action onFinished = null)
@@ -158,7 +237,7 @@ public class GameplayUIManager : MonoBehaviour
         ShowCanvasGroup(countdownPanel.cg);
 
         if (weaponSelector == null)
-            Debug.LogError("[GameplayUIManager] WeaponSelectorPanel missing (cannot OpenPreRound).", this);
+            Debug.LogError("[GameplayUIManager] LoadoutSelectorPanel missing (cannot OpenPreRound).", this);
         else
             weaponSelector.OpenPreRound();
 
