@@ -30,44 +30,30 @@ public class MovementController : NetworkBehaviour
     private PlayerInputHandler _inputHandler;
     private PlayerAnimationController _animController;
 
-    /// <summary>
-    /// Variabile di rete che memorizza la posizione autoritativa del server.
-    /// Il server scrive la posizione corrente del character in questa variabile ogni tick.
-    /// </summary>
+    // Variabile di rete che memorizza la posizione autoritativa del server.
     private NetworkVariable<Vector3> _serverPosition = new NetworkVariable<Vector3>();
 
-    /// <summary>
-    /// Numero di sequenza dell'ultimo input processato dal server.  
-    /// Il server aggiorna questo valore dopo aver elaborato l'input ad ogni tick.
-    /// </summary>
+    // Numero di sequenza dell'ultimo input processato dal server.
     private NetworkVariable<int> _lastProcessedSequence = new NetworkVariable<int>();
 
-    /// <summary>
-    /// Fattore di smoothing per riconciliare la posizione predetta verso quella autoritativa del server.
-    /// Questo valore viene usato solo quando la differenza è al di sotto della soglia di snapping (vedi <see cref="reconciliationSnapDistance"/>).
-    /// </summary>
-    [Header("Reconciliation Settings")]
-    [SerializeField, Tooltip("Fattore di smoothing per la riconciliazione: 1 scatta subito, 0 scorre lentamente.")]
-    private float reconciliationSmoothing = 0.5f;
-
-    /// <summary>
-    /// Fattore di smoothing per i client remoti che interpolano la posizione del server
-    /// </summary>
-    [Header("Remote Smoothing")]
-    [SerializeField, Tooltip("Fattore di smoothing per i client remoti (1 = nessuno smoothing, 0 = interpolazione lentissima)")]
-    private float remoteSmoothing = 0.5f;
-
-    /// <summary>
-    /// Distanza soglia oltre la quale la posizione locale viene agganciata direttamente alla posizione autoritativa.
-    /// </summary>
-    [SerializeField, Tooltip("Distanza oltre la quale la posizione viene agganciata immediatamente alla posizione del server.")]
-    private float reconciliationSnapDistance = 0.25f;
-
-    /// <summary>
-    /// Riferimento al nodo visuale (visual root) che contiene qualsiasi elemento visivo che deve essere interpolato durante la riconciliazione.
-    /// </summary>
-    [Header("Visual Root")]
+    // =========================
+    // References
+    // =========================
+    [Header("References")]
     [SerializeField] private Transform _visualRoot;
+
+    // =========================
+    // Server Replication
+    // =========================
+    [Header("Networking")]
+    [SerializeField] private float remoteLerpTime = 0.08f; // smooth remote movement
+    [SerializeField] private float reconciliationSnapDistance = 0.75f;
+    [SerializeField] private float reconciliationSmoothing = 12f;
+
+    // Runtime (no inspector noise)
+    private Vector3 _remoteFrom;
+    private Vector3 _remoteTo;
+    private float _remoteT;
 
     private RaycastHit _groundInfo;
 
@@ -175,6 +161,42 @@ public class MovementController : NetworkBehaviour
     /// </summary>
     public ControllerColliderHit WallRunStartInfo { get; set; }
 
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+
+        if (IsServer)
+            _serverPosition.Value = transform.position;
+
+        if (!IsServer)
+        {
+            _remoteFrom = transform.position;
+            _remoteTo = transform.position;
+            _remoteT = 1f;
+
+            _serverPosition.OnValueChanged += OnServerPositionChanged;
+        }
+
+        if (_visualRoot != null)
+            _visualRoot.localPosition = Vector3.zero;
+    }
+
+    private void OnServerPositionChanged(Vector3 oldPos, Vector3 newPos)
+    {
+        if (IsOwner || IsServer) return;
+
+        _remoteFrom = transform.position;
+        _remoteTo = newPos;
+        _remoteT = 0f;
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        base.OnNetworkDespawn();
+
+        if (_hook != null)
+            Destroy(_hook);
+    }
 
     private void Awake()
     {
@@ -212,10 +234,16 @@ public class MovementController : NetworkBehaviour
 
     private void Update()
     {
-        if (!IsSpawned)
-            return;
+        if (!IsSpawned) return;
 
         //Debug.Log("IsOnGround:" + IsOnGround.ToString());
+
+        // After IsSpawned check, before server/owner/remote branching:
+        if (!IsOwner && _visualRoot != null && _visualRoot.localPosition != Vector3.zero)
+        {
+            // Remote players should NOT keep any reconciliation visual offset.
+            _visualRoot.localPosition = Vector3.zero;
+        }
 
         // 1. Server: simulazione autorevole
         if (IsServer)
@@ -257,14 +285,9 @@ public class MovementController : NetworkBehaviour
             return;
         }
 
-        // 3. Client remoto: segue il server
-        // Usa remoteSmoothing per interpolare o assegnare diretto.
-        Vector3 target = _serverPosition.Value;
-
-        if (remoteSmoothing >= 1f)
-            transform.position = target;
-        else
-            transform.position = Vector3.Lerp(transform.position, target, remoteSmoothing);
+        // 3. Client remoto: smooth between server updates (prevents jitter)
+        _remoteT += Time.deltaTime / Mathf.Max(0.001f, remoteLerpTime);
+        transform.position = Vector3.Lerp(_remoteFrom, _remoteTo, Mathf.Clamp01(_remoteT));
     }
 
 
