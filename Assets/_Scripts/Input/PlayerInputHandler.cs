@@ -21,7 +21,7 @@ public class PlayerInputHandler : MonoBehaviour
 
     // Debug / utility
     [SerializeField] private bool debugResetPos;
-    
+
     private PlayerInputSystem _controls;
 
     // Read-only accessors

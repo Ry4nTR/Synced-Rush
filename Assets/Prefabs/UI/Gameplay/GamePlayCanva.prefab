@@ -614,6 +614,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ef5e10a841c4f841be29677ecf19002, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExitMenuPanel
+  mainMenuSceneName: MainMenu
 --- !u!1 &2388457615134497208
 GameObject:
   m_ObjectHideFlags: 0
@@ -744,6 +745,9 @@ MonoBehaviour:
     cg: {fileID: 0}
   pausePanel:
     root: {fileID: 2202997695786275803}
+    cg: {fileID: 0}
+  scorePanel:
+    root: {fileID: 7192945641962596126}
     cg: {fileID: 0}
 --- !u!1 &3410390853584727845
 GameObject:

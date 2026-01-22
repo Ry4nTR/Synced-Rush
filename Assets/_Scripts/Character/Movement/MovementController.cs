@@ -29,12 +29,19 @@ public class MovementController : NetworkBehaviour
     private NetworkPlayerInput _netInput;
     private PlayerInputHandler _inputHandler;
     private PlayerAnimationController _animController;
+    private LookController _lookController;
 
     // Variabile di rete che memorizza la posizione autoritativa del server.
     private NetworkVariable<Vector3> _serverPosition = new NetworkVariable<Vector3>();
 
     // Numero di sequenza dell'ultimo input processato dal server.
     private NetworkVariable<int> _lastProcessedSequence = new NetworkVariable<int>();
+
+    // Local yaw accumulator used on the owning client.  This stores the current yaw angle in degrees.
+    private float _yawAngle;
+
+    // Server authoritative yaw value.  The server writes this value and all clients read it.
+    private NetworkVariable<float> _serverYaw = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     // =========================
     // References
@@ -50,6 +57,10 @@ public class MovementController : NetworkBehaviour
     [SerializeField] private float remoteLerpTime = 0.08f; // smooth remote movement
     [SerializeField] private float reconciliationSnapDistance = 0.75f;
     [SerializeField] private float reconciliationSmoothing = 12f;
+
+    [Header("Server Simulation")]
+    [SerializeField] private int serverMaxStepsPerFrame = 4; // catch-up budget
+
 
     // Runtime (no inspector noise)
     private Vector3 _remoteFrom;
@@ -170,6 +181,17 @@ public class MovementController : NetworkBehaviour
         if (IsServer)
         {
             _serverPosition.Value = transform.position;
+            // Initialize the server yaw based on the current orientation rotation
+            if (_orientation != null)
+            {
+                // Extract the current local rotation's yaw component
+                _yawAngle = _orientation.transform.localEulerAngles.y;
+                _serverYaw.Value = _yawAngle;
+            }
+            else
+            {
+                _serverYaw.Value = 0f;
+            }
         }
 
         // Initialise remote interpolation data on clients (non-server)
@@ -182,12 +204,18 @@ public class MovementController : NetworkBehaviour
 
         // Subscribe to server position changes so remote clients can interpolate
         _serverPosition.OnValueChanged += OnServerPositionChanged;
+
+        // Subscribe to server yaw changes so non-owner clients can update their orientation
+        _serverYaw.OnValueChanged += OnServerYawChanged;
     }
 
     public override void OnNetworkDespawn()
     {
         base.OnNetworkDespawn();
         _serverPosition.OnValueChanged -= OnServerPositionChanged;
+
+        // Unsubscribe from yaw updates
+        _serverYaw.OnValueChanged -= OnServerYawChanged;
     }
 
     // remote interpolation and snaps the owner to the correct spawn position
@@ -212,6 +240,27 @@ public class MovementController : NetworkBehaviour
         }
     }
 
+    // Called when the authoritative yaw value changes on the server.
+    private void OnServerYawChanged(float oldYaw, float newYaw)
+    {
+        // Only apply yaw updates on non-owner clients. The owner and the server
+        // update their yaw locally via input processing.
+        if (IsOwner || IsServer)
+            return;
+
+        if (_orientation != null)
+        {
+            _orientation.transform.localRotation = Quaternion.Euler(0f, newYaw, 0f);
+        }
+    }
+
+    // RPC used by the owning client to update the authoritative yaw angle on the server.
+    [ServerRpc]
+    private void UpdateYawServerRpc(float yaw)
+    {
+        _serverYaw.Value = yaw;
+    }
+
     private void Awake()
     {
         if (_characterController == null)
@@ -231,6 +280,9 @@ public class MovementController : NetworkBehaviour
 
         if (_animController == null)
             _animController = GetComponent<PlayerAnimationController>();
+
+        if (_lookController == null)
+            _lookController = GetComponentInChildren<LookController>();
 
         // Spawn the grapple hook locally and parent it to the character so it
         // despawns with the player.  We keep a separate instance from the prefab
@@ -265,40 +317,78 @@ public class MovementController : NetworkBehaviour
         if (!IsSpawned)
             return;
 
-        // Reset any visual offset for remote clients. Only the owning
-        // client uses the visual root for reconciliation; remote clients
-        // should always have zero local offset so the model aligns with
-        // the capsule.
+        // Remote clients should never keep a reconciliation offset.
+        // Only the owning client uses VisualRoot.localPosition as a smoothing offset.
         if (!IsOwner && !IsServer && _visualRoot != null && _visualRoot.localPosition != Vector3.zero)
         {
             _visualRoot.localPosition = Vector3.zero;
         }
 
-        // 1. Server: authoritative simulation
+        // -----------------------------
+        // 1) SERVER: authoritative sim
+        // -----------------------------
         if (IsServer)
         {
-            Ability.ProcessUpdate();
-            CheckGround();
-            GrappleHookAbility();
-            _characterFSM.ProcessUpdate();
+            if (IsOwner && _lookController != null)
+                _serverYaw.Value = _lookController.CurrentYaw;
+
+            // Apply yaw pivot from authoritative yaw (this should rotate YawPivot / _orientation)
+            if (_orientation != null)
+                _orientation.transform.localRotation = Quaternion.Euler(0f, _serverYaw.Value, 0f);
+
+            int steps = 0;
+            int lastSeqProcessed = _lastProcessedSequence.Value;
+
+            // Catch up: process as many sequential inputs as we have, up to a cap
+            while (steps < serverMaxStepsPerFrame && _netInput.TryConsumeNextServerInput(out var nextInput))
+            {
+                // Use this input as the current server input for this simulation step
+                _netInput.ServerSetCurrentInput(nextInput);
+
+                // One deterministic simulation step
+                Ability.ProcessUpdate();
+                CheckGround();
+                GrappleHookAbility();
+                _characterFSM.ProcessUpdate();
+
+                lastSeqProcessed = nextInput.Sequence;
+                steps++;
+            }
+
+            // Publish authoritative state + ack (even if 0 steps, still publish position sometimes)
             _serverPosition.Value = transform.position;
-            _lastProcessedSequence.Value = _netInput.ServerInput.Sequence;
+            _lastProcessedSequence.Value = lastSeqProcessed;
+
             return;
         }
 
-        // 2. Owner: prediction + reconciliation
+
+        // -----------------------------
+        // 2) OWNER: prediction + reconcile
+        // -----------------------------
         if (IsOwner)
         {
+            // Get yaw from LookController (unwrapped, already includes sensitivity).
+            if (_lookController != null)
+                _yawAngle = _lookController.CurrentYaw;
+
+            // Send yaw to server (clients only). Host is handled in the server branch above.
+            if (!IsServer)
+                UpdateYawServerRpc(_yawAngle);
+
             Ability.ProcessUpdate();
             CheckGround();
             GrappleHookAbility();
             _characterFSM.ProcessUpdate();
+
             _netInput.ConfirmInputUpTo(_lastProcessedSequence.Value);
 
             Vector3 authoritative = _serverPosition.Value;
             Vector3 predicted = transform.position;
-            Vector3 offset = authoritative - predicted;
-            float dist = offset.magnitude;
+
+            // WORLD-SPACE error (server - client)
+            Vector3 offsetWorld = authoritative - predicted;
+            float dist = offsetWorld.magnitude;
 
             bool highSpeed =
                 State == MovementState.Dash ||
@@ -308,9 +398,10 @@ public class MovementController : NetworkBehaviour
 
             if (dist > snapDist)
             {
+                // Hard snap capsule to server
                 transform.position = authoritative;
 
-                // IMPORTANT: if we hard-snap, clear any visual offset
+                // Clear any visual offset
                 if (_visualRoot != null)
                     _visualRoot.localPosition = Vector3.zero;
             }
@@ -318,22 +409,38 @@ public class MovementController : NetworkBehaviour
             {
                 if (_visualRoot != null)
                 {
+                    // ✅ FIX 1: convert WORLD offset -> LOCAL offset (relative to VisualRoot parent, i.e. Yaw Pivot)
+                    Vector3 offsetLocal = offsetWorld;
+                    if (_visualRoot.parent != null)
+                        offsetLocal = _visualRoot.parent.InverseTransformVector(offsetWorld);
+
                     float t = 1f - Mathf.Exp(-reconciliationSmoothing * Time.deltaTime);
-                    _visualRoot.localPosition = Vector3.Lerp(_visualRoot.localPosition, offset, t);
+                    _visualRoot.localPosition = Vector3.Lerp(_visualRoot.localPosition, offsetLocal, t);
                 }
             }
+
+#if UNITY_EDITOR
+            Debug.DrawLine(predicted, predicted + Vector3.up * 0.5f, Color.green);
+            Debug.DrawLine(authoritative, authoritative + Vector3.up * 0.5f, Color.red);
+            Debug.DrawLine(predicted, authoritative, Color.magenta);
+#endif
 
             return;
         }
 
-        // 3. Remote client: smooth movement between server updates
-        // Increment interpolation progress based on deltaTime and lerp time
+        // -----------------------------
+        // 3) REMOTE CLIENT: interpolate position + apply yaw
+        // -----------------------------
+        // Apply authoritative yaw to the yaw pivot for remote clients
+        if (_orientation != null)
+            _orientation.transform.localRotation = Quaternion.Euler(0f, _serverYaw.Value, 0f);
+
         _remoteT += Time.deltaTime / Mathf.Max(0.001f, remoteLerpTime);
         float lerpFactor = Mathf.Clamp01(_remoteT);
+
         Vector3 newPos = Vector3.Lerp(_remoteFrom, _remoteTo, lerpFactor);
         transform.position = newPos;
     }
-
 
     public void CheckGround()
     {
