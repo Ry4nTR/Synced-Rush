@@ -192,6 +192,11 @@ public class RoundManager : NetworkBehaviour
 
         GameplayUtils.DisableGameplayForAllPlayers();
 
+        // Notify clients to display the round scores.  This will show the
+        // scoreboard for the current round (not match end).  The panel
+        // remains visible for the 3 second RoundTransition delay.
+        ShowRoundScoreClientRpc(TeamAScore, TeamBScore);
+
         StartCoroutine(RoundTransitionCoroutine());
     }
 
@@ -263,8 +268,30 @@ public class RoundManager : NetworkBehaviour
     [ClientRpc]
     private void ShowFinalResultsClientRpc(int winningTeam, int teamAScore, int teamBScore)
     {
-        // TODO: integrate with GameplayUIManager to show a results panel on clients.
+        var ui = GameplayUIManager.Instance;
+        if (ui != null)
+        {
+            ui.ShowScorePanel(teamAScore, teamBScore, true);
+        }
+
         Debug.Log($"[CLIENT] Match over. Team {winningTeam} wins {teamAScore}–{teamBScore}");
+    }
+
+    /// <summary>
+    /// Client RPC to display the round scoreboard.  This is invoked
+    /// whenever a round ends (but the match has not necessarily ended).
+    /// It shows the current scores and indicates that the match is still
+    /// ongoing.  The scoreboard is automatically hidden at the start of
+    /// the next countdown.
+    /// </summary>
+    [ClientRpc]
+    private void ShowRoundScoreClientRpc(int teamAScore, int teamBScore)
+    {
+        var ui = GameplayUIManager.Instance;
+        if (ui != null)
+        {
+            ui.ShowScorePanel(teamAScore, teamBScore, false);
+        }
     }
 
     // =========================
@@ -283,6 +310,9 @@ public class RoundManager : NetworkBehaviour
         var ui = GameplayUIManager.Instance;
         if (ui != null)
         {
+            // Hide any scoreboard from the previous round
+            ui.HideScorePanel();
+
             ui.ShowLoadoutPanel();
             ui.StartCountdown(duration, () =>
             {

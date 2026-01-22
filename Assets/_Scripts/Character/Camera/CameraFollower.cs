@@ -1,19 +1,22 @@
 using Unity.Cinemachine;
 using UnityEngine;
+using Unity.Netcode;
 
-public class CameraFollower : MonoBehaviour
+public class CameraFollower : NetworkBehaviour
 {
     public CinemachineCamera vcam;
     public Camera viewmodelCam;
 
-    void LateUpdate()
+    private void LateUpdate()
     {
-        if (vcam == null || viewmodelCam == null)
-            return;
+        if (!IsOwner) return;
+        if (vcam == null || viewmodelCam == null) return;
+
+        var state = vcam.State;
 
         viewmodelCam.transform.SetPositionAndRotation(
-            vcam.transform.position,
-            vcam.transform.rotation
+            state.GetFinalPosition(),
+            state.GetFinalOrientation()
         );
     }
 }

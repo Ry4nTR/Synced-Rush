@@ -107,6 +107,7 @@ public class SpawnManager : MonoBehaviour
 
         // Instantiate the player prefab at the spawn location
         var instance = Instantiate(playerPrefab, spawnPoint.position, spawnPoint.rotation);
+
         var networkObject = instance.GetComponent<NetworkObject>();
         if (networkObject == null)
         {

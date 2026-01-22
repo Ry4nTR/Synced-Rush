@@ -28,7 +28,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1829883740197097229}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.000000048428774, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0.000000048428774, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -439,16 +439,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterController
   ShowTopMostFoldoutHeaderGroup: 1
-  _orientation: {fileID: 5302962826593933888}
+  _orientation: {fileID: 7235606184766109600}
   _cameraTransform: {fileID: 6586182560886131289}
   _groundLayerMask:
     serializedVersion: 2
     m_Bits: 1536
   _hook: {fileID: 266383931767271499, guid: 8783b200c56318948b89c74a0e35fd9f, type: 3}
-  _visualRoot: {fileID: 5959273353806796432}
+  _visualRoot: {fileID: 4888705450419773334}
+  _viewModelRoot: {fileID: 5770881224741166688}
   remoteLerpTime: 0.08
   reconciliationSnapDistance: 10
   reconciliationSmoothing: 12
+  debugDraw: 1
+  debugLineDuration: 0
 --- !u!114 &2476011265268299710
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -462,7 +465,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
   _walkSpeed: 5
-  _runSpeed: 5.25
+  _runSpeed: 8
   _groundAccelDecel: 10
   _groundOverspeedDeceleration: 7.5
   _jumpHeight: 2
@@ -654,13 +657,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3881978663974266355}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.000000048428774, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5770881224741166688}
-  m_Father: {fileID: 5208723101291922215}
+  m_Father: {fileID: 5527587464937464401}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!20 &2403002803719941364
 Camera:
@@ -757,7 +760,7 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
---- !u!1 &5302962826593933888
+--- !u!1 &4672061998604991918
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -765,27 +768,28 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 5076277776288473167}
-  m_Layer: 0
-  m_Name: Orientation
+  - component: {fileID: 4888705450419773334}
+  m_Layer: 6
+  m_Name: 'VisualRoot '
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &5076277776288473167
+--- !u!4 &4888705450419773334
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5302962826593933888}
+  m_GameObject: {fileID: 4672061998604991918}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 5959273353806796432}
   m_Father: {fileID: 7499371450532252927}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6016068056616336110
@@ -846,14 +850,13 @@ Transform:
   m_GameObject: {fileID: 6143435315103270440}
   serializedVersion: 2
   m_LocalRotation: {x: 0.000000048428774, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.7, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6586182560886131289}
   - {fileID: 8468174742791689619}
-  - {fileID: 3428661119864486910}
-  m_Father: {fileID: 7499371450532252927}
+  m_Father: {fileID: 5527587464937464401}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5896975867533730799
 MonoBehaviour:
@@ -867,8 +870,42 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 169188c2479b8f546b8119c89677402f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraFollower
+  ShowTopMostFoldoutHeaderGroup: 1
   vcam: {fileID: 1191002731392592227}
   viewmodelCam: {fileID: 2403002803719941364}
+--- !u!1 &7118766712646689862
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5527587464937464401}
+  m_Layer: 0
+  m_Name: PitchPivot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5527587464937464401
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7118766712646689862}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.7, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 5208723101291922215}
+  - {fileID: 3428661119864486910}
+  m_Father: {fileID: 7499371450532252927}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7235606184766109600
 GameObject:
   m_ObjectHideFlags: 0
@@ -900,9 +937,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 5208723101291922215}
-  - {fileID: 5076277776288473167}
-  - {fileID: 5959273353806796432}
+  - {fileID: 4888705450419773334}
+  - {fileID: 5527587464937464401}
   m_Father: {fileID: 8202321523229073469}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &7529996170362948438
@@ -919,8 +955,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LookController
   ShowTopMostFoldoutHeaderGroup: 1
   inputHandler: {fileID: 831554826967024705}
-  cameraHolder: {fileID: 6586182560886131289}
-  armsRoot: {fileID: 5770881224741166688}
+  pitchPivot: {fileID: 5527587464937464401}
   sensitivity: 5
   invertY: 0
   minPitch: -90
@@ -1143,7 +1178,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 7499371450532252927}
+    m_TransformParent: {fileID: 4888705450419773334}
     m_Modifications:
     - target: {fileID: 3881829755776089565, guid: 0592155fb21db11409526c463cc6c0a3, type: 3}
       propertyPath: m_Name
