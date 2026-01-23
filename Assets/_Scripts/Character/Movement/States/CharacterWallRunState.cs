@@ -9,6 +9,8 @@ namespace SyncedRush.Character.Movement
 
         private float _enterBoostTimer = 0.0f;
 
+        private int _lastProcessedAbilityCount = -1;
+
         /// <summary>
         /// Posizione del muro in world space
         /// </summary>
@@ -48,9 +50,15 @@ namespace SyncedRush.Character.Movement
 
             if (character.Ability.CurrentAbility == CharacterAbility.Jetpack)
             {
-                bool dashInput = Input.Ability;
-                if (dashInput && character.Ability.UseDash())
-                    return MovementState.Dash;
+                bool dashRequested = Input.AbilityCount > _lastProcessedAbilityCount;
+
+                if (Input.AbilityCount != _lastProcessedAbilityCount)
+                {
+                    _lastProcessedAbilityCount = Input.AbilityCount;
+
+                    if (dashRequested && character.Ability.UseDash())
+                        return MovementState.Dash;
+                }
             }
 
             bool crouchInput = Input.Crouch;
@@ -69,6 +77,8 @@ namespace SyncedRush.Character.Movement
         public override void EnterState()
         {
             base.EnterState();
+
+            _lastProcessedAbilityCount = Input.AbilityCount;
 
             ResetValues();
 

@@ -21,6 +21,10 @@ public class PlayerInputHandler : MonoBehaviour
 
     private PlayerInputSystem _controls;
 
+    private int _abilityClickCount = 0;
+
+    public int AbilityCount => _abilityClickCount; // Exposed for NetworkPlayerInput
+
     // Read-only accessors
     public Vector2 Move => move;
     public Vector2 Look => look;
@@ -72,10 +76,15 @@ public class PlayerInputHandler : MonoBehaviour
     // Discrete input edge-checking (latched until consumed by FixedUpdate)
     private void ReadDiscreteInputs()
     {
-        // LATCH: once true, it stays true until NetworkPlayerInput consumes it
         jump |= _controls.Player.Jump.WasPressedThisFrame();
         reload |= _controls.Player.Reload.WasPressedThisFrame();
-        ability |= _controls.Player.Ability.WasPressedThisFrame();
+
+        // Increment counter instead of just a bool
+        if (_controls.Player.Ability.WasPressedThisFrame())
+        {
+            ability = true;
+            _abilityClickCount++;
+        }
     }
 
 

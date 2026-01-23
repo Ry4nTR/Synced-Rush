@@ -6,6 +6,7 @@ namespace SyncedRush.Character.Movement
     {
         private Vector3 _previousGroundNormal = Vector3.zero;
         private bool _blockCrouchInput = false;
+        private int _lastProcessedAbilityCount = -1;
 
         public CharacterMoveState(MovementController movementComponentReference) : base(movementComponentReference)
         {
@@ -35,11 +36,16 @@ namespace SyncedRush.Character.Movement
 
             if (character.Ability.CurrentAbility == CharacterAbility.Jetpack)
             {
-                bool dashInput = Input.Ability;
-                if (dashInput && character.Ability.UseDash())
-                    return MovementState.Dash;
-            }
+                bool dashRequested = Input.AbilityCount > _lastProcessedAbilityCount;
 
+                if (Input.AbilityCount != _lastProcessedAbilityCount)
+                {
+                    _lastProcessedAbilityCount = Input.AbilityCount;
+
+                    if (dashRequested && character.Ability.UseDash())
+                        return MovementState.Dash;
+                }
+            }
 
             Walk();
             SnapToGround();
@@ -55,6 +61,8 @@ namespace SyncedRush.Character.Movement
         public override void EnterState()
         {
             base.EnterState();
+
+            _lastProcessedAbilityCount = Input.AbilityCount;
 
             character.AnimController.SetGrounded(true);
 

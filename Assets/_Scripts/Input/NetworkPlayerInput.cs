@@ -56,6 +56,7 @@ public class NetworkPlayerInput : NetworkBehaviour
             // DISCRETE: consume latched presses so we never miss them
             Jump = _inputHandler.ConsumeJump(),
             Ability = _inputHandler.ConsumeAbility(),
+            AbilityCount = _inputHandler.AbilityCount,
             Reload = _inputHandler.ConsumeReload(),
 
             // HELD states

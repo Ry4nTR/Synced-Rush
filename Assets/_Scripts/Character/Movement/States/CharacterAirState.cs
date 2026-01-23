@@ -6,6 +6,7 @@ namespace SyncedRush.Character.Movement
     {
         private bool _canWallRun = false;
         private bool _blockJetpackInput = false;
+        private int _lastProcessedAbilityCount = -1;
 
         public CharacterAirState(MovementController movementComponentReference) : base(movementComponentReference)
         {
@@ -16,6 +17,12 @@ namespace SyncedRush.Character.Movement
         public override MovementState ProcessUpdate()
         {
             base.ProcessUpdate();
+
+            // Optional server-side debug
+            if (Input.Ability && character.IsServer)
+            {
+                Debug.Log($"[SERVER DASH CHECK] Ability={character.Ability.CurrentAbility} (Expected Jetpack) | Charge={character.Ability.DashCharge} | Input={Input.Ability}");
+            }
 
             if (CheckGround())
                 return MovementState.Move;
@@ -29,16 +36,28 @@ namespace SyncedRush.Character.Movement
 
             if (character.Ability.CurrentAbility == CharacterAbility.Jetpack)
             {
-                bool dashInput = Input.Ability;
-                if (dashInput && character.Ability.UseDash())
+                // ---------------------------
+                // DASH (counter-based edge)
+                // ---------------------------
+                // We treat AbilityCount as the authoritative "pressed" indicator.
+                bool dashRequested = Input.AbilityCount > _lastProcessedAbilityCount;
+
+                if (Input.AbilityCount != _lastProcessedAbilityCount)
                 {
-#if UNITY_EDITOR
-                    Debug.Log($"[DASH REQUEST] from={ToString()} isServer={character.IsServer} seq={Input.Sequence} dashInput={dashInput} dashCharge={character.Ability.DashCharge:F2}");
-#endif
-                    return MovementState.Dash;
+                    _lastProcessedAbilityCount = Input.AbilityCount;
+
+                    if (dashRequested && character.Ability.UseDash())
+                    {
+                        #if UNITY_EDITOR
+                        Debug.Log($"[DASH REQUEST] from={ToString()} isServer={character.IsServer} seq={Input.Sequence} abilityCount={Input.AbilityCount} dashCharge={character.Ability.DashCharge:F2}");
+                        #endif
+                        return MovementState.Dash;
+                    }
                 }
 
-
+                // ---------------------------
+                // JETPACK (unchanged logic)
+                // ---------------------------
                 bool jetpackInput = Input.Jetpack;
                 if (jetpackInput)
                 {

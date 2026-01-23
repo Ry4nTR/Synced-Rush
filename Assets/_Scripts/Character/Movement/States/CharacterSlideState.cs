@@ -8,6 +8,7 @@ namespace SyncedRush.Character.Movement
         private bool _isEnding = false;
         private bool _blockCrouchInput = false;
         private Vector3 _previousGroundNormal = Vector3.zero;
+        private int _lastProcessedAbilityCount = -1;
 
         private float EndSpeed
         {
@@ -50,9 +51,15 @@ namespace SyncedRush.Character.Movement
 
             if (character.Ability.CurrentAbility == CharacterAbility.Jetpack)
             {
-                bool dashInput = Input.Ability;
-                if (dashInput && character.Ability.UseDash())
-                    return MovementState.Dash;
+                bool dashRequested = Input.AbilityCount > _lastProcessedAbilityCount;
+
+                if (Input.AbilityCount != _lastProcessedAbilityCount)
+                {
+                    _lastProcessedAbilityCount = Input.AbilityCount;
+
+                    if (dashRequested && character.Ability.UseDash())
+                        return MovementState.Dash;
+                }
             }
 
             Slide();
@@ -70,6 +77,8 @@ namespace SyncedRush.Character.Movement
         public override void EnterState()
         {
             base.EnterState();
+
+            _lastProcessedAbilityCount = Input.AbilityCount;
 
             character.AnimController.SetSliding(true);
 
@@ -151,44 +160,37 @@ namespace SyncedRush.Character.Movement
 
         private void Slide()
         {
-            // Apply movement influence and deceleration while sliding.  The player can
-            // influence the slide direction by holding movement input.  On the server
-            // use the networked input; on the client use the local input handler.
+            // Apply movement influence and deceleration while sliding.
+            // IMPORTANT: Use the SAME input source for server + owner prediction.
+            // Never use LocalInputHandler here, because it can be a different tick than CurrentInput.
             if (character.TryGetGroundInfo(out RaycastHit gndInfo))
             {
-                if (character.IsServer || character.LocalInputHandler == null)
+                // Add slide influence only if there is non-zero movement input.
+                if (Input.Move.magnitude > 0f)
                 {
-                    // Use authoritative input.  Add slide influence only if there is non-zero
-                    // movement input.
-                    if (Input.Move.magnitude > 0f)
-                    {
-                        Vector3 inputDir = character.MoveDirection;
-                        character.HorizontalVelocity += character.Stats.SlideMoveInfluence * Time.fixedDeltaTime * new Vector2(inputDir.x, inputDir.z);
-                    }
-                }
-                else
-                {
-                    // On the client, compute the input direction from the local input and
-                    // orientation.  Normalize the direction to avoid magnitude scaling.
-                    Vector2 localMove = character.LocalInputHandler.Move;
-                    if (localMove.magnitude > 0f)
-                    {
-                        Vector3 dir = character.Orientation.transform.forward * localMove.y + character.Orientation.transform.right * localMove.x;
-                        if (dir.magnitude > 1f)
-                            dir.Normalize();
-                        character.HorizontalVelocity += character.Stats.SlideMoveInfluence * Time.fixedDeltaTime * new Vector2(dir.x, dir.z);
-                    }
+                    // MoveDirection is derived from CurrentInput (server uses authoritative, owner uses predicted)
+                    Vector3 inputDir = character.MoveDirection;
+                    character.HorizontalVelocity += character.Stats.SlideMoveInfluence
+                                                    * Time.fixedDeltaTime
+                                                    * new Vector2(inputDir.x, inputDir.z);
                 }
 
-                // Apply deceleration while sliding.  When the slide is ending we use
-                // increased deceleration.
+                // Apply deceleration while sliding. When the slide is ending we use increased deceleration.
                 if (!_isEnding)
                 {
-                    character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideDeceleration * Time.fixedDeltaTime);
+                    character.HorizontalVelocity = Vector2.MoveTowards(
+                        character.HorizontalVelocity,
+                        Vector2.zero,
+                        character.Stats.SlideDeceleration * Time.fixedDeltaTime
+                    );
                 }
                 else
                 {
-                    character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideIncreasedDeceleration * Time.fixedDeltaTime);
+                    character.HorizontalVelocity = Vector2.MoveTowards(
+                        character.HorizontalVelocity,
+                        Vector2.zero,
+                        character.Stats.SlideIncreasedDeceleration * Time.fixedDeltaTime
+                    );
                 }
 
                 // Add additional velocity in the direction of the slope when sliding down.
@@ -197,7 +199,7 @@ namespace SyncedRush.Character.Movement
                 {
                     slopeDir.Normalize();
                     float n = Mathf.Abs(gndInfo.normal.y - 1);
-                    character.HorizontalVelocity += character.Stats.Gravity * n * 15 * Time.fixedDeltaTime * slopeDir; // TODO: replace 15 with a configurable multiplier if needed
+                    character.HorizontalVelocity += character.Stats.Gravity * n * 15f * Time.fixedDeltaTime * slopeDir;
                 }
             }
         }

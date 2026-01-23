@@ -78,6 +78,8 @@ namespace SyncedRush.Character.Movement
             lookDir.y = 0f;
             lookDir.Normalize();
             Vector3 rightDir = character.Orientation.transform.right;
+            rightDir.y = 0f;
+            rightDir.Normalize();
 
             Vector2 inputDir = Input.Move;
 

@@ -133,23 +133,20 @@ public class LoadoutSelectorPanel : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Called when the player clicks an ability button.  Stores the selected ability locally
-    /// so it can be applied when the character spawns.
-    /// </summary>
+    // Called when the player clicks an ability button.
     public void SelectAbility(CharacterAbility ability)
     {
-        // Store selected ability
         LocalAbilitySelection.SelectedAbility = ability;
 
-        // If the local player object exists, we can immediately set the ability on the MovementController
         var player = NetworkManager.Singleton.LocalClient?.PlayerObject;
         if (player != null)
         {
             var move = player.GetComponent<MovementController>();
-            if (move != null && move.Ability != null)
+            if (move != null)
             {
-                move.Ability.CurrentAbility = ability;
+                // Instead of move.Ability.CurrentAbility = ability; (which is local only)
+                // Use the new method we'll add to MovementController
+                move.ChangeAbility(ability);
             }
         }
     }
@@ -180,7 +177,7 @@ public class LoadoutSelectorPanel : MonoBehaviour
                 var move = player.GetComponent<MovementController>();
                 if (move != null && move.Ability != null)
                 {
-                    move.Ability.CurrentAbility = defaultAbility;
+                    move.ChangeAbility(defaultAbility);
                 }
             }
         }

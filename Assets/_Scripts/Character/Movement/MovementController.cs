@@ -39,9 +39,17 @@ public class MovementController : NetworkBehaviour
 
     // Local yaw accumulator used on the owning client.  This stores the current yaw angle in degrees.
     private float _yawAngle;
+    private int _lastProcessedGrappleAbilityCount = -1;
 
     // Server authoritative yaw value.  The server writes this value and all clients read it.
     private NetworkVariable<float> _serverYaw = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
+    private NetworkVariable<CharacterAbility> _syncedAbility =
+    new NetworkVariable<CharacterAbility>(
+        CharacterAbility.None,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
 
     // =========================
     // References
@@ -195,55 +203,90 @@ public class MovementController : NetworkBehaviour
     {
         base.OnNetworkSpawn();
 
-        // Server sets the initial authoritative position
+        _ownerHasInitialServerPos = false;
+
+        // Subscribe for replication updates
+        _serverPosition.OnValueChanged += OnServerPositionChanged;
+        _serverYaw.OnValueChanged += OnServerYawChanged;
+
+        // Initialize interpolation buffers to current spawned position (spawn message already placed us correctly)
+        _remoteFrom = transform.position;
+        _remoteTo = transform.position;
+        _remoteT = 1f;
+
+        // Server should publish an initial authoritative state immediately
         if (IsServer)
         {
             _serverPosition.Value = transform.position;
-            // Initialize the server yaw based on the current orientation rotation
-            if (_orientation != null)
-            {
-                // Extract the current local rotation's yaw component
-                _yawAngle = _orientation.transform.localEulerAngles.y;
-                _serverYaw.Value = _yawAngle;
-            }
-            else
-            {
-                _serverYaw.Value = 0f;
-            }
+
+            // If host, initialize yaw too (optional but good)
+            if (_lookController != null)
+                _serverYaw.Value = _lookController.CurrentYaw;
         }
 
-        // Initialise remote interpolation data on clients (non-server)
-        if (!IsServer)
+        // Ability sync hook
+        _syncedAbility.OnValueChanged += (oldVal, newVal) =>
         {
-            _remoteFrom = transform.position;
-            _remoteTo = transform.position;
-            _remoteT = 1f;
+            if (_ability != null)
+                _ability.CurrentAbility = newVal;
+        };
+
+        // Owner requests ability from local selection
+        if (IsOwner)
+        {
+            RequestSetAbilityServerRpc(LocalAbilitySelection.SelectedAbility);
         }
-
-        // Subscribe to server position changes so remote clients can interpolate
-        _serverPosition.OnValueChanged += OnServerPositionChanged;
-
-        // Subscribe to server yaw changes so non-owner clients can update their orientation
-        _serverYaw.OnValueChanged += OnServerYawChanged;
-
-        // Owner client: immediately align to current authoritative value (don't wait for OnValueChanged)
-        if (IsOwner && !IsServer)
+        else
         {
-            transform.position = _serverPosition.Value;
-            if (_visualRoot != null)
-                _visualRoot.localPosition = Vector3.zero;
-
-            _ownerHasInitialServerPos = true;
+            // Remote proxies initialize with current replicated value
+            if (_ability != null)
+                _ability.CurrentAbility = _syncedAbility.Value;
         }
     }
 
     public override void OnNetworkDespawn()
     {
         base.OnNetworkDespawn();
-        _serverPosition.OnValueChanged -= OnServerPositionChanged;
 
-        // Unsubscribe from yaw updates
+        // Unsubscribe from NetVars
+        _serverPosition.OnValueChanged -= OnServerPositionChanged;
         _serverYaw.OnValueChanged -= OnServerYawChanged;
+
+        // Cleanup runtime spawned hook so it never survives round restarts
+        CleanupHook();
+    }
+
+    private void CleanupHook()
+    {
+        if (_hook == null)
+            return;
+
+        // If the hook prefab accidentally has a NetworkObject, despawn it properly on server.
+        var hookNetObj = _hook.GetComponent<NetworkObject>();
+        if (hookNetObj != null && hookNetObj.IsSpawned)
+        {
+            if (IsServer)
+            {
+                hookNetObj.Despawn(true); // destroys on all clients
+            }
+            else
+            {
+                Destroy(_hook.gameObject);
+            }
+        }
+        else
+        {
+            Destroy(_hook.gameObject);
+        }
+
+        _hook = null;
+    }
+
+    [ServerRpc]
+    private void RequestSetAbilityServerRpc(CharacterAbility ability)
+    {
+        _syncedAbility.Value = ability;
+        _ability.CurrentAbility = ability; // Server-side update
     }
 
     // remote interpolation and snaps the owner to the correct spawn position
@@ -324,9 +367,7 @@ public class MovementController : NetworkBehaviour
         if (_lookController == null)
             _lookController = GetComponentInChildren<LookController>();
 
-        // Spawn the grapple hook locally and parent it to the character so it
-        // despawns with the player.  We keep a separate instance from the prefab
-        // to avoid overwriting the prefab reference.
+        // Spawn the grapple hook
         HookController hookCtrl = null;
         if (_hook != null)
         {
@@ -344,12 +385,16 @@ public class MovementController : NetworkBehaviour
 
         _ability = new(this, hookCtrl);
 
-        // Set the initial ability based on the player's local selection.  If none
-        // selected, default to Grapple for backwards compatibility.
-        if (LocalAbilitySelection.SelectedAbility != CharacterAbility.None)
-            Ability.CurrentAbility = LocalAbilitySelection.SelectedAbility;
-        else
-            Ability.CurrentAbility = CharacterAbility.Grapple;
+        // Only the owner client should apply local selection in Awake.
+        // Everyone else will receive _syncedAbility via OnNetworkSpawn.
+        if (IsOwner && !IsServer)
+        {
+            if (LocalAbilitySelection.SelectedAbility != CharacterAbility.None)
+                Ability.CurrentAbility = LocalAbilitySelection.SelectedAbility;
+            else
+                Ability.CurrentAbility = CharacterAbility.Grapple;
+        }
+
     }
 
     private void FixedUpdate()
@@ -504,7 +549,6 @@ public class MovementController : NetworkBehaviour
         if (IsOwner && _visualRoot != null && Time.unscaledTime >= _nextVisLogTime)
         {
             _nextVisLogTime = Time.unscaledTime + 0.25f; // 4 logs/sec
-            Debug.Log($"[VIS OFFSET] {_visualRoot.localPosition} mag={_visualRoot.localPosition.magnitude:F4}");
         }
 #endif
     }
@@ -545,23 +589,32 @@ public class MovementController : NetworkBehaviour
 
     private void GrappleHookAbility()
     {
-        if (Ability.CurrentAbility == CharacterAbility.Grapple)
-        {
-            bool grappleInput = CurrentInput.Ability;
-            if (grappleInput)
-            {
-                if (Ability.HookController.IsHooked || Ability.HookController.IsShooting)
-                    Ability.HookController.Retreat();
-                else
-                    Ability.HookController.Shoot(_cameraTransform.position, LookDirection, Stats.HookSpeed, Stats.HookMaxDistance);
-            }
+        if (Ability.CurrentAbility != CharacterAbility.Grapple)
+            return;
 
-            if (Ability.HookController.IsHooked)
+        // Initialize tracker once (safe on host/client)
+        if (_lastProcessedGrappleAbilityCount < 0)
+            _lastProcessedGrappleAbilityCount = CurrentInput.AbilityCount;
+
+        // Edge detect on AbilityCount (works even if bool edges are lost)
+        bool pressed = CurrentInput.AbilityCount > _lastProcessedGrappleAbilityCount;
+
+        if (CurrentInput.AbilityCount != _lastProcessedGrappleAbilityCount)
+            _lastProcessedGrappleAbilityCount = CurrentInput.AbilityCount;
+
+        if (pressed)
+        {
+            if (Ability.HookController.IsHooked || Ability.HookController.IsShooting)
+                Ability.HookController.Retreat();
+            else
+                Ability.HookController.Shoot(_cameraTransform.position, LookDirection, Stats.HookSpeed, Stats.HookMaxDistance);
+        }
+
+        if (Ability.HookController.IsHooked)
+        {
+            if (State != MovementState.GrappleHook)
             {
-                if (State != MovementState.GrappleHook)
-                {
-                    _characterFSM.ChangeState(MovementState.GrappleHook, false, false, true);
-                }
+                _characterFSM.ChangeState(MovementState.GrappleHook, false, false, true);
             }
         }
     }
@@ -569,5 +622,13 @@ public class MovementController : NetworkBehaviour
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
         _characterFSM.ProcessCollision(hit);
+    }
+
+    public void ChangeAbility(CharacterAbility newAbility)
+    {
+        if (IsOwner)
+        {
+            RequestSetAbilityServerRpc(newAbility);
+        }
     }
 }
