@@ -46,7 +46,7 @@ public class MovementController : NetworkBehaviour
 
     private NetworkVariable<CharacterAbility> _syncedAbility =
     new NetworkVariable<CharacterAbility>(
-        CharacterAbility.None,
+        CharacterAbility.Jetpack,
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server
     );

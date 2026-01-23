@@ -8,5 +8,5 @@ using SyncedRush.Character.Movement;
 /// </summary>
 public static class LocalAbilitySelection
 {
-    public static CharacterAbility SelectedAbility = CharacterAbility.None;
+    public static CharacterAbility SelectedAbility = CharacterAbility.Jetpack;
 }
