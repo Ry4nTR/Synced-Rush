@@ -218,7 +218,10 @@ namespace SyncedRush.Character.Movement
 
         private void JetpackFly()
         {
-            character.VerticalVelocity += (character.Stats.JetpackAcceleration * Time.fixedDeltaTime);
+            if (character.VerticalVelocity > character.Stats.Gravity)
+                character.VerticalVelocity += (character.Stats.Gravity * Time.fixedDeltaTime);
+            else
+                character.VerticalVelocity += (character.Stats.JetpackAcceleration * Time.fixedDeltaTime);
         }
 
         private void ResetFlags()
