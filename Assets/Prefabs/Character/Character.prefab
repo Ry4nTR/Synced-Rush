@@ -232,7 +232,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3354322385
+  GlobalObjectIdHash: 2877608786
   InScenePlacedSourceGlobalObjectIdHash: 1514268395
   DeferredDespawnTick: 0
   Ownership: 1
@@ -413,7 +413,6 @@ MonoBehaviour:
   reload: 0
   ability: 0
   jetpack: 0
-  debugResetPos: 0
 --- !u!114 &-4718773345927608370
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -464,26 +463,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
   _walkSpeed: 5
-  _runSpeed: 5.25
+  _runSpeed: 8.25
   _groundAccelDecel: 10
-  _groundOverspeedDeceleration: 7.5
-  _jumpHeight: 2
+  _groundOverspeedDeceleration: 10
+  _jumpHeight: 1.5
   _jumpCoyoteTime: 0.25
-  _airTargetSpeed: 3
-  _airAcceleration: 3
+  _airTargetSpeed: 6
+  _airAcceleration: 6
   _airDeceleration: 3
   _airOverspeedDeceleration: 6
-  _slideStartBoost: 10
+  _slideStartBoost: 7.5
   _slideMoveInfluence: 4
   _slideDeceleration: 10
   _slideIncreasedDeceleration: 20
-  _slideIncreasedDecelerationThreshold: 70
-  _wallRunDeceleration: 5
+  _slideIncreasedDecelerationThreshold: 90
+  _wallRunDeceleration: 2.5
   _wallRunBrake: 10
-  _wallRunMinimumSpeed: 1
+  _wallRunMinimumSpeed: 2
   _wallRunLookAngleLimit: 110
-  _wallRunInitialBoostDuration: 1
-  _wallRunInitialBoostAcceleration: 10
+  _wallRunInitialBoostDuration: 0.1
+  _wallRunInitialBoostAcceleration: 60
   _dashSpeed: 17
   _dashDuration: 0.3
   _dashkMaxCharge: 100
