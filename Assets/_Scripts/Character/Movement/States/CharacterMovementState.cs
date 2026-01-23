@@ -10,7 +10,7 @@ namespace SyncedRush.Character.Movement
         /// <summary>
         /// Shortcut to SERVER-SIDE input.
         /// </summary>
-        protected GameplayInputData Input => character.InputData;
+        protected GameplayInputData Input => character.CurrentInput;
 
         private CharacterMovementFSM _parentStateMachine;
         protected CharacterMovementFSM ParentStateMachine => _parentStateMachine;
@@ -31,7 +31,7 @@ namespace SyncedRush.Character.Movement
         protected virtual void ProcessMovement()
         {
             Vector3 _velocity = new(character.HorizontalVelocity.x, character.VerticalVelocity, character.HorizontalVelocity.y);
-            character.Controller.Move(_velocity * Time.deltaTime);
+            character.Controller.Move(_velocity * Time.fixedDeltaTime);
         }
 
         public void SetParentStateMachine(CharacterMovementFSM parentStateMachine)

@@ -22,24 +22,24 @@ namespace SyncedRush.Character.Movement
 
             AirMove();
 
-            bool crouchInput = (character.IsServer || character.LocalInputHandler == null)
-                ? Input.Crouch
-                : character.LocalInputHandler.Crouch;
+            bool crouchInput = Input.Crouch;
 
             if (_canWallRun && !crouchInput)
                 return MovementState.WallRun;
 
             if (character.Ability.CurrentAbility == CharacterAbility.Jetpack)
             {
-                bool dashInput = (character.IsServer || character.LocalInputHandler == null)
-                    ? Input.Ability
-                    : character.LocalInputHandler.Ability;
+                bool dashInput = Input.Ability;
                 if (dashInput && character.Ability.UseDash())
+                {
+#if UNITY_EDITOR
+                    Debug.Log($"[DASH REQUEST] from={ToString()} isServer={character.IsServer} seq={Input.Sequence} dashInput={dashInput} dashCharge={character.Ability.DashCharge:F2}");
+#endif
                     return MovementState.Dash;
+                }
 
-                bool jetpackInput = (character.IsServer || character.LocalInputHandler == null)
-                    ? Input.Jetpack
-                    : character.LocalInputHandler.Jetpack;
+
+                bool jetpackInput = Input.Jetpack;
                 if (jetpackInput)
                 {
                     if (character.Ability.UseJetpack())
@@ -70,9 +70,7 @@ namespace SyncedRush.Character.Movement
             bool hasJumped = ParentStateMachine.PreviousStateEnum is MovementState.Jump
                                                            or MovementState.WallRun;
 
-            bool jetpackInput = (character.IsServer || character.LocalInputHandler == null)
-                ? Input.Jetpack
-                : character.LocalInputHandler.Jetpack;
+            bool jetpackInput = Input.Jetpack;
             if (jetpackInput && hasJumped)
             {
                 _blockJetpackInput = true;
@@ -150,7 +148,7 @@ namespace SyncedRush.Character.Movement
 
                 //TODO da rimuovere quando non serve più
                 Color rayColor = hasHit ? Color.green : Color.red;
-                Debug.DrawRay(startPosition, _wallDir * rayLength, rayColor, Time.deltaTime);
+                Debug.DrawRay(startPosition, _wallDir * rayLength, rayColor, Time.fixedDeltaTime);
 
                 Vector2 hitN = new(rayHit.normal.x, rayHit.normal.z);
                 Vector2 lookDir = new(character.Orientation.transform.forward.x, character.Orientation.transform.forward.z);
@@ -158,9 +156,7 @@ namespace SyncedRush.Character.Movement
                 float angle = Vector2.Angle(hitN, -lookDir);
                 Debug.Log("AirState " + angle); //TODO da rimuovere
 
-                Vector3 inputDir = (character.IsServer || character.LocalInputHandler == null)
-                    ? character.MoveDirection
-                    : character.LocalMoveDirection;
+                Vector3 inputDir = character.MoveDirection;
 
                 bool moveInputToWall = Vector3.Dot(inputDir, rayHit.normal) < 0;
 
@@ -178,9 +174,7 @@ namespace SyncedRush.Character.Movement
 
         private void AirMove()
         {
-            Vector3 moveDir = (character.IsServer || character.LocalInputHandler == null)
-                ? character.MoveDirection
-                : character.LocalMoveDirection;
+            Vector3 moveDir = character.MoveDirection;
 
             Vector2 moveDirXY = new(moveDir.x, moveDir.z);
 
@@ -190,22 +184,22 @@ namespace SyncedRush.Character.Movement
                 ? character.Stats.AirOverspeedDeceleration
                 : character.Stats.AirDeceleration;
 
-            character.HorizontalVelocity += character.Stats.AirAcceleration * Time.deltaTime * moveDirXY;
+            character.HorizontalVelocity += character.Stats.AirAcceleration * Time.fixedDeltaTime * moveDirXY;
 
             character.HorizontalVelocity = Vector2.MoveTowards(
                 character.HorizontalVelocity,
                 Vector2.zero,
-                Time.deltaTime * targetDeceleration);
+                Time.fixedDeltaTime * targetDeceleration);
         }
 
         private void Fall()
         {
-            character.VerticalVelocity -= (character.Stats.Gravity * Time.deltaTime);
+            character.VerticalVelocity -= (character.Stats.Gravity * Time.fixedDeltaTime);
         }
 
         private void JetpackFly()
         {
-            character.VerticalVelocity += (character.Stats.JetpackAcceleration * Time.deltaTime);
+            character.VerticalVelocity += (character.Stats.JetpackAcceleration * Time.fixedDeltaTime);
         }
 
         private void ResetFlags()

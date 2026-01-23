@@ -3,14 +3,22 @@ using Unity.Netcode;
 
 /// <summary>
 /// Client-side camera rotation controller.
+/// Attach this to the YawPivot object (child of Character).
+/// - Horizontal rotation (Yaw) happens on the Pivot.
+/// - Vertical rotation (Pitch) happens on the CameraHolder.
+/// - Only the owner runs this script.
 /// </summary>
 public class LookController : NetworkBehaviour
 {
     [Header("Input")]
     [SerializeField] private PlayerInputHandler inputHandler;
 
-    [Header("Pivots")]
-    [SerializeField] private Transform pitchPivot; // the PitchPivot (child of YawPivot)
+    [Header("Camera")]
+    [SerializeField] private Transform cameraHolder;
+
+    [Header("Arms")]
+    [Tooltip("Optional reference to the root of the first‑person arms. If assigned, the arms will follow the camera's vertical rotation.")]
+    [SerializeField] private Transform armsRoot;
 
     [Header("Settings")]
     [SerializeField] private float sensitivity = 5f;
@@ -18,10 +26,15 @@ public class LookController : NetworkBehaviour
     [SerializeField] private float minPitch = -80f;
     [SerializeField] private float maxPitch = 80f;
 
-    private float _pitch;
-    private float _yaw;
+    private float pitch;    // Vertical
+    private float yaw;      // Horizontal
 
-    public Transform CameraTransform => transform;
+    // provide access to camera transform
+    public Transform CameraTransform => cameraHolder;
+    // unwrapped yaw in degrees
+    public float CurrentYaw => yaw;          
+    public float Sensitivity => sensitivity; // if you want to debug/compare
+
 
     private void Start()
     {
@@ -31,20 +44,20 @@ public class LookController : NetworkBehaviour
             return;
         }
 
-        // Init yaw from current pivot
-        _yaw = transform.localEulerAngles.y;
+        // Initialize yaw with pivot rotation
+        yaw = transform.localEulerAngles.y;
 
-        // Init pitch from pitchPivot
-        float rawPitch = pitchPivot.localEulerAngles.x;
+        // Initialize pitch with camera holder angle
+        float rawPitch = cameraHolder.localEulerAngles.x;
         if (rawPitch > 180f) rawPitch -= 360f;
-        _pitch = rawPitch;
+        pitch = rawPitch;
 
         inputHandler.SetCursorLocked(true);
     }
 
     private void OnDisable()
     {
-        if (IsOwner && inputHandler != null)
+        if (IsOwner)
             inputHandler.SetCursorLocked(false);
     }
 
@@ -54,16 +67,16 @@ public class LookController : NetworkBehaviour
 
         Vector2 look = inputHandler.Look;
 
-        float dx = look.x * sensitivity * 0.01f;
-        float dy = look.y * sensitivity * 0.01f;
+        float deltaX = look.x * sensitivity * 0.01f;
+        float deltaY = look.y * sensitivity * 0.01f;
 
-        // YAW (left/right)
-        _yaw += dx;
-        transform.localRotation = Quaternion.Euler(0f, _yaw, 0f);
+        // YAW
+        yaw += deltaX;
+        transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
 
-        // PITCH (up/down)
-        _pitch += invertY ? dy : -dy;
-        _pitch = Mathf.Clamp(_pitch, minPitch, maxPitch);
-        pitchPivot.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
+        // PITCH
+        pitch += invertY ? deltaY : -deltaY;
+        pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
+        cameraHolder.localRotation = Quaternion.Euler(pitch, 0f, 0f);
     }
 }

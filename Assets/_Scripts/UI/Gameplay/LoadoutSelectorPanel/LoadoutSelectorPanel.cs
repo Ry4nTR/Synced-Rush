@@ -45,7 +45,7 @@ public class LoadoutSelectorPanel : MonoBehaviour
         var action = playerInput.actions["ToggleWeaponPanel"];
         if (action != null)
         {
-            // Enable this action so it fires even when its parent map is not the current map
+            // Ensure it works across action map switches (Gameplay/UI)
             action.Enable();
             action.performed -= OnTogglePerformed;
             action.performed += OnTogglePerformed;
@@ -117,7 +117,7 @@ public class LoadoutSelectorPanel : MonoBehaviour
         isOpen = true;
     }
 
-    // Called when the player clicks a weapon button.
+    // Called when the player clicks a weapon
     public void SelectWeapon(int weaponId)
     {
         // Store the selected weapon locally so it can be applied when the player object spawns.
@@ -133,25 +133,23 @@ public class LoadoutSelectorPanel : MonoBehaviour
         }
     }
 
-    // Called when the player clicks an ability button.
+    /// <summary>
+    /// Called when the player clicks an ability button.  Stores the selected ability locally
+    /// so it can be applied when the character spawns.
+    /// </summary>
     public void SelectAbility(CharacterAbility ability)
     {
         // Store selected ability
         LocalAbilitySelection.SelectedAbility = ability;
 
-        // Set the ability on the MovementController
+        // If the local player object exists, we can immediately set the ability on the MovementController
         var player = NetworkManager.Singleton.LocalClient?.PlayerObject;
         if (player != null)
         {
             var move = player.GetComponent<MovementController>();
-            if (move != null)
+            if (move != null && move.Ability != null)
             {
-                // Set locally for immediate prediction
-                if (move.Ability != null)
-                    move.Ability.CurrentAbility = ability;
-                // Send to server so the server updates the network variable
-                if (move.IsOwner)
-                    move.SetAbilityServerRpc((int)ability);
+                move.Ability.CurrentAbility = ability;
             }
         }
     }
@@ -180,14 +178,9 @@ public class LoadoutSelectorPanel : MonoBehaviour
             if (player != null)
             {
                 var move = player.GetComponent<MovementController>();
-                if (move != null)
+                if (move != null && move.Ability != null)
                 {
-                    // Set locally for immediate prediction
-                    if (move.Ability != null)
-                        move.Ability.CurrentAbility = defaultAbility;
-                    // Notify server of default ability selection
-                    if (move.IsOwner)
-                        move.SetAbilityServerRpc((int)defaultAbility);
+                    move.Ability.CurrentAbility = defaultAbility;
                 }
             }
         }

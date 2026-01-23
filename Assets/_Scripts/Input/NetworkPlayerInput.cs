@@ -15,18 +15,25 @@ public class NetworkPlayerInput : NetworkBehaviour
     // Identifies inputs  so the server can acknowledge which inputs have been processed.
     private int _sequenceNumber = 0;
 
-    // Latch discrete button presses between Update() calls and FixedUpdate() ticks.
-    private bool _latchedJump;
-    private bool _latchedAbility;
-    private bool _latchedReload;
-    private bool _latchedDebugReset;
-
     // Pending inputs that have been sent to the server but not yet acknowledged.
-    private readonly List<GameplayInputData> _pendingInputs = new System.Collections.Generic.List<GameplayInputData>();
+    private readonly List<GameplayInputData> _pendingInputs = new List<GameplayInputData>();
+
+    public GameplayInputData LocalPredictedInput { get; private set; }
 
     private readonly Queue<GameplayInputData> _serverQueue = new();
 
+    // Server-side input buffer (ordered by sequence)
+    private readonly SortedDictionary<int, GameplayInputData> _serverBufferedInputs
+        = new SortedDictionary<int, GameplayInputData>();
+
+    private int _serverNextExpectedSequence = 0;
+
+    // Safety limits
+    private const int MaxBufferedInputs = 256;
+
     public IReadOnlyList<GameplayInputData> PendingInputs => _pendingInputs;
+
+    public void ServerSetCurrentInput(GameplayInputData data) => ServerInput = data;
 
     //Last input received by the server.
     public GameplayInputData ServerInput { get; private set; }
@@ -36,73 +43,40 @@ public class NetworkPlayerInput : NetworkBehaviour
         _inputHandler = GetComponent<PlayerInputHandler>();
     }
 
-    private void Update()
-    {
-        // Only the owning client should latch inputs
-        if (!IsOwner || !IsClient || !IsSpawned)
-            return;
-
-        if (_inputHandler.Jump)
-            _latchedJump = true;
-        if (_inputHandler.Ability)
-            _latchedAbility = true;
-        if (_inputHandler.Reload)
-            _latchedReload = true;
-        if (_inputHandler.DebugResetPos)
-            _latchedDebugReset = true;
-    }
-
-    /// <summary>
-    /// Sends input to the server and applies the input locally for client-side prediction.
-    /// </summary>
     private void FixedUpdate()
     {
-        // Only the owning client should send input, and only while the NetworkObject is spawned.
-        if (!IsOwner || !IsClient || !IsSpawned)
+        if (!IsOwner || !IsClient)
             return;
 
-        // Build a new input snapshot.  Continuous inputs are read directly from the
-        // input handler.  Discrete inputs (jump, ability, reload, debugResetPos) use
-        // the latched values to avoid missing quick taps between FixedUpdate() ticks.
         GameplayInputData inputData = new GameplayInputData
         {
             Move = _inputHandler.Move,
             Look = _inputHandler.Look,
-            Jump = _latchedJump,
+
+            // DISCRETE: consume latched presses so we never miss them
+            Jump = _inputHandler.ConsumeJump(),
+            Ability = _inputHandler.ConsumeAbility(),
+            Reload = _inputHandler.ConsumeReload(),
+            DebugResetPos = _inputHandler.ConsumeDebugResetPos(),
+
+            // HELD states
             Sprint = _inputHandler.Sprint,
             Crouch = _inputHandler.Crouch,
             Fire = _inputHandler.Fire,
             Aim = _inputHandler.Aim,
-            Reload = _latchedReload,
-            Ability = _latchedAbility,
             Jetpack = _inputHandler.Jetpack,
-            DebugResetPos = _latchedDebugReset,
 
-            // Assign an incrementing sequence number
-            Sequence = ++_sequenceNumber
+            Sequence = _sequenceNumber++
         };
 
-        // Consume the latched discrete inputs after building the snapshot so
-        // subsequent FixedUpdate ticks won't keep sending the same value.
-        _latchedJump = false;
-        _latchedAbility = false;
-        _latchedReload = false;
-        _latchedDebugReset = false;
-
-        // Locally set the server input so the owner uses fresh inputs when
-        // predicting movement instead of waiting for the server echo.  This is
-        // sometimes referred to as a "local echo" and avoids running the
-        // simulation with stale inputs on the client【190974464607223†L188-L200】.
-        ServerInput = inputData;
-
-        // Store the pending input so it can be removed once acknowledged by the server
+        LocalPredictedInput = inputData;
         _pendingInputs.Add(inputData);
 
-        // Send the input snapshot to the server.  The server will update its
-        // authoritative state using this input and eventually echo back the
-        // authoritative position and sequence number.  Note: this RPC is marked
-        // private so it cannot be invoked manually from untrusted clients.
-        SendInputServerRpc(inputData);
+        // HOST FAST-PATH: don't wait for a ServerRpc to deliver input to the server simulation
+        if (IsServer)
+            ReceiveInputOnServer(inputData);
+        else
+            SendInputServerRpc(inputData);
     }
 
     //Chiamato sul client quando riceve la conferma dal server dell’ultimo input processato.
@@ -134,26 +108,73 @@ public class NetworkPlayerInput : NetworkBehaviour
         */
     }
 
-    public bool TryDequeueServerInput(out GameplayInputData input)
+    [ServerRpc(Delivery = RpcDelivery.Unreliable)]
+    private void SendInputServerRpc(GameplayInputData inputData)
     {
-        if (_serverQueue.Count > 0)
+        ReceiveInputOnServer(inputData);
+    }
+
+    public bool TryConsumeNextServerInput(out GameplayInputData data)
+    {
+        // Normal path: we have exactly the expected sequence
+        if (_serverBufferedInputs.TryGetValue(_serverNextExpectedSequence, out data))
         {
-            input = _serverQueue.Dequeue();
+            _serverBufferedInputs.Remove(_serverNextExpectedSequence);
+            _serverNextExpectedSequence++;
             return true;
         }
-        input = default;
+
+        // GAP SKIP (industrial): if expected packet was dropped, don't stall forever.
+        // Consume the smallest available sequence and jump expected forward.
+        if (_serverBufferedInputs.Count > 0)
+        {
+            // Get smallest sequence currently buffered
+            int minKey = int.MaxValue;
+            foreach (var k in _serverBufferedInputs.Keys) { minKey = k; break; }
+
+            if (minKey > _serverNextExpectedSequence)
+            {
+                data = _serverBufferedInputs[minKey];
+                _serverBufferedInputs.Remove(minKey);
+
+                _serverNextExpectedSequence = minKey + 1;
+                return true;
+            }
+        }
+
+        data = default;
         return false;
     }
 
-    public void SetSimInput(GameplayInputData inputData)
+
+    // Optional: if you want server to re-sync when the client starts at a different base sequence
+    public void ServerResetSequence(int nextExpected)
     {
-        ServerInput = inputData;
+        _serverBufferedInputs.Clear();
+        _serverNextExpectedSequence = nextExpected;
     }
 
-    [ServerRpc]
-    private void SendInputServerRpc(GameplayInputData inputData)
+    private void ReceiveInputOnServer(GameplayInputData inputData)
     {
-        _serverQueue.Enqueue(inputData);
+        // If we have no buffered inputs yet and this is the first input we ever got,
+        // sync expected sequence to it (robust to first packet loss).
+        if (_serverBufferedInputs.Count == 0 && inputData.Sequence > _serverNextExpectedSequence)
+            _serverNextExpectedSequence = inputData.Sequence;
+
+        // Drop very old inputs (already processed)
+        if (inputData.Sequence < _serverNextExpectedSequence)
+            return;
+
+        _serverBufferedInputs[inputData.Sequence] = inputData;
+
+        if (_serverBufferedInputs.Count > MaxBufferedInputs)
+        {
+            while (_serverBufferedInputs.Count > MaxBufferedInputs)
+            {
+                var firstKey = System.Linq.Enumerable.First(_serverBufferedInputs.Keys);
+                _serverBufferedInputs.Remove(firstKey);
+            }
+        }
     }
 
 }

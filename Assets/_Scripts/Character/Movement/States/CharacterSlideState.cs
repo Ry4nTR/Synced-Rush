@@ -33,12 +33,8 @@ namespace SyncedRush.Character.Movement
             // Determine jump and crouch inputs based on context.  Use networked input on
             // the server or when the local input handler is unavailable.  Otherwise use the
             // values from the PlayerInputHandler.
-            bool jumpInput = (character.IsServer || character.LocalInputHandler == null)
-                ? Input.Jump
-                : character.LocalInputHandler.Jump;
-            bool crouchInput = (character.IsServer || character.LocalInputHandler == null)
-                ? Input.Crouch
-                : character.LocalInputHandler.Crouch;
+            bool jumpInput = Input.Jump;
+            bool crouchInput = Input.Crouch;
 
             if (!crouchInput)
                 _blockCrouchInput = false;
@@ -54,9 +50,7 @@ namespace SyncedRush.Character.Movement
 
             if (character.Ability.CurrentAbility == CharacterAbility.Jetpack)
             {
-                bool dashInput = (character.IsServer || character.LocalInputHandler == null)
-                    ? Input.Ability
-                    : character.LocalInputHandler.Ability;
+                bool dashInput = Input.Ability;
                 if (dashInput && character.Ability.UseDash())
                     return MovementState.Dash;
             }
@@ -81,22 +75,9 @@ namespace SyncedRush.Character.Movement
 
             _blockCrouchInput = true;
 
-            // When entering the slide state, apply an initial boost in the direction the
-            // player is moving.  On the server use the authoritative MoveDirection from
-            // the networked input; on the client use the local input from the
-            // PlayerInputHandler for prediction.  If the input direction has a non-zero
-            // magnitude, normalize it and apply the slide start boost.
-            Vector3 worldDir;
-            if (character.IsServer || character.LocalInputHandler == null)
-            {
-                worldDir = character.MoveDirection;
-            }
-            else
-            {
-                Vector2 localMove = character.LocalInputHandler.Move;
-                worldDir = character.Orientation.transform.forward * localMove.y + character.Orientation.transform.right * localMove.x;
-                worldDir.y = 0f;
-            }
+            // Use predicted/authoritative MoveDirection (already based on CurrentInput)
+            Vector3 worldDir = character.MoveDirection;
+            worldDir.y = 0f;
 
             if (!Mathf.Approximately(worldDir.magnitude, 0f))
             {
@@ -105,9 +86,7 @@ namespace SyncedRush.Character.Movement
             }
 
             _isEnding = false;
-
             _previousGroundNormal = Vector3.zero;
-
             _currentEndSpeed = EndSpeed;
         }
 
@@ -152,7 +131,7 @@ namespace SyncedRush.Character.Movement
                 finalMoveVector = projectedHorizontalMove + Vector3.up * character.VerticalVelocity;
             }
 
-            character.Controller.Move(finalMoveVector * Time.deltaTime);
+            character.Controller.Move(finalMoveVector * Time.fixedDeltaTime);
         }
 
         private bool CheckGround()
@@ -184,7 +163,7 @@ namespace SyncedRush.Character.Movement
                     if (Input.Move.magnitude > 0f)
                     {
                         Vector3 inputDir = character.MoveDirection;
-                        character.HorizontalVelocity += character.Stats.SlideMoveInfluence * Time.deltaTime * new Vector2(inputDir.x, inputDir.z);
+                        character.HorizontalVelocity += character.Stats.SlideMoveInfluence * Time.fixedDeltaTime * new Vector2(inputDir.x, inputDir.z);
                     }
                 }
                 else
@@ -197,7 +176,7 @@ namespace SyncedRush.Character.Movement
                         Vector3 dir = character.Orientation.transform.forward * localMove.y + character.Orientation.transform.right * localMove.x;
                         if (dir.magnitude > 1f)
                             dir.Normalize();
-                        character.HorizontalVelocity += character.Stats.SlideMoveInfluence * Time.deltaTime * new Vector2(dir.x, dir.z);
+                        character.HorizontalVelocity += character.Stats.SlideMoveInfluence * Time.fixedDeltaTime * new Vector2(dir.x, dir.z);
                     }
                 }
 
@@ -205,11 +184,11 @@ namespace SyncedRush.Character.Movement
                 // increased deceleration.
                 if (!_isEnding)
                 {
-                    character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideDeceleration * Time.deltaTime);
+                    character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideDeceleration * Time.fixedDeltaTime);
                 }
                 else
                 {
-                    character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideIncreasedDeceleration * Time.deltaTime);
+                    character.HorizontalVelocity = Vector2.MoveTowards(character.HorizontalVelocity, Vector2.zero, character.Stats.SlideIncreasedDeceleration * Time.fixedDeltaTime);
                 }
 
                 // Add additional velocity in the direction of the slope when sliding down.
@@ -218,7 +197,7 @@ namespace SyncedRush.Character.Movement
                 {
                     slopeDir.Normalize();
                     float n = Mathf.Abs(gndInfo.normal.y - 1);
-                    character.HorizontalVelocity += character.Stats.Gravity * n * 15 * Time.deltaTime * slopeDir; // TODO: replace 15 with a configurable multiplier if needed
+                    character.HorizontalVelocity += character.Stats.Gravity * n * 15 * Time.fixedDeltaTime * slopeDir; // TODO: replace 15 with a configurable multiplier if needed
                 }
             }
         }

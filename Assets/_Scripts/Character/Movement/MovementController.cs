@@ -29,6 +29,7 @@ public class MovementController : NetworkBehaviour
     private NetworkPlayerInput _netInput;
     private PlayerInputHandler _inputHandler;
     private PlayerAnimationController _animController;
+    private LookController _lookController;
 
     // Variabile di rete che memorizza la posizione autoritativa del server.
     private NetworkVariable<Vector3> _serverPosition = new NetworkVariable<Vector3>();
@@ -36,12 +37,11 @@ public class MovementController : NetworkBehaviour
     // Numero di sequenza dell'ultimo input processato dal server.
     private NetworkVariable<int> _lastProcessedSequence = new NetworkVariable<int>();
 
-    // Networked ability selection.
-    private NetworkVariable<int> _networkedAbility = new NetworkVariable<int>(
-        (int)CharacterAbility.Grapple,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server
-    );
+    // Local yaw accumulator used on the owning client.  This stores the current yaw angle in degrees.
+    private float _yawAngle;
+
+    // Server authoritative yaw value.  The server writes this value and all clients read it.
+    private NetworkVariable<float> _serverYaw = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     // =========================
     // References
@@ -54,13 +54,13 @@ public class MovementController : NetworkBehaviour
     // Server Replication
     // =========================
     [Header("Networking")]
-    [SerializeField] private float remoteLerpTime = 0.08f;
-    [SerializeField] private float reconciliationSnapDistance = 8f;
+    [SerializeField] private float remoteLerpTime = 0.08f; // smooth remote movement
+    [SerializeField] private float reconciliationSnapDistance = 0.75f;
     [SerializeField] private float reconciliationSmoothing = 12f;
 
-    [Header("Debug")]
-    [SerializeField] private bool debugDraw = true;
-    [SerializeField] private float debugLineDuration = 0f;
+    [Header("Server Simulation")]
+    [SerializeField] private int serverMaxStepsPerFrame = 12; // catch-up budget
+
 
     // Runtime (no inspector noise)
     private Vector3 _remoteFrom;
@@ -113,7 +113,8 @@ public class MovementController : NetworkBehaviour
     {
         get
         {
-            Vector2 input = _netInput.ServerInput.Move;
+            Vector2 input = CurrentInput.Move;
+
             input.Normalize();
 
             return input;
@@ -135,7 +136,7 @@ public class MovementController : NetworkBehaviour
     {
         get
         {
-            GameplayInputData input = _netInput.ServerInput;
+            GameplayInputData input = CurrentInput;
 
             Vector3 motion =
                 Orientation.transform.forward * input.Move.y +
@@ -163,6 +164,23 @@ public class MovementController : NetworkBehaviour
         }
     }
 
+    public GameplayInputData CurrentInput
+    {
+        get
+        {
+            // Server always uses authoritative input
+            if (IsServer)
+                return _netInput.ServerInput;
+
+            // Owner client uses predicted local input (the one generated this tick)
+            if (IsOwner)
+                return _netInput.LocalPredictedInput;
+
+            // Remote clients: not used for simulation
+            return _netInput.ServerInput;
+        }
+    }
+
     public Vector3 LookDirection => _cameraTransform.forward;
 
     // Lista di proprietà messe "nel posto sbagliato"
@@ -181,6 +199,17 @@ public class MovementController : NetworkBehaviour
         if (IsServer)
         {
             _serverPosition.Value = transform.position;
+            // Initialize the server yaw based on the current orientation rotation
+            if (_orientation != null)
+            {
+                // Extract the current local rotation's yaw component
+                _yawAngle = _orientation.transform.localEulerAngles.y;
+                _serverYaw.Value = _yawAngle;
+            }
+            else
+            {
+                _serverYaw.Value = 0f;
+            }
         }
 
         // Initialise remote interpolation data on clients (non-server)
@@ -194,16 +223,82 @@ public class MovementController : NetworkBehaviour
         // Subscribe to server position changes so remote clients can interpolate
         _serverPosition.OnValueChanged += OnServerPositionChanged;
 
+        // Subscribe to server yaw changes so non-owner clients can update their orientation
+        _serverYaw.OnValueChanged += OnServerYawChanged;
 
-        // Subscribe to ability changes.
-        _networkedAbility.OnValueChanged += OnAbilityValueChanged;
+        // Owner client: immediately align to current authoritative value (don't wait for OnValueChanged)
+        if (IsOwner && !IsServer)
+        {
+            transform.position = _serverPosition.Value;
+            if (_visualRoot != null)
+                _visualRoot.localPosition = Vector3.zero;
+
+            _ownerHasInitialServerPos = true;
+        }
     }
 
     public override void OnNetworkDespawn()
     {
         base.OnNetworkDespawn();
         _serverPosition.OnValueChanged -= OnServerPositionChanged;
-        _networkedAbility.OnValueChanged -= OnAbilityValueChanged;
+
+        // Unsubscribe from yaw updates
+        _serverYaw.OnValueChanged -= OnServerYawChanged;
+    }
+
+    // remote interpolation and snaps the owner to the correct spawn position
+    private void OnServerPositionChanged(Vector3 oldPos, Vector3 newPos)
+    {
+        // -----------------------------
+        // Remote clients (not owner/server): interpolate between updates
+        // -----------------------------
+        if (!IsOwner && !IsServer)
+        {
+            // Start interpolation from current rendered position
+            _remoteFrom = transform.position;
+            _remoteTo = newPos;
+            _remoteT = 0f;
+            return;
+        }
+
+        // -----------------------------
+        // Owner (client): on first authoritative position, hard-align once
+        // -----------------------------
+        if (IsOwner && !IsServer && !_ownerHasInitialServerPos)
+        {
+            transform.position = newPos;
+
+            // Clear any reconciliation offset so visuals match immediately
+            if (_visualRoot != null)
+                _visualRoot.localPosition = Vector3.zero;
+
+            // Also reset interpolation buffers (defensive)
+            _remoteFrom = newPos;
+            _remoteTo = newPos;
+            _remoteT = 1f;
+
+            _ownerHasInitialServerPos = true;
+        }
+    }
+
+    // Called when the authoritative yaw value changes on the server.
+    private void OnServerYawChanged(float oldYaw, float newYaw) 
+    {
+        // Owner + Server handle their yaw locally
+        if (IsOwner || IsServer)
+            return;
+
+        // Orientation MUST be BodyYaw (rotate body only)
+        if (_orientation != null)
+            _orientation.transform.localRotation = Quaternion.Euler(0f, newYaw, 0f);
+    }
+
+
+    // RPC used by the owning client to update the authoritative yaw angle on the server.
+    [ServerRpc]
+    private void UpdateYawServerRpc(float yaw)
+    {
+        _serverYaw.Value = yaw;
     }
 
     private void Awake()
@@ -226,11 +321,17 @@ public class MovementController : NetworkBehaviour
         if (_animController == null)
             _animController = GetComponent<PlayerAnimationController>();
 
+        if (_lookController == null)
+            _lookController = GetComponentInChildren<LookController>();
+
+        // Spawn the grapple hook locally and parent it to the character so it
+        // despawns with the player.  We keep a separate instance from the prefab
+        // to avoid overwriting the prefab reference.
         HookController hookCtrl = null;
         if (_hook != null)
         {
             var parent = transform;
-            var instance = Instantiate(_hook);
+            var instance = Instantiate(_hook, parent);
             instance.transform.localPosition = Vector3.zero;
             instance.transform.localRotation = Quaternion.identity;
             _hook = instance;
@@ -243,208 +344,170 @@ public class MovementController : NetworkBehaviour
 
         _ability = new(this, hookCtrl);
 
-        // Do not set the ability here based on LocalAbilitySelection.
-        Ability.CurrentAbility = CharacterAbility.Grapple;
+        // Set the initial ability based on the player's local selection.  If none
+        // selected, default to Grapple for backwards compatibility.
+        if (LocalAbilitySelection.SelectedAbility != CharacterAbility.None)
+            Ability.CurrentAbility = LocalAbilitySelection.SelectedAbility;
+        else
+            Ability.CurrentAbility = CharacterAbility.Grapple;
     }
 
-    private void Update()
-    {
-        if (!IsSpawned)
-            return;
-
-        // Debug drawing of capsule and velocities
-        if (debugDraw)
-        {
-            // Server authoritative position vs current predicted/remote position
-            Debug.DrawLine(transform.position, _serverPosition.Value, Color.yellow, debugLineDuration);
-
-            // Draw capsule bottom & top at current predicted position
-            float h = _characterController.height;
-            float r = _characterController.radius;
-            Vector3 center = transform.position + _characterController.center;
-            Vector3 bottom = center + Vector3.down * (h * 0.5f - r);
-            Vector3 top = center + Vector3.up * (h * 0.5f - r);
-            Debug.DrawLine(bottom, top, Color.cyan, debugLineDuration);
-
-            // If owner: show vertical velocity & grounded info
-            if (IsOwner)
-            {
-                Debug.DrawRay(transform.position, Vector3.up * VerticalVelocity, Color.green, debugLineDuration);
-                if (IsOnGround)
-                    Debug.DrawRay(transform.position, Vector3.up * 0.5f, Color.blue, debugLineDuration);
-            }
-        }
-
-        // Reset any visual offset for remote clients (non-owner non-server).  The owning client
-        // uses the visual root for reconciliation; remote clients should always have zero
-        // local offset so the model aligns with the capsule.
-        if (!IsOwner && !IsServer && _visualRoot != null && _visualRoot.localPosition != Vector3.zero)
-        {
-            _visualRoot.localPosition = Vector3.zero;
-        }
-
-        // 3. Remote client: smooth movement between server updates.  Remote interpolation
-        // remains in Update() because it is purely visual and should follow the frame rate.
-        if (!IsServer && !IsOwner)
-        {
-            _remoteT += Time.deltaTime / Mathf.Max(0.001f, remoteLerpTime);
-            float lerpFactor = Mathf.Clamp01(_remoteT);
-            Vector3 newPos = Vector3.Lerp(_remoteFrom, _remoteTo, lerpFactor);
-            transform.position = newPos;
-        }
-
-        // No movement simulation occurs in Update(); simulation is handled in FixedUpdate().
-    }
-
-    // Runs the authoritative and predicted movement simulation on a fixed
     private void FixedUpdate()
     {
         if (!IsSpawned)
             return;
 
-        // 1) SERVER: authoritative sim
+        // -------------------------
+        // SERVER: authoritative sim
+        // -------------------------
         if (IsServer)
         {
-            // Process ALL queued inputs this tick (0..N)
-            bool processedAny = false;
-            GameplayInputData input;
+            // Host: keep server yaw synced to local look
+            if (IsOwner && _lookController != null)
+                _serverYaw.Value = _lookController.CurrentYaw;
 
-            while (_netInput.TryDequeueServerInput(out input))
+            // Apply authoritative yaw to body yaw (Orientation == BodyYaw)
+            if (_orientation != null)
+                _orientation.transform.localRotation = Quaternion.Euler(0f, _serverYaw.Value, 0f);
+
+            int steps = 0;
+            int lastSeqProcessed = _lastProcessedSequence.Value;
+
+            while (steps < serverMaxStepsPerFrame && _netInput.TryConsumeNextServerInput(out var nextInput))
             {
-                processedAny = true;
-
-                // Set the input the rest of the movement system reads
-                _netInput.SetSimInput(input);
+                _netInput.ServerSetCurrentInput(nextInput);
 
                 Ability.ProcessUpdate();
                 CheckGround();
                 GrappleHookAbility();
                 _characterFSM.ProcessUpdate();
 
-                // Publish authoritative state after each processed input
-                _serverPosition.Value = transform.position;
-                _lastProcessedSequence.Value = input.Sequence;
+                lastSeqProcessed = nextInput.Sequence;
+                steps++;
             }
 
-            // Optional: if you want the server to still simulate even with no new input,
-            // you can run one step using the last input (or zero input).
-            // But for now we do nothing if no input arrived this tick.
-            if (!processedAny)
-            {
-                // Keep last published position/sequence
-                // (No sim step because no new input)
-            }
-
+            _serverPosition.Value = transform.position;
+            _lastProcessedSequence.Value = lastSeqProcessed;
             return;
         }
 
-        // 2) OWNER CLIENT: prediction + reconciliation + replay
+        // --------------------------------
+        // OWNER: prediction + reconciliation
+        // --------------------------------
         if (IsOwner)
         {
-            // --- Predict ONE local step using current local input already stored in ServerInput
+            // Use yaw from LookController (unwrapped, includes sensitivity)
+            if (_lookController != null)
+                _yawAngle = _lookController.CurrentYaw;
+
+            // Rotate body yaw (Orientation == BodyYaw)
+            if (_orientation != null)
+                _orientation.transform.localRotation = Quaternion.Euler(0f, _yawAngle, 0f);
+
+            // Sync yaw to server
+            UpdateYawServerRpc(_yawAngle);
+
+            // Simulate locally
             Ability.ProcessUpdate();
             CheckGround();
             GrappleHookAbility();
             _characterFSM.ProcessUpdate();
 
-            // Remove inputs the server has already processed
+            // Drop acked inputs
             _netInput.ConfirmInputUpTo(_lastProcessedSequence.Value);
 
-            // Compare predicted vs authoritative
+            // Reconcile
             Vector3 authoritative = _serverPosition.Value;
             Vector3 predicted = transform.position;
-            Vector3 offset = authoritative - predicted;
-            float dist = offset.magnitude;
+
+            Vector3 offsetWorld = authoritative - predicted;
+            float dist = offsetWorld.magnitude;
 
             bool highSpeed =
-                (State == MovementState.Dash) ||
+                State == MovementState.Dash ||
                 (Ability.CurrentAbility == CharacterAbility.Jetpack && Ability.UsingJetpack);
 
             float snapDist = highSpeed ? 10f : reconciliationSnapDistance;
 
             if (dist > snapDist)
             {
-                // ---------- HARD SNAP ----------
+                Debug.LogWarning($"[RECON SNAP] dist={dist:F3} snapDist={snapDist:F3} server={authoritative} client={predicted} seqAck={_lastProcessedSequence.Value}");
                 transform.position = authoritative;
-
-                // Reset visuals
-                if (_visualRoot != null)
-                    _visualRoot.localPosition = Vector3.zero;
-
-                // ---------- REPLAY UNCONFIRMED INPUTS ----------
-                // THIS is the missing part: after snapping, re-simulate the remaining pending inputs
-                var pending = _netInput.PendingInputs;
-                for (int i = 0; i < pending.Count; i++)
-                {
-                    _netInput.SetSimInput(pending[i]);
-
-                    Ability.ProcessUpdate();
-                    CheckGround();
-                    GrappleHookAbility();
-                    _characterFSM.ProcessUpdate();
-                }
-
-                // After replay, keep visuals clean
                 if (_visualRoot != null)
                     _visualRoot.localPosition = Vector3.zero;
             }
             else
             {
-                // ---------- SOFT CORRECTION (visual only) ----------
+                //Debug.Log($"[RECON] dist={dist:F3} offsetLocal={(_visualRoot != null ? _visualRoot.localPosition : Vector3.zero)} ack={_lastProcessedSequence.Value}");
                 if (_visualRoot != null)
                 {
+                    // VisualRoot parent is non-rotating in your new hierarchy, but keep safe conversion
+                    Vector3 offsetLocal = offsetWorld;
+                    if (_visualRoot.parent != null)
+                        offsetLocal = _visualRoot.parent.InverseTransformVector(offsetWorld);
+
                     float t = 1f - Mathf.Exp(-reconciliationSmoothing * Time.fixedDeltaTime);
-                    _visualRoot.localPosition = Vector3.Lerp(_visualRoot.localPosition, offset, t);
+                    _visualRoot.localPosition = Vector3.Lerp(_visualRoot.localPosition, offsetLocal, t);
                 }
             }
 
+            #if UNITY_EDITOR
+            Debug.DrawRay(transform.position, TotalVelocity * 0.1f, Color.cyan, Time.fixedDeltaTime);
+            Debug.DrawRay(transform.position, MoveDirection * 1.0f, Color.yellow, Time.fixedDeltaTime);
+            #endif
+
+
             return;
         }
-
-        // 3) REMOTE CLIENTS: no sim here (interpolate in Update)
     }
 
-    // remote interpolation and snaps the owner to the correct spawn position
-    private void OnServerPositionChanged(Vector3 oldPos, Vector3 newPos)
+    private float _nextVisLogTime;
+
+    private void Update()
     {
-        // Remote clients (not owner/server) interpolate between positions
+        if (!IsSpawned)
+            return;
+
+        // Remote clients should never have reconciliation offset
+        if (!IsOwner && !IsServer && _visualRoot != null && _visualRoot.localPosition != Vector3.zero)
+            _visualRoot.localPosition = Vector3.zero;
+
+        // -------------------------
+        // REMOTE CLIENT: interpolate
+        // -------------------------
         if (!IsOwner && !IsServer)
         {
-            _remoteFrom = transform.position;
-            _remoteTo = newPos;
-            _remoteT = 0f;
-            return;
+            // Apply authoritative yaw to body yaw (Orientation == BodyYaw)
+            if (_orientation != null)
+                _orientation.transform.localRotation = Quaternion.Euler(0f, _serverYaw.Value, 0f);
+
+            // Smooth position between server updates (render-time interpolation)
+            _remoteT += Time.deltaTime / Mathf.Max(0.001f, remoteLerpTime);
+            float lerpFactor = Mathf.Clamp01(_remoteT);
+
+            transform.position = Vector3.Lerp(_remoteFrom, _remoteTo, lerpFactor);
         }
 
-        // Owner: snap to the first authoritative position received after spawn
-        if (IsOwner && !IsServer && !_ownerHasInitialServerPos)
+#if UNITY_EDITOR
+        // Optional: only draw debug on owner (otherwise it's confusing)
+        if (IsOwner)
         {
-            transform.position = newPos;
-            if (_visualRoot != null)
-                _visualRoot.localPosition = Vector3.zero;
-            _ownerHasInitialServerPos = true;
+            Vector3 authoritative = _serverPosition.Value;
+            Vector3 predicted = transform.position;
+            Debug.DrawLine(predicted, predicted + Vector3.up * 0.5f, Color.green);
+            Debug.DrawLine(authoritative, authoritative + Vector3.up * 0.5f, Color.red);
+            Debug.DrawLine(predicted, authoritative, Color.magenta);
         }
+#endif
+
+#if UNITY_EDITOR
+        if (IsOwner && _visualRoot != null && Time.unscaledTime >= _nextVisLogTime)
+        {
+            _nextVisLogTime = Time.unscaledTime + 0.25f; // 4 logs/sec
+            Debug.Log($"[VIS OFFSET] {_visualRoot.localPosition} mag={_visualRoot.localPosition.magnitude:F4}");
+        }
+#endif
     }
-
-    // Called when the networked ability value changes.
-    private void OnAbilityValueChanged(int previous, int next)
-    {
-        // Convert int to enum and assign to the AbilityProcessor.  If
-        // something goes wrong (e.g. invalid value), default back to Grapple.
-        CharacterAbility abilityEnum = CharacterAbility.Grapple;
-        if (System.Enum.IsDefined(typeof(CharacterAbility), next))
-        {
-            abilityEnum = (CharacterAbility)next;
-        }
-
-        // Update the ability.  This change propagates to the actual ability
-        // logic (charges, state transitions) on clients.
-        if (_ability != null)
-        {
-            _ability.CurrentAbility = abilityEnum;
-        }
-    }
-
 
     public void CheckGround()
     {
@@ -484,9 +547,7 @@ public class MovementController : NetworkBehaviour
     {
         if (Ability.CurrentAbility == CharacterAbility.Grapple)
         {
-            bool grappleInput = (IsServer || LocalInputHandler == null)
-                ? InputData.Ability
-                : LocalInputHandler.Ability;
+            bool grappleInput = CurrentInput.Ability;
             if (grappleInput)
             {
                 if (Ability.HookController.IsHooked || Ability.HookController.IsShooting)
@@ -508,26 +569,6 @@ public class MovementController : NetworkBehaviour
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
         _characterFSM.ProcessCollision(hit);
-    }
-
-    // Server‑side setter for the player's ability.
-    [ServerRpc]
-    public void SetAbilityServerRpc(int abilityValue, ServerRpcParams rpcParams = default)
-    {
-        // Validate that the caller of this RPC is the owner of this NetworkObject
-        if (rpcParams.Receive.SenderClientId != OwnerClientId)
-        {
-            return;
-        }
-
-        // Validate the ability value
-        if (!System.Enum.IsDefined(typeof(CharacterAbility), abilityValue))
-        {
-            Debug.LogWarning($"SetAbilityServerRpc received invalid abilityValue={abilityValue}, defaulting to Grapple");
-            abilityValue = (int)CharacterAbility.Grapple;
-        }
-        // Update the networked variable.
-        _networkedAbility.Value = abilityValue;
     }
 
     //TODO da rimuovere quando non serve più

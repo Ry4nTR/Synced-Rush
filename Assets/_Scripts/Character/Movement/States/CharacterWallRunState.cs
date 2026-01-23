@@ -38,15 +38,7 @@ namespace SyncedRush.Character.Movement
             // networked input; on the client use the local PlayerInputHandler when
             // available.  If the player presses jump while wall running, perform a
             // wall jump and return to the Air state.
-            bool jumpInput;
-            if (character.IsServer || character.LocalInputHandler == null)
-            {
-                jumpInput = Input.Jump;
-            }
-            else
-            {
-                jumpInput = character.LocalInputHandler.Jump;
-            }
+            bool jumpInput = Input.Jump;
 
             if (jumpInput)
             {
@@ -56,16 +48,12 @@ namespace SyncedRush.Character.Movement
 
             if (character.Ability.CurrentAbility == CharacterAbility.Jetpack)
             {
-                bool dashInput = (character.IsServer || character.LocalInputHandler == null)
-                    ? Input.Ability
-                    : character.LocalInputHandler.Ability;
+                bool dashInput = Input.Ability;
                 if (dashInput && character.Ability.UseDash())
                     return MovementState.Dash;
             }
 
-            bool crouchInput = (character.IsServer || character.LocalInputHandler == null)
-                ? Input.Crouch
-                : character.LocalInputHandler.Crouch;
+            bool crouchInput = Input.Crouch;
             if (crouchInput)
                 return MovementState.Air;
 
@@ -111,7 +99,7 @@ namespace SyncedRush.Character.Movement
             }
             moveDir.Normalize();
 
-            float frameMovement = (character.HorizontalVelocity * Time.deltaTime).magnitude;
+            float frameMovement = (character.HorizontalVelocity * Time.fixedDeltaTime).magnitude;
 
             int totalSteps = (int)(frameMovement / _stepDistance);
             float remaingDistance = frameMovement % _stepDistance;
@@ -200,7 +188,7 @@ namespace SyncedRush.Character.Movement
 
             //TODO da rimuovere quando non serve più
             Color rayColor = hasHit ? Color.green : Color.red;
-            Debug.DrawRay(startPosition, _wallDir * rayLength, rayColor, Time.deltaTime);
+            Debug.DrawRay(startPosition, _wallDir * rayLength, rayColor, Time.fixedDeltaTime);
 
             Vector2 hitN = new(rayHit.normal.x, rayHit.normal.z);
             Vector2 lookDir = new(character.Orientation.transform.forward.x, character.Orientation.transform.forward.z);
@@ -239,7 +227,7 @@ namespace SyncedRush.Character.Movement
 
             //TODO da rimuovere quando non serve più
             rayColor = hasHit ? Color.green : Color.red;
-            Debug.DrawRay(startPosition, _expectedWallDir * rayLength, rayColor, Time.deltaTime);
+            Debug.DrawRay(startPosition, _expectedWallDir * rayLength, rayColor, Time.fixedDeltaTime);
 
             hitN = new(rayHit.normal.x, rayHit.normal.z);
             lookDir = new(character.Orientation.transform.forward.x, character.Orientation.transform.forward.z);
@@ -274,13 +262,13 @@ namespace SyncedRush.Character.Movement
 
         private void EnterBoost()
         {
-            _enterBoostTimer = Mathf.MoveTowards(_enterBoostTimer, 0f, Time.deltaTime);
+            _enterBoostTimer = Mathf.MoveTowards(_enterBoostTimer, 0f, Time.fixedDeltaTime);
 
             if (_enterBoostTimer > 0f)
             {
                 character.HorizontalVelocity +=
                         character.Stats.WallRunInitialBoostAcceleration
-                        * Time.deltaTime
+                        * Time.fixedDeltaTime
                         * character.HorizontalVelocity.normalized;
             }
 
@@ -289,9 +277,7 @@ namespace SyncedRush.Character.Movement
 
         private void Slowdown()
         {
-            Vector3 move = (character.IsServer || character.LocalInputHandler == null)
-                ? character.MoveDirection
-                : character.LocalMoveDirection;
+            Vector3 move = character.MoveDirection;
 
             Vector2 moveXY = new(move.x, move.z);
             Vector2 velocityDir = character.HorizontalVelocity.normalized;
@@ -311,7 +297,7 @@ namespace SyncedRush.Character.Movement
                 character.HorizontalVelocity = Vector2.MoveTowards(
                     character.HorizontalVelocity,
                     Vector2.zero,
-                    Time.deltaTime * totalDecel);
+                    Time.fixedDeltaTime * totalDecel);
             }
         }
 

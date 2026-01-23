@@ -40,7 +40,7 @@ namespace SyncedRush.Character.Movement
         /// <returns></returns>
         public bool UseJetpack()
         {
-            UsingJetpack = (JetpackCharge >= _character.Stats.JetpackDrain * Time.deltaTime);
+            UsingJetpack = (JetpackCharge >= _character.Stats.JetpackDrain * Time.fixedDeltaTime);
             return UsingJetpack;
         }
 
@@ -67,17 +67,17 @@ namespace SyncedRush.Character.Movement
             {
                 if (UsingJetpack)
                 {
-                    JetpackCharge = Mathf.MoveTowards(JetpackCharge, 0f, _character.Stats.JetpackDrain * Time.deltaTime);
+                    JetpackCharge = Mathf.MoveTowards(JetpackCharge, 0f, _character.Stats.JetpackDrain * Time.fixedDeltaTime);
 
                     if (JetpackCharge <= 0f)
                         StopJetpack();
                 }
                 else
                 {
-                    JetpackCharge = Mathf.MoveTowards(JetpackCharge, _character.Stats.JetpackMaxCharge, _character.Stats.JetpackRecharge * Time.deltaTime);
+                    JetpackCharge = Mathf.MoveTowards(JetpackCharge, _character.Stats.JetpackMaxCharge, _character.Stats.JetpackRecharge * Time.fixedDeltaTime);
                 }
 
-                DashCharge = Mathf.MoveTowards(DashCharge, _character.Stats.DashMaxCharge, _character.Stats.DashRecharge * Time.deltaTime);
+                DashCharge = Mathf.MoveTowards(DashCharge, _character.Stats.DashMaxCharge, _character.Stats.DashRecharge * Time.fixedDeltaTime);
             }
 
             //if (CurrentAbility == CharacterAbility.Grapple)

@@ -16,6 +16,10 @@ namespace SyncedRush.Character.Movement
         {
             base.ProcessUpdate();
 
+#if UNITY_EDITOR
+            Debug.Log($"[DASH TICK] isServer={character.IsServer} timer={_dashTimer:F3} seq={Input.Sequence}");
+#endif
+
             if (CheckGround())
                 return MovementState.Move;
 
@@ -24,7 +28,7 @@ namespace SyncedRush.Character.Movement
 
             ProcessMovement();
 
-            _dashTimer = Mathf.MoveTowards(_dashTimer, 0f, Time.deltaTime);
+            _dashTimer = Mathf.MoveTowards(_dashTimer, 0f, Time.fixedDeltaTime);
 
             return MovementState.None;
         }
@@ -34,6 +38,15 @@ namespace SyncedRush.Character.Movement
             base.EnterState();
 
             _dashTimer = character.Stats.DashDuration;
+
+#if UNITY_EDITOR
+            Debug.Log(
+                $"[DASH ENTER] t={Time.time:F2} fixed={Time.fixedTime:F2} " +
+                $"isServer={character.IsServer} isOwner={character.IsOwner} " +
+                $"seq={Input.Sequence} ability={Input.Ability}" +
+                $"vel={character.TotalVelocity.magnitude:F2}"
+            );
+#endif
 
             Vector3 dashDir = GetDashDirection();
             Vector3 velocityDir = character.TotalVelocity.normalized;
@@ -61,12 +74,12 @@ namespace SyncedRush.Character.Movement
         {
             Vector3 dashDir = Vector3.zero;
 
-            Vector3 lookDir = character.LookDirection.normalized;
+            Vector3 lookDir = character.Orientation.transform.forward;
+            lookDir.y = 0f;
+            lookDir.Normalize();
             Vector3 rightDir = character.Orientation.transform.right;
 
-            Vector2 inputDir = (character.IsServer || character.LocalInputHandler == null)
-                ? character.MoveInputDirection
-                : character.LocalMoveInputDirection;
+            Vector2 inputDir = Input.Move;
 
             if (!Mathf.Approximately(inputDir.x, 0f))
             {

@@ -24,9 +24,8 @@ namespace SyncedRush.Character.Movement
             // Determine jump input based on simulation context.  On the server use the
             // networked input; on the client read from the PlayerInputHandler.  If no
             // handler is available (e.g. remote clients) default to false.
-            bool jumpInput = (character.IsServer || character.LocalInputHandler == null)
-                ? Input.Jump
-                : character.LocalInputHandler.Jump;
+            // handler is available (e.g. remote clients) default to false.
+            bool jumpInput = Input.Jump;
 
             if (jumpInput)
                 return MovementState.Jump;
@@ -36,9 +35,7 @@ namespace SyncedRush.Character.Movement
 
             if (character.Ability.CurrentAbility == CharacterAbility.Jetpack)
             {
-                bool dashInput = (character.IsServer || character.LocalInputHandler == null)
-                ? Input.Ability
-                : character.LocalInputHandler.Ability;
+                bool dashInput = Input.Ability;
                 if (dashInput && character.Ability.UseDash())
                     return MovementState.Dash;
             }
@@ -108,7 +105,7 @@ namespace SyncedRush.Character.Movement
                 finalMoveVector = projectedHorizontalMove + Vector3.up * character.VerticalVelocity;
             }
 
-            character.Controller.Move(finalMoveVector * Time.deltaTime);
+            character.Controller.Move(finalMoveVector * Time.fixedDeltaTime);
         }
 
         private bool CheckGround()
@@ -127,13 +124,7 @@ namespace SyncedRush.Character.Movement
 
         private bool CheckSlideConditions()
         {
-            // On the server (or when no local input handler is available) use the networked
-            // input to decide if the player is crouching and sprinting.  On the client
-            // prediction path, read these values from the PlayerInputHandler and compute the
-            // input direction from the local move vector.
-            bool crouchIn = (character.IsServer || character.LocalInputHandler == null)
-                ? Input.Crouch
-                : character.LocalInputHandler.Crouch;
+            bool crouchIn = Input.Crouch;
 
             if (!crouchIn)
             {
@@ -144,22 +135,9 @@ namespace SyncedRush.Character.Movement
             if (_blockCrouchInput)
                 return false;
 
-            if (character.IsServer || character.LocalInputHandler == null)
-            {
-                Vector3 inputDir = character.MoveDirection;
-                float dot = Vector3.Dot(inputDir, character.Orientation.transform.forward);
-                return Input.Crouch && dot > -0.1f;
-            }
-            else
-            {
-                Vector2 move = character.LocalInputHandler.Move;
-                Vector3 inputDir = character.Orientation.transform.forward * move.y + character.Orientation.transform.right * move.x;
-                if (inputDir.magnitude > 1f)
-                    inputDir.Normalize();
-                float dot = Vector3.Dot(inputDir, character.Orientation.transform.forward);
-                bool crouchInput = character.LocalInputHandler.Crouch;
-                return crouchInput && dot > -0.1f;
-            }
+            Vector3 inputDir = character.MoveDirection;
+            float dot = Vector3.Dot(inputDir, character.Orientation.transform.forward);
+            return crouchIn && dot > -0.1f;
         }
 
         private void SnapToGround()
@@ -172,29 +150,11 @@ namespace SyncedRush.Character.Movement
 
         private void Walk()
         {
-            Vector3 inputDir = Vector3.zero;
-            bool sprintInput = false;
-            Vector2 move = Vector2.zero;
+            // Always use CurrentInput through Input + MoveDirection (server/owner prediction will match)
+            Vector2 move = Input.Move;
+            bool sprintInput = Input.Sprint;
 
-            // On the server use networked input; on the client use local input from the
-            // PlayerInputHandler.  In both cases compute an input direction in world space
-            // and choose run or walk speed based on the sprint key.
-            if (character.IsServer || character.LocalInputHandler == null)
-            {
-                inputDir = character.MoveDirection;
-                sprintInput = Input.Sprint;
-                move = Input.Move;
-            }
-            else
-            {
-                move = character.LocalInputHandler.Move;
-                // Compute a direction from the local move input relative to character orientation.
-                inputDir = character.Orientation.transform.forward * move.y + character.Orientation.transform.right * move.x;
-                if (inputDir.magnitude > 1f)
-                    inputDir.Normalize();
-                sprintInput = character.LocalInputHandler.Sprint;
-            }
-
+            Vector3 inputDir = character.MoveDirection;
             Vector2 moveDirXY = new(inputDir.x, inputDir.z);
 
             bool movingBackwardsOnly = Mathf.Approximately(move.y, -1f) && Mathf.Approximately(move.x, 0f);
@@ -208,14 +168,14 @@ namespace SyncedRush.Character.Movement
                 character.HorizontalVelocity = Vector2.MoveTowards(
                     character.HorizontalVelocity,
                     moveDirXY * targetSpeed,
-                    Time.deltaTime * character.Stats.GroundOverspeedDeceleration);
+                    Time.fixedDeltaTime * character.Stats.GroundOverspeedDeceleration);
             }
             else
             {
                 character.HorizontalVelocity = Vector2.MoveTowards(
                     character.HorizontalVelocity,
                     moveDirXY * targetSpeed,
-                    Time.deltaTime * targetSpeed * character.Stats.GroundAccelDecel);
+                    Time.fixedDeltaTime * targetSpeed * character.Stats.GroundAccelDecel);
             }
         }
     }

@@ -87,9 +87,9 @@ namespace SyncedRush.Character.Movement
         protected override void ProcessMovement()
         {
             Vector3 _velocity = new(character.HorizontalVelocity.x, character.VerticalVelocity, character.HorizontalVelocity.y);
-            _velocity *= Time.deltaTime;
+            _velocity *= Time.fixedDeltaTime;
 
-            float center = Mathf.MoveTowards(0f, _headBodyDistance, Time.deltaTime * 2.5f);
+            float center = Mathf.MoveTowards(0f, _headBodyDistance, Time.fixedDeltaTime * 2.5f);
             _headBodyDistance -= center;
 
             _velocity.y += center;
@@ -102,14 +102,12 @@ namespace SyncedRush.Character.Movement
             Vector3 moveDir = HookController.transform.position - character.CenterPosition;
             moveDir.Normalize();
 
-            character.TotalVelocity += (character.Stats.HookPull * Time.deltaTime * moveDir);
+            character.TotalVelocity += (character.Stats.HookPull * Time.fixedDeltaTime * moveDir);
         }
 
         private void AirMove()
         {
-            Vector3 moveDir = (character.IsServer || character.LocalInputHandler == null)
-                ? character.MoveDirection
-                : character.LocalMoveDirection;
+            Vector3 moveDir = character.MoveDirection;
 
             Vector2 moveDirXY = new(moveDir.x, moveDir.z);
 
@@ -119,12 +117,12 @@ namespace SyncedRush.Character.Movement
                 ? character.Stats.AirOverspeedDeceleration
                 : character.Stats.AirDeceleration;
 
-            character.HorizontalVelocity += character.Stats.AirAcceleration * Time.deltaTime * moveDirXY;
+            character.HorizontalVelocity += character.Stats.AirAcceleration * Time.fixedDeltaTime * moveDirXY;
 
             character.HorizontalVelocity = Vector2.MoveTowards(
                 character.HorizontalVelocity,
                 Vector2.zero,
-                Time.deltaTime * targetDeceleration);
+                Time.fixedDeltaTime * targetDeceleration);
         }
 
         private bool CheckGround()
@@ -174,7 +172,7 @@ namespace SyncedRush.Character.Movement
 
                 //TODO da rimuovere quando non serve più
                 Color rayColor = hasHit ? Color.green : Color.red;
-                Debug.DrawRay(startPosition, _wallDir * rayLength, rayColor, Time.deltaTime);
+                Debug.DrawRay(startPosition, _wallDir * rayLength, rayColor, Time.fixedDeltaTime);
 
                 Vector2 hitN = new(rayHit.normal.x, rayHit.normal.z);
                 Vector2 lookDir = new(character.Orientation.transform.forward.x, character.Orientation.transform.forward.z);
@@ -182,9 +180,7 @@ namespace SyncedRush.Character.Movement
                 float angle = Vector2.Angle(hitN, -lookDir);
                 Debug.Log("AirState " + angle); //TODO da rimuovere
 
-                Vector3 inputDir = (character.IsServer || character.LocalInputHandler == null)
-                    ? character.MoveDirection
-                    : character.LocalMoveDirection;
+                Vector3 inputDir = character.MoveDirection;
 
                 bool moveInputToWall = Vector3.Dot(inputDir, rayHit.normal) < 0;
 

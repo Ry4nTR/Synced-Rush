@@ -21,7 +21,7 @@ public class PlayerInputHandler : MonoBehaviour
 
     // Debug / utility
     [SerializeField] private bool debugResetPos;
-    
+
     private PlayerInputSystem _controls;
 
     // Read-only accessors
@@ -73,16 +73,16 @@ public class PlayerInputHandler : MonoBehaviour
         jetpack = _controls.Player.Jetpack.IsPressed();
     }
 
-    // Discrete input edge-checking (this frame only)
+    // Discrete input edge-checking (latched until consumed by FixedUpdate)
     private void ReadDiscreteInputs()
     {
-        jump = _controls.Player.Jump.WasPressedThisFrame();
-        reload = _controls.Player.Reload.WasPressedThisFrame();
-        ability = _controls.Player.Ability.WasPressedThisFrame();
-
-        // TODO Debug
-        debugResetPos = _controls.Player.DebugResetPos.WasPressedThisFrame();
+        // LATCH: once true, it stays true until NetworkPlayerInput consumes it
+        jump |= _controls.Player.Jump.WasPressedThisFrame();
+        reload |= _controls.Player.Reload.WasPressedThisFrame();
+        ability |= _controls.Player.Ability.WasPressedThisFrame();
+        debugResetPos |= _controls.Player.DebugResetPos.WasPressedThisFrame();
     }
+
 
     public void SetCursorLocked(bool locked)
     {
@@ -105,4 +105,33 @@ public class PlayerInputHandler : MonoBehaviour
         // TODO Debug
         debugResetPos = false;
     }
+
+    public bool ConsumeJump()
+    {
+        bool v = jump;
+        jump = false;
+        return v;
+    }
+
+    public bool ConsumeAbility()
+    {
+        bool v = ability;
+        ability = false;
+        return v;
+    }
+
+    public bool ConsumeReload()
+    {
+        bool v = reload;
+        reload = false;
+        return v;
+    }
+
+    public bool ConsumeDebugResetPos()
+    {
+        bool v = debugResetPos;
+        debugResetPos = false;
+        return v;
+    }
+
 }
