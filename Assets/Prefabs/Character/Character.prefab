@@ -477,12 +477,12 @@ MonoBehaviour:
   _slideDeceleration: 10
   _slideIncreasedDeceleration: 20
   _slideIncreasedDecelerationThreshold: 90
-  _wallRunDeceleration: 2.5
+  _wallRunDeceleration: 1
   _wallRunBrake: 10
   _wallRunMinimumSpeed: 2
   _wallRunLookAngleLimit: 110
-  _wallRunInitialBoostDuration: 0.1
-  _wallRunInitialBoostAcceleration: 60
+  _wallRunInitialBoostDuration: 0.3
+  _wallRunInitialBoostAcceleration: 30
   _dashSpeed: 17
   _dashDuration: 0.3
   _dashkMaxCharge: 100
