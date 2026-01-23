@@ -331,7 +331,7 @@ public class MovementController : NetworkBehaviour
         if (_hook != null)
         {
             var parent = transform;
-            var instance = Instantiate(_hook, parent);
+            var instance = Instantiate(_hook);
             instance.transform.localPosition = Vector3.zero;
             instance.transform.localRotation = Quaternion.identity;
             _hook = instance;
@@ -569,14 +569,5 @@ public class MovementController : NetworkBehaviour
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
         _characterFSM.ProcessCollision(hit);
-    }
-
-    //TODO da rimuovere quando non serve più
-    private void DebugResetPosition()
-    {
-        if (_netInput.ServerInput.DebugResetPos)
-        {
-            transform.position = Vector3.up;
-        }
     }
 }

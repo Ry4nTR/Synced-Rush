@@ -57,7 +57,6 @@ public class NetworkPlayerInput : NetworkBehaviour
             Jump = _inputHandler.ConsumeJump(),
             Ability = _inputHandler.ConsumeAbility(),
             Reload = _inputHandler.ConsumeReload(),
-            DebugResetPos = _inputHandler.ConsumeDebugResetPos(),
 
             // HELD states
             Sprint = _inputHandler.Sprint,

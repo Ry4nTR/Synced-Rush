@@ -127,15 +127,6 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "DebugResetPos",
-                    "type": "Button",
-                    "id": "bcb62dfc-6fc8-49c1-a070-dd5b20730e1e",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
                     "name": "Interact",
                     "type": "Button",
                     "id": "290f71e3-5c84-4fb8-8b29-d1c8bc4111a0",
@@ -392,28 +383,6 @@
                     "processors": "",
                     "groups": "",
                     "action": "Fire",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "4eb5b0be-ae9c-4fe4-b0ad-5b4713c272ab",
-                    "path": "<Keyboard>/l",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "DebugResetPos",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "b08ad5ca-5d5d-4844-9473-467dc82a7a8d",
-                    "path": "<Gamepad>/dpad/up",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "DebugResetPos",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

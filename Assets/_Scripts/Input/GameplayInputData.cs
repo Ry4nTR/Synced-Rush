@@ -25,9 +25,6 @@ public struct GameplayInputData : INetworkSerializable
     /// </summary>
     public int Sequence;
 
-    // opzionale: se vuoi replicare anche il debug reset pos
-    public bool DebugResetPos;
-
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
     {
         serializer.SerializeValue(ref Move);
@@ -41,7 +38,6 @@ public struct GameplayInputData : INetworkSerializable
         serializer.SerializeValue(ref Ability);
         serializer.SerializeValue(ref Jetpack);
         serializer.SerializeValue(ref Scroll);
-        serializer.SerializeValue(ref DebugResetPos); // opzionale
 
         // Serialize the sequence number last so that older clients can safely ignore it
         serializer.SerializeValue(ref Sequence);

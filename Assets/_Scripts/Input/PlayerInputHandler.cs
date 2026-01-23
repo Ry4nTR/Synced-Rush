@@ -19,9 +19,6 @@ public class PlayerInputHandler : MonoBehaviour
     [SerializeField] private bool ability;
     [SerializeField] private bool jetpack;
 
-    // Debug / utility
-    [SerializeField] private bool debugResetPos;
-
     private PlayerInputSystem _controls;
 
     // Read-only accessors
@@ -35,7 +32,6 @@ public class PlayerInputHandler : MonoBehaviour
     public bool Reload => reload;
     public bool Ability => ability;
     public bool Jetpack => jetpack;
-    public bool DebugResetPos => debugResetPos;
 
     private void Awake()
     {
@@ -80,7 +76,6 @@ public class PlayerInputHandler : MonoBehaviour
         jump |= _controls.Player.Jump.WasPressedThisFrame();
         reload |= _controls.Player.Reload.WasPressedThisFrame();
         ability |= _controls.Player.Ability.WasPressedThisFrame();
-        debugResetPos |= _controls.Player.DebugResetPos.WasPressedThisFrame();
     }
 
 
@@ -101,9 +96,6 @@ public class PlayerInputHandler : MonoBehaviour
         reload = false;
         ability = false;
         jetpack = false;
-
-        // TODO Debug
-        debugResetPos = false;
     }
 
     public bool ConsumeJump()
@@ -126,12 +118,4 @@ public class PlayerInputHandler : MonoBehaviour
         reload = false;
         return v;
     }
-
-    public bool ConsumeDebugResetPos()
-    {
-        bool v = debugResetPos;
-        debugResetPos = false;
-        return v;
-    }
-
 }
