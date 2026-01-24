@@ -46,7 +46,7 @@ public class MovementController : NetworkBehaviour
 
     private NetworkVariable<CharacterAbility> _syncedAbility =
     new NetworkVariable<CharacterAbility>(
-        CharacterAbility.Jetpack,
+        CharacterAbility.None,
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server
     );
@@ -189,6 +189,15 @@ public class MovementController : NetworkBehaviour
         }
     }
 
+    public Vector3 AimDirection
+    {
+        get
+        {
+            var input = CurrentInput;
+            return Quaternion.Euler(input.AimPitch, input.AimYaw, 0f) * Vector3.forward;
+        }
+    }
+
     public Vector3 LookDirection => _cameraTransform.forward;
 
     // Lista di proprietà messe "nel posto sbagliato"
@@ -285,8 +294,12 @@ public class MovementController : NetworkBehaviour
     [ServerRpc]
     private void RequestSetAbilityServerRpc(CharacterAbility ability)
     {
+        if (ability == CharacterAbility.None)
+            ability = CharacterAbility.Jetpack; // or Jetpack, whichever is your default
+
         _syncedAbility.Value = ability;
-        _ability.CurrentAbility = ability; // Server-side update
+        if (_ability != null)
+            _ability.CurrentAbility = ability;
     }
 
     // remote interpolation and snaps the owner to the correct spawn position
@@ -334,14 +347,6 @@ public class MovementController : NetworkBehaviour
         // Orientation MUST be BodyYaw (rotate body only)
         if (_orientation != null)
             _orientation.transform.localRotation = Quaternion.Euler(0f, newYaw, 0f);
-    }
-
-
-    // RPC used by the owning client to update the authoritative yaw angle on the server.
-    [ServerRpc]
-    private void UpdateYawServerRpc(float yaw)
-    {
-        _serverYaw.Value = yaw;
     }
 
     private void Awake()
@@ -407,20 +412,18 @@ public class MovementController : NetworkBehaviour
         // -------------------------
         if (IsServer)
         {
-            // Host: keep server yaw synced to local look
-            if (IsOwner && _lookController != null)
-                _serverYaw.Value = _lookController.CurrentYaw;
-
-            // Apply authoritative yaw to body yaw (Orientation == BodyYaw)
-            if (_orientation != null)
-                _orientation.transform.localRotation = Quaternion.Euler(0f, _serverYaw.Value, 0f);
-
             int steps = 0;
             int lastSeqProcessed = _lastProcessedSequence.Value;
 
+            // Catch-up: process multiple queued inputs this FixedUpdate (bounded)
             while (steps < serverMaxStepsPerFrame && _netInput.TryConsumeNextServerInput(out var nextInput))
             {
                 _netInput.ServerSetCurrentInput(nextInput);
+
+                _serverYaw.Value = nextInput.AimYaw;
+
+                if (_orientation != null)
+                    _orientation.transform.localRotation = Quaternion.Euler(0f, nextInput.AimYaw, 0f);
 
                 Ability.ProcessUpdate();
                 CheckGround();
@@ -431,8 +434,15 @@ public class MovementController : NetworkBehaviour
                 steps++;
             }
 
+            /*
+            #if UNITY_EDITOR
+            Debug.Log($"[SERVER SIM] steps={steps} ackBefore={_lastProcessedSequence.Value} ackAfter={lastSeqProcessed} buffered={_netInput.ServerBufferedCount} nextExpected={_netInput.ServerNextExpected}");
+            #endif
+            */
+
             _serverPosition.Value = transform.position;
             _lastProcessedSequence.Value = lastSeqProcessed;
+
             return;
         }
 
@@ -449,9 +459,6 @@ public class MovementController : NetworkBehaviour
             if (_orientation != null)
                 _orientation.transform.localRotation = Quaternion.Euler(0f, _yawAngle, 0f);
 
-            // Sync yaw to server
-            UpdateYawServerRpc(_yawAngle);
-
             // Simulate locally
             Ability.ProcessUpdate();
             CheckGround();
@@ -460,6 +467,9 @@ public class MovementController : NetworkBehaviour
 
             // Drop acked inputs
             _netInput.ConfirmInputUpTo(_lastProcessedSequence.Value);
+
+            if (!_ownerHasInitialServerPos)
+                return;
 
             // Reconcile
             Vector3 authoritative = _serverPosition.Value;
@@ -607,7 +617,7 @@ public class MovementController : NetworkBehaviour
             if (Ability.HookController.IsHooked || Ability.HookController.IsShooting)
                 Ability.HookController.Retreat();
             else
-                Ability.HookController.Shoot(_cameraTransform.position, LookDirection, Stats.HookSpeed, Stats.HookMaxDistance);
+                Ability.HookController.Shoot(_cameraTransform.position, AimDirection, Stats.HookSpeed, Stats.HookMaxDistance);
         }
 
         if (Ability.HookController.IsHooked)

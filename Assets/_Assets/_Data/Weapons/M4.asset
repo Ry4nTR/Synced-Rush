@@ -18,8 +18,8 @@ MonoBehaviour:
   layerMask:
     serializedVersion: 2
     m_Bits: 1792
-  damage: 10
-  fireRate: 15
+  damage: 17
+  fireRate: 10
   range: 77
   falloffStartDistance: 10
   falloffEndDistance: 77

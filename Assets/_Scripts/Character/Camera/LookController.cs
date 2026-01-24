@@ -31,9 +31,9 @@ public class LookController : NetworkBehaviour
 
     // provide access to camera transform
     public Transform CameraTransform => cameraHolder;
-    // unwrapped yaw in degrees
-    public float CurrentYaw => yaw;          
-    public float Sensitivity => sensitivity; // if you want to debug/compare
+    public float CurrentYaw => yaw;    
+    public float CurrentPitch => pitch; // signed pitch, already clamped
+
 
 
     private void Start()

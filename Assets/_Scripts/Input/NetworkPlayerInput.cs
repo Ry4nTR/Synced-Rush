@@ -10,9 +10,8 @@ using System.Collections.Generic;
 public class NetworkPlayerInput : NetworkBehaviour
 {
     private PlayerInputHandler _inputHandler;
+    private LookController _look;
 
-    // Sequence number for client-side prediction.
-    // Identifies inputs  so the server can acknowledge which inputs have been processed.
     private int _sequenceNumber = 0;
 
     // Pending inputs that have been sent to the server but not yet acknowledged.
@@ -31,7 +30,25 @@ public class NetworkPlayerInput : NetworkBehaviour
     // Safety limits
     private const int MaxBufferedInputs = 256;
 
+#if UNITY_EDITOR
+    [SerializeField] private bool debugServerInputBuffer = true;
+    [SerializeField] private bool debugClientSend = false;
+
+    // Server-side debug counters
+    private int _dbgLastReceivedSeq = -1;
+    private int _dbgDropsOld = 0;
+    private int _dbgGapSkips = 0;
+    private int _dbgBufferedPeak = 0;
+
+    // Throttle logs (avoid spamming)
+    private float _dbgNextServerLogTime = 0f;
+#endif
+
+
     public IReadOnlyList<GameplayInputData> PendingInputs => _pendingInputs;
+
+    public int ServerBufferedCount => _serverBufferedInputs.Count;
+    public int ServerNextExpected => _serverNextExpectedSequence;
 
     public void ServerSetCurrentInput(GameplayInputData data) => ServerInput = data;
 
@@ -41,6 +58,7 @@ public class NetworkPlayerInput : NetworkBehaviour
     private void Awake()
     {
         _inputHandler = GetComponent<PlayerInputHandler>();
+        _look = GetComponentInChildren<LookController>();
     }
 
     private void FixedUpdate()
@@ -52,6 +70,10 @@ public class NetworkPlayerInput : NetworkBehaviour
         {
             Move = _inputHandler.Move,
             Look = _inputHandler.Look,
+
+            AimYaw = (_look != null) ? _look.CurrentYaw : 0f,
+            AimPitch = (_look != null) ? _look.CurrentPitch : 0f,
+
 
             // DISCRETE: consume latched presses so we never miss them
             Jump = _inputHandler.ConsumeJump(),
@@ -68,6 +90,15 @@ public class NetworkPlayerInput : NetworkBehaviour
 
             Sequence = _sequenceNumber++
         };
+
+        #if UNITY_EDITOR
+        if (debugClientSend && !IsServer) // only real clients (not host fast-path)
+        {
+            if (inputData.Sequence % 30 == 0) // log every ~30 inputs
+                Debug.Log($"[CLIENT SEND] seq={inputData.Sequence} pending={_pendingInputs.Count}");
+        }
+        #endif
+
 
         LocalPredictedInput = inputData;
         _pendingInputs.Add(inputData);
@@ -134,12 +165,17 @@ public class NetworkPlayerInput : NetworkBehaviour
 
             if (minKey > _serverNextExpectedSequence)
             {
+                #if UNITY_EDITOR
+                _dbgGapSkips++;
+                #endif
+
                 data = _serverBufferedInputs[minKey];
                 _serverBufferedInputs.Remove(minKey);
 
                 _serverNextExpectedSequence = minKey + 1;
                 return true;
             }
+
         }
 
         data = default;
@@ -156,6 +192,12 @@ public class NetworkPlayerInput : NetworkBehaviour
 
     private void ReceiveInputOnServer(GameplayInputData inputData)
     {
+        #if UNITY_EDITOR
+                // Track last received seq (arrival order may be different than sequence order)
+                _dbgLastReceivedSeq = Mathf.Max(_dbgLastReceivedSeq, inputData.Sequence);
+        #endif
+
+
         // If we have no buffered inputs yet and this is the first input we ever got,
         // sync expected sequence to it (robust to first packet loss).
         if (_serverBufferedInputs.Count == 0 && inputData.Sequence > _serverNextExpectedSequence)
@@ -163,9 +205,25 @@ public class NetworkPlayerInput : NetworkBehaviour
 
         // Drop very old inputs (already processed)
         if (inputData.Sequence < _serverNextExpectedSequence)
+        {
+        #if UNITY_EDITOR
+                    _dbgDropsOld++;
+        #endif
             return;
+        }
 
         _serverBufferedInputs[inputData.Sequence] = inputData;
+
+        #if UNITY_EDITOR
+                _dbgBufferedPeak = Mathf.Max(_dbgBufferedPeak, _serverBufferedInputs.Count);
+
+                // Throttled summary log (server only)
+                if (debugServerInputBuffer && Time.unscaledTime >= _dbgNextServerLogTime)
+                {
+                    _dbgNextServerLogTime = Time.unscaledTime + 0.5f; // twice per second
+                    Debug.Log($"[SERVER RX] nextExp={_serverNextExpectedSequence} lastRx={_dbgLastReceivedSeq} buffered={_serverBufferedInputs.Count} peak={_dbgBufferedPeak} dropsOld={_dbgDropsOld} gapSkips={_dbgGapSkips}");
+                }
+        #endif
 
         if (_serverBufferedInputs.Count > MaxBufferedInputs)
         {

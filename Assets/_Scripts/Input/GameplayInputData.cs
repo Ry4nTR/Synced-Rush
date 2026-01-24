@@ -11,6 +11,8 @@ public struct GameplayInputData : INetworkSerializable
 
     public Vector2 Move;
     public Vector2 Look;
+    public float AimYaw;
+    public float AimPitch;
     public bool Jump;
     public bool Sprint;
     public bool Crouch;
@@ -33,6 +35,8 @@ public struct GameplayInputData : INetworkSerializable
 
         serializer.SerializeValue(ref Move);
         serializer.SerializeValue(ref Look);
+        serializer.SerializeValue(ref AimYaw);
+        serializer.SerializeValue(ref AimPitch);
         serializer.SerializeValue(ref Jump);
         serializer.SerializeValue(ref Sprint);
         serializer.SerializeValue(ref Crouch);

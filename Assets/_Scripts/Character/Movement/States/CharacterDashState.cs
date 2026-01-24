@@ -72,41 +72,27 @@ namespace SyncedRush.Character.Movement
 
         private Vector3 GetDashDirection()
         {
-            Vector3 dashDir = Vector3.zero;
+            Vector2 raw = Input.Move;
 
-            Vector3 lookDir = character.Orientation.transform.forward;
-            lookDir.y = 0f;
-            lookDir.Normalize();
-            Vector3 rightDir = character.Orientation.transform.right;
-            rightDir.y = 0f;
-            rightDir.Normalize();
+            Vector2 inputDir = new Vector2(-raw.x, raw.y);
 
-            Vector2 inputDir = Input.Move;
+            Vector3 forward = character.AimDirection.normalized;
 
-            if (!Mathf.Approximately(inputDir.x, 0f))
-            {
-                Vector3 lateralMotion = inputDir.x < 0f
-                    ? -rightDir
-                    : rightDir;
+            // Right-hand direction relative to aim
+            Vector3 right = Vector3.Cross(forward, Vector3.up);
+            if (right.sqrMagnitude < 0.0001f)
+                right = character.Orientation.transform.right;
+            right.Normalize();
 
-                dashDir += lateralMotion;
-            }
+            Vector3 dashDir = forward * inputDir.y + right * inputDir.x;
 
-            if (!Mathf.Approximately(inputDir.y, 0f))
-            {
-                Vector3 longitudinalMotion = inputDir.y < 0f
-                    ? -lookDir
-                    : lookDir;
+            if (dashDir.sqrMagnitude < 0.0001f)
+                dashDir = forward;
 
-                dashDir += longitudinalMotion;
-            }
-
-            dashDir = dashDir == Vector3.zero
-                ? lookDir
-                : dashDir.normalized;
-
-            return dashDir;
+            return dashDir.normalized;
         }
+
+
 
         private bool CheckGround()
         {

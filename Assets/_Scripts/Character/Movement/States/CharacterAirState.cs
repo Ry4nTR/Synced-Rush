@@ -84,6 +84,8 @@ namespace SyncedRush.Character.Movement
         {
             base.EnterState();
 
+            _lastProcessedAbilityCount = Input.AbilityCount;
+
             ResetFlags();
 
             bool hasJumped = ParentStateMachine.PreviousStateEnum is MovementState.Jump

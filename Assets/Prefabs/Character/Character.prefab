@@ -232,7 +232,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 2877608786
+  GlobalObjectIdHash: 3354322385
   InScenePlacedSourceGlobalObjectIdHash: 1514268395
   DeferredDespawnTick: 0
   Ownership: 1
@@ -426,6 +426,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkPlayerInput
   ShowTopMostFoldoutHeaderGroup: 1
+  debugServerInputBuffer: 0
+  debugClientSend: 0
 --- !u!114 &-2986967647247276543
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -490,7 +492,7 @@ MonoBehaviour:
   _dashRecharge: 16.6
   _jetpackAcceleration: 16
   _jetpackMaxCharge: 100
-  _jetpackDrain: 20
+  _jetpackDrain: 70
   _jetpackRecharge: 16.6
   _hookMaxDistance: 50
   _hookSpeed: 40
