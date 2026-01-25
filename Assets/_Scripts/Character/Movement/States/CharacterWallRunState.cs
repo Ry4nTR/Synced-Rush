@@ -63,7 +63,10 @@ namespace SyncedRush.Character.Movement
 
             bool crouchInput = Input.Crouch;
             if (crouchInput)
+            {
+                WallDetach();
                 return MovementState.Air;
+            }
 
             EnterBoost();
 
@@ -268,6 +271,19 @@ namespace SyncedRush.Character.Movement
             jumpDir = jumpDir.normalized * jumpSpeed;
 
             character.TotalVelocity += jumpDir;
+        }
+
+        private void WallDetach()
+        {
+            CheckWall(out RaycastHit hit);
+
+            float detachStrength = 2f;
+
+            Vector3 detachDir = new(hit.normal.x, 0f, hit.normal.z);
+
+            detachDir = detachDir.normalized * detachStrength;
+
+            character.TotalVelocity += detachDir;
         }
 
         private void EnterBoost()
