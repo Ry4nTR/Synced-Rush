@@ -7,8 +7,8 @@ public class WeaponActionHandler : NetworkBehaviour
 
     private WeaponController weaponController;
     private bool lastAim;
-    private bool lastReload;
     private float nextLogTime;
+    private int lastReloadCount = -1;
 
     private void Update()
     {
@@ -36,13 +36,10 @@ public class WeaponActionHandler : NetworkBehaviour
             lastAim = inputHandler.Aim;
         }
 
-        if (inputHandler.Reload && !lastReload)
+        if (ConsumePress(ref lastReloadCount, inputHandler.ReloadCount))
         {
-            //Debug.Log("[WeaponActionHandler] RELOAD requested");
             weaponController.Reload();
         }
-
-        lastReload = inputHandler.Reload;
     }
 
     private void TryAcquireWeapon()
@@ -55,4 +52,20 @@ public class WeaponActionHandler : NetworkBehaviour
             nextLogTime = Time.time + 1f;
         }
     }
+
+    private static bool ConsumePress(ref int lastCount, int currentCount)
+    {
+        if (lastCount < 0)
+        {
+            lastCount = currentCount;
+            return false;
+        }
+
+        bool pressed = currentCount > lastCount;
+        if (currentCount != lastCount)
+            lastCount = currentCount;
+
+        return pressed;
+    }
+
 }

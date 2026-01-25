@@ -31,16 +31,12 @@ namespace SyncedRush.Character.Movement
             if (!CheckGround())
                 return MovementState.Air;
 
-            // Determine jump and crouch inputs based on context.  Use networked input on
-            // the server or when the local input handler is unavailable.  Otherwise use the
-            // values from the PlayerInputHandler.
-            bool jumpInput = Input.Jump;
             bool crouchInput = Input.Crouch;
 
             if (!crouchInput)
                 _blockCrouchInput = false;
 
-            if (jumpInput)
+            if (character.ConsumeJumpPressedIfAllowed())
                 return MovementState.Jump;
 
             if (character.HorizontalVelocity.magnitude < 1f)
@@ -203,6 +199,5 @@ namespace SyncedRush.Character.Movement
                 }
             }
         }
-
     }
 }

@@ -51,16 +51,10 @@ public class MovementController : NetworkBehaviour
         NetworkVariableWritePermission.Server
     );
 
-    // =========================
-    // References
-    // =========================
     [Header("References")]
     [SerializeField] private Transform _visualRoot;
     private bool _ownerHasInitialServerPos;
 
-    // =========================
-    // Server Replication
-    // =========================
     [Header("Networking")]
     [SerializeField] private float remoteLerpTime = 0.08f; // smooth remote movement
     [SerializeField] private float reconciliationSnapDistance = 0.75f;
@@ -76,6 +70,12 @@ public class MovementController : NetworkBehaviour
     private float _remoteT;
 
     private RaycastHit _groundInfo;
+
+    private int _lastJumpCount = -1;
+    private int _lastAbilityCount = -1;
+
+    public bool JumpPressedThisTick { get; private set; }
+    public bool AbilityPressedThisTick { get; private set; }
 
     /// <summary>
     /// Vettore di movimento orizzontale del character.
@@ -193,8 +193,9 @@ public class MovementController : NetworkBehaviour
     {
         get
         {
-            var input = CurrentInput;
-            return Quaternion.Euler(input.AimPitch, input.AimYaw, 0f) * Vector3.forward;
+            float yaw = CurrentInput.AimYaw;
+            float pitch = CurrentInput.AimPitch;
+            return Quaternion.Euler(pitch, yaw, 0f) * Vector3.forward;
         }
     }
 
@@ -230,7 +231,7 @@ public class MovementController : NetworkBehaviour
 
             // If host, initialize yaw too (optional but good)
             if (_lookController != null)
-                _serverYaw.Value = _lookController.CurrentYaw;
+                _yawAngle = _lookController.SimYaw;
         }
 
         // Ability sync hook
@@ -389,17 +390,6 @@ public class MovementController : NetworkBehaviour
         }
 
         _ability = new(this, hookCtrl);
-
-        // Only the owner client should apply local selection in Awake.
-        // Everyone else will receive _syncedAbility via OnNetworkSpawn.
-        if (IsOwner && !IsServer)
-        {
-            if (LocalAbilitySelection.SelectedAbility != CharacterAbility.None)
-                Ability.CurrentAbility = LocalAbilitySelection.SelectedAbility;
-            else
-                Ability.CurrentAbility = CharacterAbility.Grapple;
-        }
-
     }
 
     private void FixedUpdate()
@@ -428,6 +418,7 @@ public class MovementController : NetworkBehaviour
                 Ability.ProcessUpdate();
                 CheckGround();
                 GrappleHookAbility();
+                UpdateDiscretePresses();
                 _characterFSM.ProcessUpdate();
 
                 lastSeqProcessed = nextInput.Sequence;
@@ -453,7 +444,7 @@ public class MovementController : NetworkBehaviour
         {
             // Use yaw from LookController (unwrapped, includes sensitivity)
             if (_lookController != null)
-                _yawAngle = _lookController.CurrentYaw;
+                _yawAngle = _lookController.SimYaw;
 
             // Rotate body yaw (Orientation == BodyYaw)
             if (_orientation != null)
@@ -463,6 +454,7 @@ public class MovementController : NetworkBehaviour
             Ability.ProcessUpdate();
             CheckGround();
             GrappleHookAbility();
+            UpdateDiscretePresses();
             _characterFSM.ProcessUpdate();
 
             // Drop acked inputs
@@ -640,5 +632,43 @@ public class MovementController : NetworkBehaviour
         {
             RequestSetAbilityServerRpc(newAbility);
         }
+    }
+
+    public bool ConsumeJumpPressedIfAllowed()
+    {
+        // only allow on ground
+        if (!IsOnGround)
+            return false;
+
+        // allow only once per tick
+        if (!JumpPressedThisTick)
+            return false;
+
+        JumpPressedThisTick = false;
+        return true;
+    }
+
+    private void UpdateDiscretePresses()
+    {
+        JumpPressedThisTick = false;
+        AbilityPressedThisTick = false;
+
+        int jumpCount = CurrentInput.JumpCount;
+        if (_lastJumpCount < 0)
+            _lastJumpCount = jumpCount;
+
+        if (jumpCount > _lastJumpCount)
+            JumpPressedThisTick = true;
+
+        _lastJumpCount = jumpCount;
+
+        int abilityCount = CurrentInput.AbilityCount;
+        if (_lastAbilityCount < 0)
+            _lastAbilityCount = abilityCount;
+
+        if (abilityCount > _lastAbilityCount)
+            AbilityPressedThisTick = true;
+
+        _lastAbilityCount = abilityCount;
     }
 }

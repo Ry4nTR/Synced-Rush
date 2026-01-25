@@ -405,14 +405,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::InputManager
   move: {x: 0, y: 0}
   look: {x: 0, y: 0}
-  jump: 0
   sprint: 0
   crouch: 0
   fire: 0
   aim: 0
-  reload: 0
-  ability: 0
   jetpack: 0
+  jumpPressCount: 0
+  reloadPressCount: 0
+  abilityPressCount: 0
 --- !u!114 &-4718773345927608370
 MonoBehaviour:
   m_ObjectHideFlags: 0

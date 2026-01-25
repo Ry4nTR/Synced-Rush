@@ -19,7 +19,6 @@ namespace SyncedRush.Character.Movement
     [RequireComponent(typeof(MovementController))]
     public class CharacterMovementFSM : BaseStateMachine<MovementState, CharacterMovementState>
 	{
-
         private MovementController _movementComponent;
 
         private void Awake()

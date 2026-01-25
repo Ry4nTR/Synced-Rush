@@ -4,38 +4,36 @@ using UnityEngine;
 /// Centralized input buffer using Unity Input System.
 /// Continuous inputs are polled, discrete actions are edge-checked.
 /// </summary>
+[DefaultExecutionOrder(-300)]
 [DisallowMultipleComponent]
 public class PlayerInputHandler : MonoBehaviour
 {
     [Header("Character Input Values")]
     [SerializeField] private Vector2 move;
     [SerializeField] private Vector2 look;
-    [SerializeField] private bool jump;
     [SerializeField] private bool sprint;
     [SerializeField] private bool crouch;
     [SerializeField] private bool fire;
     [SerializeField] private bool aim;
-    [SerializeField] private bool reload;
-    [SerializeField] private bool ability;
     [SerializeField] private bool jetpack;
 
+    [SerializeField] private int jumpPressCount;
+    [SerializeField] private int reloadPressCount;
+    [SerializeField] private int abilityPressCount;
+
     private PlayerInputSystem _controls;
-
-    private int _abilityClickCount = 0;
-
-    public int AbilityCount => _abilityClickCount; // Exposed for NetworkPlayerInput
 
     // Read-only accessors
     public Vector2 Move => move;
     public Vector2 Look => look;
-    public bool Jump => jump;
     public bool Sprint => sprint;
     public bool Crouch => crouch;
     public bool Fire => fire;
     public bool Aim => aim;
-    public bool Reload => reload;
-    public bool Ability => ability;
     public bool Jetpack => jetpack;
+    public int JumpCount => jumpPressCount;
+    public int ReloadCount => reloadPressCount;
+    public int AbilityCount => abilityPressCount;
 
     private void Awake()
     {
@@ -58,6 +56,11 @@ public class PlayerInputHandler : MonoBehaviour
         ReadContinuousInputs();
         ReadDiscreteInputs();
     }
+    private void FixedUpdate()
+    {
+        ReadContinuousInputs();
+    }
+
 
     // Continuous input polling (every frame)
     private void ReadContinuousInputs()
@@ -76,15 +79,14 @@ public class PlayerInputHandler : MonoBehaviour
     // Discrete input edge-checking (latched until consumed by FixedUpdate)
     private void ReadDiscreteInputs()
     {
-        jump |= _controls.Player.Jump.WasPressedThisFrame();
-        reload |= _controls.Player.Reload.WasPressedThisFrame();
+        if (_controls.Player.Jump.WasPressedThisFrame())
+            jumpPressCount++;
 
-        // Increment counter instead of just a bool
+        if (_controls.Player.Reload.WasPressedThisFrame())
+            reloadPressCount++;
+
         if (_controls.Player.Ability.WasPressedThisFrame())
-        {
-            ability = true;
-            _abilityClickCount++;
-        }
+            abilityPressCount++;
     }
 
 
@@ -97,34 +99,13 @@ public class PlayerInputHandler : MonoBehaviour
     {
         move = Vector2.zero;
         look = Vector2.zero;
-        jump = false;
         sprint = false;
         crouch = false;
         fire = false;
         aim = false;
-        reload = false;
-        ability = false;
         jetpack = false;
-    }
-
-    public bool ConsumeJump()
-    {
-        bool v = jump;
-        jump = false;
-        return v;
-    }
-
-    public bool ConsumeAbility()
-    {
-        bool v = ability;
-        ability = false;
-        return v;
-    }
-
-    public bool ConsumeReload()
-    {
-        bool v = reload;
-        reload = false;
-        return v;
+        jumpPressCount = 0;
+        reloadPressCount = 0;
+        abilityPressCount = 0;
     }
 }

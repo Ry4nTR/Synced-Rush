@@ -8,6 +8,7 @@ using Unity.Netcode;
 /// - Vertical rotation (Pitch) happens on the CameraHolder.
 /// - Only the owner runs this script.
 /// </summary>
+[DefaultExecutionOrder(-200)]
 public class LookController : NetworkBehaviour
 {
     [Header("Input")]
@@ -29,12 +30,17 @@ public class LookController : NetworkBehaviour
     private float pitch;    // Vertical
     private float yaw;      // Horizontal
 
+    private float simYaw;
+    private float simPitch;
+
+    public float SimYaw => simYaw;
+    public float SimPitch => simPitch;
+
+
     // provide access to camera transform
     public Transform CameraTransform => cameraHolder;
     public float CurrentYaw => yaw;    
     public float CurrentPitch => pitch; // signed pitch, already clamped
-
-
 
     private void Start()
     {
@@ -46,11 +52,13 @@ public class LookController : NetworkBehaviour
 
         // Initialize yaw with pivot rotation
         yaw = transform.localEulerAngles.y;
+        simYaw = yaw;
 
         // Initialize pitch with camera holder angle
         float rawPitch = cameraHolder.localEulerAngles.x;
         if (rawPitch > 180f) rawPitch -= 360f;
         pitch = rawPitch;
+        simPitch = pitch;
 
         inputHandler.SetCursorLocked(true);
     }
@@ -61,7 +69,19 @@ public class LookController : NetworkBehaviour
             inputHandler.SetCursorLocked(false);
     }
 
-    private void Update()
+    private void LateUpdate()
+    {
+        if (!IsOwner) return;
+
+        // Apply visual rotation from SIM values
+        yaw = simYaw;
+        pitch = simPitch;
+
+        transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+        cameraHolder.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+    }
+
+    private void FixedUpdate()
     {
         if (!IsOwner) return;
 
@@ -70,13 +90,9 @@ public class LookController : NetworkBehaviour
         float deltaX = look.x * sensitivity * 0.01f;
         float deltaY = look.y * sensitivity * 0.01f;
 
-        // YAW
-        yaw += deltaX;
-        transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+        simYaw += deltaX;
 
-        // PITCH
-        pitch += invertY ? deltaY : -deltaY;
-        pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
-        cameraHolder.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+        simPitch += invertY ? deltaY : -deltaY;
+        simPitch = Mathf.Clamp(simPitch, minPitch, maxPitch);
     }
 }

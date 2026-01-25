@@ -22,13 +22,7 @@ namespace SyncedRush.Character.Movement
             if (!CheckGround())
                 return MovementState.Air;
 
-            // Determine jump input based on simulation context.  On the server use the
-            // networked input; on the client read from the PlayerInputHandler.  If no
-            // handler is available (e.g. remote clients) default to false.
-            // handler is available (e.g. remote clients) default to false.
-            bool jumpInput = Input.Jump;
-
-            if (jumpInput)
+            if (character.ConsumeJumpPressedIfAllowed())
                 return MovementState.Jump;
 
             if (CheckSlideConditions())

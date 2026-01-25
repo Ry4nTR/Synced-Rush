@@ -7,6 +7,7 @@ using System.Collections.Generic;
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(PlayerInputHandler))]
+[DefaultExecutionOrder(-100)]
 public class NetworkPlayerInput : NetworkBehaviour
 {
     private PlayerInputHandler _inputHandler;
@@ -18,8 +19,7 @@ public class NetworkPlayerInput : NetworkBehaviour
     private readonly List<GameplayInputData> _pendingInputs = new List<GameplayInputData>();
 
     public GameplayInputData LocalPredictedInput { get; private set; }
-
-    private readonly Queue<GameplayInputData> _serverQueue = new();
+    public GameplayInputData ServerInput { get; private set; }
 
     // Server-side input buffer (ordered by sequence)
     private readonly SortedDictionary<int, GameplayInputData> _serverBufferedInputs
@@ -44,6 +44,21 @@ public class NetworkPlayerInput : NetworkBehaviour
     private float _dbgNextServerLogTime = 0f;
 #endif
 
+#if UNITY_EDITOR
+    public struct InputTrace
+    {
+        public int fixedTick;
+        public int seq;
+        public Vector2 move;
+        public Vector2 look;
+        public float aimYaw;
+        public float aimPitch;
+        public float lookSimYaw;
+        public float lookSimPitch;
+    }
+
+    public InputTrace LastTrace { get; private set; }
+#endif
 
     public IReadOnlyList<GameplayInputData> PendingInputs => _pendingInputs;
 
@@ -51,9 +66,6 @@ public class NetworkPlayerInput : NetworkBehaviour
     public int ServerNextExpected => _serverNextExpectedSequence;
 
     public void ServerSetCurrentInput(GameplayInputData data) => ServerInput = data;
-
-    //Last input received by the server.
-    public GameplayInputData ServerInput { get; private set; }
 
     private void Awake()
     {
@@ -71,15 +83,14 @@ public class NetworkPlayerInput : NetworkBehaviour
             Move = _inputHandler.Move,
             Look = _inputHandler.Look,
 
-            AimYaw = (_look != null) ? _look.CurrentYaw : 0f,
-            AimPitch = (_look != null) ? _look.CurrentPitch : 0f,
+            AimYaw = (_look != null) ? _look.SimYaw : 0f,
+            AimPitch = (_look != null) ? _look.SimPitch : 0f,
 
 
             // DISCRETE: consume latched presses so we never miss them
-            Jump = _inputHandler.ConsumeJump(),
-            Ability = _inputHandler.ConsumeAbility(),
             AbilityCount = _inputHandler.AbilityCount,
-            Reload = _inputHandler.ConsumeReload(),
+            JumpCount = _inputHandler.JumpCount,
+            ReloadCount = _inputHandler.ReloadCount,
 
             // HELD states
             Sprint = _inputHandler.Sprint,
@@ -97,7 +108,23 @@ public class NetworkPlayerInput : NetworkBehaviour
             if (inputData.Sequence % 30 == 0) // log every ~30 inputs
                 Debug.Log($"[CLIENT SEND] seq={inputData.Sequence} pending={_pendingInputs.Count}");
         }
-        #endif
+#endif
+
+#if UNITY_EDITOR
+        int fixedTick = Mathf.RoundToInt(Time.fixedTime / Time.fixedDeltaTime);
+
+        LastTrace = new InputTrace
+        {
+            fixedTick = fixedTick,
+            seq = inputData.Sequence,
+            move = inputData.Move,
+            look = inputData.Look,
+            aimYaw = inputData.AimYaw,
+            aimPitch = inputData.AimPitch,
+            lookSimYaw = (_look != null) ? _look.SimYaw : 0f,
+            lookSimPitch = (_look != null) ? _look.SimPitch : 0f,
+        };
+#endif
 
 
         LocalPredictedInput = inputData;

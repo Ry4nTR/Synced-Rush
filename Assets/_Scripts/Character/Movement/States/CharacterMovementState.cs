@@ -15,6 +15,12 @@ namespace SyncedRush.Character.Movement
         private CharacterMovementFSM _parentStateMachine;
         protected CharacterMovementFSM ParentStateMachine => _parentStateMachine;
 
+        private int _lastAbilityCount = -1;
+
+        protected bool ConsumeAbilityPressed() => ConsumePress(ref _lastAbilityCount, Input.AbilityCount);
+
+        protected void FlushAbility() => FlushPress(ref _lastAbilityCount, Input.AbilityCount);
+
         protected CharacterMovementState(MovementController movementComponentReference)
         {
             character = movementComponentReference;
@@ -33,6 +39,28 @@ namespace SyncedRush.Character.Movement
             Vector3 _velocity = new(character.HorizontalVelocity.x, character.VerticalVelocity, character.HorizontalVelocity.y);
             character.Controller.Move(_velocity * Time.fixedDeltaTime);
         }
+
+        protected bool ConsumePress(ref int lastCount, int currentCount)
+        {
+            if (lastCount < 0)
+            {
+                lastCount = currentCount;
+                return false;
+            }
+
+            bool pressed = currentCount > lastCount;
+
+            if (currentCount != lastCount)
+                lastCount = currentCount;
+
+            return pressed;
+        }
+        protected void FlushPress(ref int lastCount, int currentCount)
+        {
+            if (lastCount < 0) lastCount = currentCount;
+            else lastCount = currentCount;
+        }
+
 
         public void SetParentStateMachine(CharacterMovementFSM parentStateMachine)
         {

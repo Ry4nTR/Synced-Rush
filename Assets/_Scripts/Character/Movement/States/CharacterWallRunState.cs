@@ -36,13 +36,7 @@ namespace SyncedRush.Character.Movement
             if (CheckGround())
                 return MovementState.Move;
 
-            // Determine jump input based on context.  On the server use the authoritative
-            // networked input; on the client use the local PlayerInputHandler when
-            // available.  If the player presses jump while wall running, perform a
-            // wall jump and return to the Air state.
-            bool jumpInput = Input.Jump;
-
-            if (jumpInput)
+            if (character.JumpPressedThisTick)
             {
                 WallJump();
                 return MovementState.Air;
