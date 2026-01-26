@@ -325,9 +325,11 @@ namespace SyncedRush.Character.Movement
 
         private void VerticalSlowdown()
         {
-            float verticalSlowdown = 10f;
-
-            character.VerticalVelocity = Mathf.MoveTowards(character.VerticalVelocity, 0f, verticalSlowdown * Time.fixedDeltaTime);
+            character.VerticalVelocity = Mathf.MoveTowards(
+                character.VerticalVelocity,
+                0f,
+                character.Stats.WallRunVerticalDeceleration * Time.fixedDeltaTime
+                );
         }
 
         private void ResetValues()

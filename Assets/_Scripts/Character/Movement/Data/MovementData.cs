@@ -4,7 +4,8 @@
 /// Gestisce le statistiche del character. (es. <see cref="_walkSpeed"/>)<br/>
 /// Per il momento funge piů da Struct; ma nel caso volessimo avere un controllo piů granulare sui parametri del personaggio, si puň estendere la funzionalitŕ di questa classe
 /// </summary>
-public class CharacterStats : MonoBehaviour
+[CreateAssetMenu(fileName = "MovementData", menuName = "Movement/Movement Data")]
+public class MovementData : ScriptableObject
 {
     // Campi privati
     [Header("Movement Speed")]
@@ -20,8 +21,6 @@ public class CharacterStats : MonoBehaviour
     [Header("Jump Settings")]
     /// <summary>L'altezza che viene raggiunta con un salto (indipendente dalla gravitŕ)</summary>
     [SerializeField] private float _jumpHeight = 2f;
-    /// <summary>Tempo (in secondi) permesso al giocatore di saltare anche dopo aver perso conttato con il terreno </summary>
-    [SerializeField] private float _jumpCoyoteTime = 0.25f;
 
     [Header("Air Movement")]
     /// <summary>Velocità desiderata in aria (m/s)</summary>
@@ -49,6 +48,8 @@ public class CharacterStats : MonoBehaviour
     [SerializeField] private float _wallRunTargetSpeed = 50f;
     /// <summary>Decelerazione WallRun (m/s^2)</summary>
     [SerializeField] private float _wallRunDeceleration = 5f;
+    /// <summary>Decelerazione del momento verticale WallRun (m/s^2)</summary>
+    [SerializeField] private float _wallRunVerticalDeceleration = 10f;
     /// <summary>Frenata manuale del WallRun (m/s^2) NOTA: viene comunque applicata la <see cref="_wallRunDeceleration"/> durante la frenata</summary>
     [SerializeField] private float _wallRunBrake = 10f;
     /// <summary>Velocitŕ minima per correre su una parete</summary>
@@ -104,7 +105,6 @@ public class CharacterStats : MonoBehaviour
     public float GroundOverspeedDeceleration => _groundOverspeedDeceleration;
 
     public float JumpHeight => _jumpHeight;
-    public float JumpCoyoteTime => _jumpCoyoteTime;
 
     public float AirTargetSpeed => _airTargetSpeed;
     public float AirAcceleration => _airAcceleration;
@@ -119,6 +119,7 @@ public class CharacterStats : MonoBehaviour
 
     public float WallRunTargetSpeed => _wallRunTargetSpeed;
     public float WallRunDeceleration => _wallRunDeceleration;
+    public float WallRunVerticalDeceleration => _wallRunVerticalDeceleration;
     public float WallRunBrake => _wallRunBrake;
     public float WallRunMinSpeed => _wallRunMinimumSpeed;
     public float WallRunLookAngleLimit => _wallRunLookAngleLimit;

@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b47fdad644b473c4284618fd5c2409d3, type: 3}
+  m_Name: MovementStats
+  m_EditorClassIdentifier: Assembly-CSharp::MovementData
+  _walkSpeed: 5
+  _runSpeed: 8.25
+  _groundAccelDecel: 10
+  _groundOverspeedDeceleration: 10
+  _jumpHeight: 1.5
+  _jumpCoyoteTime: 0.25
+  _airTargetSpeed: 6
+  _airAcceleration: 6
+  _airDeceleration: 3
+  _airOverspeedDeceleration: 6
+  _slideStartBoost: 7.5
+  _slideMoveInfluence: 4
+  _slideDeceleration: 10
+  _slideIncreasedDeceleration: 20
+  _slideIncreasedDecelerationThreshold: 90
+  _wallRunTargetSpeed: 50
+  _wallRunDeceleration: 1
+  _wallRunVerticalDeceleration: 10
+  _wallRunBrake: 10
+  _wallRunMinimumSpeed: 2
+  _wallRunLookAngleLimit: 110
+  _wallRunInitialBoostDuration: 0.3
+  _wallRunInitialBoostAcceleration: 30
+  _dashSpeed: 17
+  _dashDuration: 0.3
+  _dashkMaxCharge: 100
+  _dashDrain: 50
+  _dashRecharge: 16.6
+  _jetpackAcceleration: 16
+  _jetpackMaxCharge: 100
+  _jetpackDrain: 70
+  _jetpackRecharge: 16.6
+  _hookMaxDistance: 50
+  _hookSpeed: 40
+  _hookPull: 30
+  _hookMinDistance: 2.5
+  _gravity: 9.81

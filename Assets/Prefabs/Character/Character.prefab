@@ -187,7 +187,6 @@ GameObject:
   - component: {fileID: 831554826967024705}
   - component: {fileID: -4718773345927608370}
   - component: {fileID: -2986967647247276543}
-  - component: {fileID: 2476011265268299710}
   - component: {fileID: 245510072461140579}
   - component: {fileID: 5704255815838417518}
   - component: {fileID: -5584705844747821917}
@@ -441,6 +440,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterController
   ShowTopMostFoldoutHeaderGroup: 1
+  _characterStats: {fileID: 11400000, guid: e476b39a72e84174c8b02abb548a54ad, type: 2}
   _orientation: {fileID: 3997861946042139516}
   _cameraTransform: {fileID: 6586182560886131289}
   _groundLayerMask:
@@ -452,53 +452,6 @@ MonoBehaviour:
   reconciliationSnapDistance: 10
   reconciliationSmoothing: 12
   serverMaxStepsPerFrame: 6
---- !u!114 &2476011265268299710
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2338101018676570622}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a113e74235ae9ae4098a8dcac6eb6478, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
-  _walkSpeed: 5
-  _runSpeed: 8.25
-  _groundAccelDecel: 10
-  _groundOverspeedDeceleration: 10
-  _jumpHeight: 1.5
-  _jumpCoyoteTime: 0.25
-  _airTargetSpeed: 6
-  _airAcceleration: 6
-  _airDeceleration: 3
-  _airOverspeedDeceleration: 6
-  _slideStartBoost: 7.5
-  _slideMoveInfluence: 4
-  _slideDeceleration: 10
-  _slideIncreasedDeceleration: 20
-  _slideIncreasedDecelerationThreshold: 90
-  _wallRunDeceleration: 1
-  _wallRunBrake: 10
-  _wallRunMinimumSpeed: 2
-  _wallRunLookAngleLimit: 110
-  _wallRunInitialBoostDuration: 0.3
-  _wallRunInitialBoostAcceleration: 30
-  _dashSpeed: 17
-  _dashDuration: 0.3
-  _dashkMaxCharge: 100
-  _dashDrain: 50
-  _dashRecharge: 16.6
-  _jetpackAcceleration: 16
-  _jetpackMaxCharge: 100
-  _jetpackDrain: 70
-  _jetpackRecharge: 16.6
-  _hookMaxDistance: 50
-  _hookSpeed: 40
-  _hookPull: 30
-  _hookMinDistance: 2.5
-  _gravity: 9.81
 --- !u!114 &245510072461140579
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -13,17 +13,17 @@ namespace SyncedRush.Character.Movement
 }
 
 [RequireComponent(typeof(CharacterController))]
-[RequireComponent(typeof(CharacterStats))]
 [RequireComponent(typeof(CharacterMovementFSM))]
 public class MovementController : NetworkBehaviour
 {
+    [SerializeField] private MovementData _characterStats;
     [SerializeField] private GameObject _orientation;
     [SerializeField] private Transform _cameraTransform;
     [SerializeField] private LayerMask _groundLayerMask;
     [SerializeField] private GameObject _hook;
 
     private CharacterController _characterController;
-    private CharacterStats _characterStats;
+    //private CharacterStats _characterStats;
     private CharacterMovementFSM _characterFSM;
     private AbilityProcessor _ability;
     private NetworkPlayerInput _netInput;
@@ -103,7 +103,7 @@ public class MovementController : NetworkBehaviour
     }
 
     public CharacterController Controller => _characterController;
-    public CharacterStats Stats => _characterStats;
+    public MovementData Stats => _characterStats;
     public AbilityProcessor Ability => _ability;
     public GameObject Orientation => _orientation;
     public LayerMask LayerMask => _groundLayerMask;
@@ -355,8 +355,8 @@ public class MovementController : NetworkBehaviour
         if (_characterController == null)
             _characterController = GetComponent<CharacterController>();
 
-        if (_characterStats == null)
-            _characterStats = GetComponent<CharacterStats>();
+        //if (_characterStats == null)
+        //    _characterStats = GetComponent<CharacterStats>();
 
         if (_characterFSM == null)
             _characterFSM = GetComponent<CharacterMovementFSM>();
