@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 74d541ec52fd80a418d2c7028f615686
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 259730
+  packageName: AWM Sniper Rifle
+  packageVersion: 1.0
+  assetPath: Assets/VCR01/VCR_AWM/Olive/URP/AWMOptimizedOliveURP.prefab
+  uploadId: 615213

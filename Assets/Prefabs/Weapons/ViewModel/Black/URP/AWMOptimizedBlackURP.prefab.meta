@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 1a359da5984459a4d9dabb0e6e7d50bd
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 259730
+  packageName: AWM Sniper Rifle
+  packageVersion: 1.0
+  assetPath: Assets/VCR01/VCR_AWM/Black/URP/AWMOptimizedBlackURP.prefab
+  uploadId: 615213
