@@ -161,6 +161,43 @@ namespace SyncedRush.Character.Movement
             return aimForward;
         }
 
+        // Old method
+        private Vector3 GetDashDirections()
+        {
+            Vector3 dashDir = Vector3.zero;
+
+            Vector3 lookDir = character.LookDirection.normalized;
+            Vector3 rightDir = character.Orientation.transform.right;
+
+            Vector2 inputDir = (character.IsServer || character.LocalInputHandler == null)
+                ? character.MoveInputDirection
+                : character.LocalMoveInputDirection;
+
+            if (!Mathf.Approximately(inputDir.x, 0f))
+            {
+                Vector3 lateralMotion = inputDir.x < 0f
+                    ? -rightDir
+                    : rightDir;
+
+                dashDir += lateralMotion;
+            }
+
+            if (!Mathf.Approximately(inputDir.y, 0f))
+            {
+                Vector3 longitudinalMotion = inputDir.y < 0f
+                    ? -lookDir
+                    : lookDir;
+
+                dashDir += longitudinalMotion;
+            }
+
+            dashDir = dashDir == Vector3.zero
+                ? lookDir
+                : dashDir.normalized;
+
+            return dashDir;
+        }
+
         private bool CheckGround()
         {
             if (character.IsOnGround && character.VerticalVelocity <= 0f)
