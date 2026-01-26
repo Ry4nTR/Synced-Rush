@@ -17,7 +17,6 @@ MonoBehaviour:
   _groundAccelDecel: 10
   _groundOverspeedDeceleration: 10
   _jumpHeight: 1.5
-  _jumpCoyoteTime: 0.25
   _airTargetSpeed: 6
   _airAcceleration: 6
   _airDeceleration: 3
@@ -42,7 +41,7 @@ MonoBehaviour:
   _dashRecharge: 16.6
   _jetpackAcceleration: 16
   _jetpackMaxCharge: 100
-  _jetpackDrain: 70
+  _jetpackDrain: 25
   _jetpackRecharge: 16.6
   _hookMaxDistance: 50
   _hookSpeed: 40

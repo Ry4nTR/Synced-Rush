@@ -18,6 +18,7 @@ public class PlayerInputHandler : MonoBehaviour
     [SerializeField] private bool jetpack;
 
     [SerializeField] private int jumpPressCount;
+    [SerializeField] private int jetpackPressCount;
     [SerializeField] private int reloadPressCount;
     [SerializeField] private int abilityPressCount;
 
@@ -31,6 +32,7 @@ public class PlayerInputHandler : MonoBehaviour
     public bool Fire => fire;
     public bool Aim => aim;
     public bool Jetpack => jetpack;
+    public int JetpackCount => jetpackPressCount;
     public int JumpCount => jumpPressCount;
     public int ReloadCount => reloadPressCount;
     public int AbilityCount => abilityPressCount;
@@ -82,6 +84,9 @@ public class PlayerInputHandler : MonoBehaviour
         if (_controls.Player.Jump.WasPressedThisFrame())
             jumpPressCount++;
 
+        if (_controls.Player.Jetpack.WasPressedThisFrame())
+            jetpackPressCount++;
+
         if (_controls.Player.Reload.WasPressedThisFrame())
             reloadPressCount++;
 
@@ -104,6 +109,7 @@ public class PlayerInputHandler : MonoBehaviour
         fire = false;
         aim = false;
         jetpack = false;
+        jetpackPressCount = 0;
         jumpPressCount = 0;
         reloadPressCount = 0;
         abilityPressCount = 0;

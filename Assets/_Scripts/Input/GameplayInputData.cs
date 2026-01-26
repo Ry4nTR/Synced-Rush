@@ -20,6 +20,7 @@ public struct GameplayInputData : INetworkSerializable
     public bool Fire;
     public bool Aim;
     public bool Jetpack;
+    public int JetpackCount;
 
     /// <summary>
     /// Numero di sequenza di questo pacchetto di input. Viene assegnato dal client e incrementato per ogni input inviato. 
@@ -43,7 +44,9 @@ public struct GameplayInputData : INetworkSerializable
         serializer.SerializeValue(ref Aim);
         serializer.SerializeValue(ref Jetpack);
 
-        // Serialize the sequence number last so that older clients can safely ignore it
+        serializer.SerializeValue(ref JetpackCount);
+
         serializer.SerializeValue(ref Sequence);
     }
+
 }

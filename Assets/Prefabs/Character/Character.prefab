@@ -941,7 +941,7 @@ MonoBehaviour:
   inputHandler: {fileID: 831554826967024705}
   cameraHolder: {fileID: 6586182560886131289}
   armsRoot: {fileID: 5770881224741166688}
-  sensitivity: 5
+  sensitivity: 10
   invertY: 0
   minPitch: -90
   maxPitch: 90

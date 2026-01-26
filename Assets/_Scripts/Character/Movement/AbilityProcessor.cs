@@ -43,9 +43,10 @@ namespace SyncedRush.Character.Movement
             UsingJetpack = (JetpackCharge >= _character.Stats.JetpackDrain * Time.fixedDeltaTime);
             return UsingJetpack;
         }
-
         public void StopJetpack()
-            { UsingJetpack = false; }
+        {
+            UsingJetpack = false;
+        }
 
         /// <summary>
         /// Ritorna true se si attiva il Dash, nel caso di false il Dash non si attiva
@@ -79,11 +80,6 @@ namespace SyncedRush.Character.Movement
 
                 DashCharge = Mathf.MoveTowards(DashCharge, _character.Stats.DashMaxCharge, _character.Stats.DashRecharge * Time.fixedDeltaTime);
             }
-
-            //if (CurrentAbility == CharacterAbility.Grapple)
-            //{
-
-            //}
         }
     }
 }

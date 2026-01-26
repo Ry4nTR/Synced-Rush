@@ -9,7 +9,11 @@ namespace SyncedRush.Character.Movement
 
         private float _enterBoostTimer = 0.0f;
 
+        private RaycastHit _lastWallHit;
+        private bool _hasLastWallHit;
+
         private int _lastProcessedAbilityCount = -1;
+        private int _lastProcessedJumpCount = -1;
 
         /// <summary>
         /// Posizione del muro in world space
@@ -33,26 +37,33 @@ namespace SyncedRush.Character.Movement
             if (_isWallRunInvalid)
                 return MovementState.Air;
 
-            if (CheckGround())
+            if (character.IsOnGround)
                 return MovementState.Move;
 
-            if (character.JumpPressedThisTick)
+
+            int prevJump = _lastProcessedJumpCount;
+            bool jumpRequested = Input.JumpCount > prevJump;
+
+            if (Input.JumpCount != prevJump)
+                _lastProcessedJumpCount = Input.JumpCount;
+
+            if (jumpRequested)
             {
                 WallJump();
                 return MovementState.Air;
             }
 
+
             if (character.Ability.CurrentAbility == CharacterAbility.Jetpack)
             {
-                bool dashRequested = Input.AbilityCount > _lastProcessedAbilityCount;
+                int prevAb = _lastProcessedAbilityCount;
+                bool dashRequested = Input.AbilityCount > prevAb;
 
-                if (Input.AbilityCount != _lastProcessedAbilityCount)
-                {
+                if (Input.AbilityCount != prevAb)
                     _lastProcessedAbilityCount = Input.AbilityCount;
 
-                    if (dashRequested && character.Ability.UseDash())
-                        return MovementState.Dash;
-                }
+                if (dashRequested && character.Ability.UseDash())
+                    return MovementState.Dash;
             }
 
             bool crouchInput = Input.Crouch;
@@ -77,20 +88,37 @@ namespace SyncedRush.Character.Movement
             base.EnterState();
 
             _lastProcessedAbilityCount = Input.AbilityCount;
+            _lastProcessedJumpCount = Input.JumpCount;
 
             ResetValues();
 
             //character.VerticalVelocity = 0f;
 
-            if (character.WallRunStartInfo != null)
+            if (character.HasWallRunStartInfo)
             {
-                _wallPosition = character.WallRunStartInfo.point;
-                _wallDir = _wallPosition - character.CenterPosition;
-                _expectedWallDir = _wallDir;
-                character.WallRunStartInfo = null;
+                // Use hit normal only as a hint direction (stable), then lock using CheckWall().
+                Vector3 startDir = character.WallRunStartInfo.normal;
+                startDir.y = 0f;
+
+                if (startDir.sqrMagnitude < 0.0001f)
+                {
+                    _isWallRunInvalid = true;
+                }
+                else
+                {
+                    _wallDir = -startDir.normalized;
+                    _expectedWallDir = _wallDir;
+
+                    if (!CheckWall(out RaycastHit rayHit))
+                        _isWallRunInvalid = true;
+                }
+
+                character.HasWallRunStartInfo = false;
             }
             else
+            {
                 _isWallRunInvalid = true;
+            }
 
             _enterBoostTimer = character.Stats.WallRunInitialBoostDuration;
         }
@@ -142,17 +170,6 @@ namespace SyncedRush.Character.Movement
                 character.HorizontalVelocity = new(moveDir.x, moveDir.z);
         }
 
-        private bool CheckGround()
-        {
-            if (character.IsOnGround)
-            {
-                character.VerticalVelocity = -.1f;
-                return true;
-            }
-            else
-                return false;
-        }
-
         private bool MoveCharacter(ref Vector3 moveDirection, float distance)
         {
             if (CheckWall(out RaycastHit hit))
@@ -176,13 +193,14 @@ namespace SyncedRush.Character.Movement
 
             _wallDir.y = 0f;
 
-            if (Mathf.Approximately(_wallDir.magnitude, 0))
+            if (Mathf.Approximately(_wallDir.magnitude, 0f))
                 return false;
 
             _wallDir.Normalize();
 
             Vector3 startPosition = character.CenterPosition + _wallDir * (character.Controller.radius / 2f);
 
+            // ---------- First ray (using current wallDir) ----------
             RaycastHit hit;
             bool hasHit = Physics.Raycast(
                 startPosition,
@@ -194,15 +212,10 @@ namespace SyncedRush.Character.Movement
 
             rayHit = hit;
 
-            //TODO da rimuovere quando non serve più
-            Color rayColor = hasHit ? Color.green : Color.red;
-            Debug.DrawRay(startPosition, _wallDir * rayLength, rayColor, Time.fixedDeltaTime);
-
             Vector2 hitN = new(rayHit.normal.x, rayHit.normal.z);
             Vector2 lookDir = new(character.Orientation.transform.forward.x, character.Orientation.transform.forward.z);
 
             float angle = Vector2.Angle(hitN, -lookDir);
-            Debug.Log("WRunState " + angle); //TODO
 
             if (hasHit
                 && hit.normal.y < 0.1f
@@ -210,12 +223,21 @@ namespace SyncedRush.Character.Movement
                 && angle < character.Stats.WallRunLookAngleLimit)
             {
                 _expectedWallDir = -hit.normal;
+
+                // Keep wall reference consistent
+                _wallPosition = hit.point;
+                _wallDir = _wallPosition - character.CenterPosition;
+
+                _lastWallHit = hit;
+                _hasLastWallHit = true;
+
                 return true;
             }
 
+            // ---------- Second ray (using expected wall dir) ----------
             _expectedWallDir.y = 0f;
 
-            if (Mathf.Approximately(_expectedWallDir.magnitude, 0))
+            if (Mathf.Approximately(_expectedWallDir.magnitude, 0f))
                 return false;
 
             _expectedWallDir.Normalize();
@@ -233,23 +255,26 @@ namespace SyncedRush.Character.Movement
 
             rayHit = hit2;
 
-            //TODO da rimuovere quando non serve più
-            rayColor = hasHit ? Color.green : Color.red;
-            Debug.DrawRay(startPosition, _expectedWallDir * rayLength, rayColor, Time.fixedDeltaTime);
-
             hitN = new(rayHit.normal.x, rayHit.normal.z);
             lookDir = new(character.Orientation.transform.forward.x, character.Orientation.transform.forward.z);
 
             angle = Vector2.Angle(hitN, -lookDir);
-            Debug.Log("WRunState " + angle); //TODO
+            // Debug.Log("WRunState " + angle); // keep this OFF while testing determinism
 
             if (hasHit
                 && hit2.normal.y < 0.1f
                 && hit2.normal.y > -0.1f
                 && angle < character.Stats.WallRunLookAngleLimit)
             {
+                _expectedWallDir = -hit2.normal;
+
+                // Update wall reference from the actual hit2
                 _wallPosition = hit2.point;
                 _wallDir = _wallPosition - character.CenterPosition;
+
+                _lastWallHit = hit2;
+                _hasLastWallHit = true;
+
                 return true;
             }
 
@@ -258,35 +283,55 @@ namespace SyncedRush.Character.Movement
 
         private void WallJump()
         {
-            CheckWall(out RaycastHit hit);
+            RaycastHit hit;
+
+            if (_hasLastWallHit)
+            {
+                hit = _lastWallHit;
+            }
+            else
+            {
+                CheckWall(out hit);
+                if (hit.collider == null)
+                    return;
+            }
 
             float jumpSpeed = Mathf.Sqrt(2 * character.Stats.Gravity * character.Stats.JumpHeight);
-            Vector3 jumpDir = new(hit.normal.x, 1f, hit.normal.z);
 
-            jumpDir = jumpDir.normalized * jumpSpeed;
-
-            character.TotalVelocity += jumpDir;
+            // Push away from wall + upward
+            Vector3 jumpDir = new Vector3(hit.normal.x, 1f, hit.normal.z).normalized;
+            character.TotalVelocity += jumpDir * jumpSpeed;
         }
 
         private void WallDetach()
         {
-            CheckWall(out RaycastHit hit);
+            RaycastHit hit;
+
+            if (_hasLastWallHit)
+            {
+                hit = _lastWallHit;
+            }
+            else
+            {
+                CheckWall(out hit);
+                if (hit.collider == null)
+                    return;
+            }
 
             float detachStrength = 2f;
 
-            Vector3 detachDir = new(hit.normal.x, 0f, hit.normal.z);
+            Vector3 detachDir = new Vector3(hit.normal.x, 0f, hit.normal.z).normalized;
 
-            detachDir = detachDir.normalized * detachStrength;
-
-            character.TotalVelocity += detachDir;
+            character.TotalVelocity += detachDir * detachStrength;
         }
+
 
         private void EnterBoost()
         {
             if (character.Stats.WallRunTargetSpeed < character.HorizontalVelocity.magnitude)
                 _enterBoostTimer = 0f;
 
-                _enterBoostTimer = Mathf.MoveTowards(_enterBoostTimer, 0f, Time.fixedDeltaTime);
+            _enterBoostTimer = Mathf.MoveTowards(_enterBoostTimer, 0f, Time.fixedDeltaTime);
 
             if (_enterBoostTimer > 0f)
             {
@@ -338,7 +383,7 @@ namespace SyncedRush.Character.Movement
             _wallDir = Vector3.zero;
             _expectedWallDir = Vector3.zero;
             _isWallRunInvalid = false;
+            _hasLastWallHit = false;
         }
-
     }
 }

@@ -1,6 +1,7 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
 using Unity.Netcode;
-using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Windows;
 
 /// <summary>
 /// Handles player input in a networked environment with client-side prediction and server reconciliation.
@@ -98,6 +99,7 @@ public class NetworkPlayerInput : NetworkBehaviour
             Fire = _inputHandler.Fire,
             Aim = _inputHandler.Aim,
             Jetpack = _inputHandler.Jetpack,
+            JetpackCount = _inputHandler.JetpackCount,
 
             Sequence = _sequenceNumber++
         };

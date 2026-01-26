@@ -76,12 +76,6 @@ namespace SyncedRush.Character.Movement
                 character.VerticalVelocity = -.1f;
                 return;
             }
-
-            if (CheckWallRunCondition(hit))
-            {
-                character.WallRunStartInfo = hit;
-                _canWallRun = true;
-            }
         }
 
         protected override void ProcessMovement()
@@ -127,13 +121,7 @@ namespace SyncedRush.Character.Movement
 
         private bool CheckGround()
         {
-            if (character.IsOnGround && character.VerticalVelocity <= 0f)
-            {
-                character.VerticalVelocity = -.1f;
-                return true;
-            }
-            else
-                return false;
+            return character.IsOnGround && character.VerticalVelocity <= 0f;
         }
 
         private bool CheckWallRunCondition(ControllerColliderHit hit)

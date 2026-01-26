@@ -51,6 +51,9 @@ public class MovementController : NetworkBehaviour
         NetworkVariableWritePermission.Server
     );
 
+    private NetworkVariable<float> _serverJetpackCharge = new(0f);
+    private NetworkVariable<bool> _serverUsingJetpack = new(false);
+
     [Header("References")]
     [SerializeField] private Transform _visualRoot;
     private bool _ownerHasInitialServerPos;
@@ -207,7 +210,8 @@ public class MovementController : NetworkBehaviour
     /// <summary>
     /// Parametro nel posto sbagliato. DA NON TOCCARE SE NON SAI A COSA SERVE
     /// </summary>
-    public ControllerColliderHit WallRunStartInfo { get; set; }
+    public bool HasWallRunStartInfo { get; set; }
+    public RaycastHit WallRunStartInfo { get; set; }
 
     public override void OnNetworkSpawn()
     {
@@ -392,6 +396,56 @@ public class MovementController : NetworkBehaviour
         _ability = new(this, hookCtrl);
     }
 
+
+#if UNITY_EDITOR
+    [SerializeField] private bool debugDeterminism = true;
+    [SerializeField] private int debugDeterminismEveryNSeq = 10;
+
+    // -1 = log all players
+    // 0 = host player
+    // 1 = client player
+    [SerializeField] private int debugTargetOwnerClientId = -1;
+
+    private MovementState _dbgLastState = MovementState.None;
+#endif
+
+
+#if UNITY_EDITOR
+    private void DebugDeterminismLog(string role, GameplayInputData inp)
+    {
+        if (!debugDeterminism) return;
+
+        bool stateChanged = (State != _dbgLastState);
+        bool everyN = (debugDeterminismEveryNSeq > 0) && (inp.Sequence % debugDeterminismEveryNSeq == 0);
+        if (!stateChanged && !everyN) return;
+
+        _dbgLastState = State;
+
+        var no = GetComponent<Unity.Netcode.NetworkObject>();
+        ulong ownerId = no != null ? no.OwnerClientId : 9999;
+        ulong netId = no != null ? no.NetworkObjectId : 9999;
+
+        if (no != null && debugTargetOwnerClientId >= 0 && no.OwnerClientId != (ulong)debugTargetOwnerClientId)
+            return;
+
+        Vector3 pos = transform.position;
+        Vector2 hv = HorizontalVelocity;
+        float vv = VerticalVelocity;
+
+        Debug.Log(
+            $"[DET {role}] netId={netId} owner={ownerId} isS={(IsServer ? 1 : 0)} isO={(IsOwner ? 1 : 0)} " +
+            $"seq={inp.Sequence} st={State} gnd={(IsOnGround ? 1 : 0)} " +
+            $" jet={(inp.Jetpack ? 1 : 0)} jetUsing={(Ability.UsingJetpack ? 1 : 0)} jetCh={Ability.JetpackCharge:F2}" +
+            $"pos=({pos.x:F3},{pos.y:F3},{pos.z:F3}) " +
+            $"hV=({hv.x:F3},{hv.y:F3}) vV={vv:F3} " +
+            $"move=({inp.Move.x:F2},{inp.Move.y:F2}) spr={(inp.Sprint ? 1 : 0)} cr={(inp.Crouch ? 1 : 0)} " +
+            $"jCnt={inp.JumpCount}" +
+            $"aimYaw={inp.AimYaw:F2} aimPitch={inp.AimPitch:F2}"
+        );
+    }
+#endif
+
+
     private void FixedUpdate()
     {
         if (!IsSpawned)
@@ -414,22 +468,27 @@ public class MovementController : NetworkBehaviour
 
                 if (_orientation != null)
                     _orientation.transform.localRotation = Quaternion.Euler(0f, nextInput.AimYaw, 0f);
-
-                Ability.ProcessUpdate();
+                
                 CheckGround();
                 GrappleHookAbility();
                 UpdateDiscretePresses();
                 _characterFSM.ProcessUpdate();
+                Ability.ProcessUpdate();
+
+                _serverJetpackCharge.Value = Ability.JetpackCharge;
+                _serverUsingJetpack.Value = Ability.UsingJetpack;
+
+                //DebugDeterminismLog("SV", nextInput);
 
                 lastSeqProcessed = nextInput.Sequence;
                 steps++;
             }
 
-            /*
+            
             #if UNITY_EDITOR
             Debug.Log($"[SERVER SIM] steps={steps} ackBefore={_lastProcessedSequence.Value} ackAfter={lastSeqProcessed} buffered={_netInput.ServerBufferedCount} nextExpected={_netInput.ServerNextExpected}");
             #endif
-            */
+            
 
             _serverPosition.Value = transform.position;
             _lastProcessedSequence.Value = lastSeqProcessed;
@@ -451,11 +510,15 @@ public class MovementController : NetworkBehaviour
                 _orientation.transform.localRotation = Quaternion.Euler(0f, _yawAngle, 0f);
 
             // Simulate locally
-            Ability.ProcessUpdate();
             CheckGround();
             GrappleHookAbility();
             UpdateDiscretePresses();
             _characterFSM.ProcessUpdate();
+            Ability.ProcessUpdate();
+
+            Ability.JetpackCharge = _serverJetpackCharge.Value;
+
+            //DebugDeterminismLog("CL", CurrentInput);
 
             // Drop acked inputs
             _netInput.ConfirmInputUpTo(_lastProcessedSequence.Value);
@@ -569,10 +632,6 @@ public class MovementController : NetworkBehaviour
             rayLength,
             _groundLayerMask
         );
-
-        //TODO da rimuovere quando non serve più
-        Color rayColor = hasHit ? Color.green : Color.red;
-        Debug.DrawRay(startPosition, Vector3.down * rayLength, rayColor, Time.deltaTime);
 
         _groundInfo = hit;
         IsOnGround = hasHit;
