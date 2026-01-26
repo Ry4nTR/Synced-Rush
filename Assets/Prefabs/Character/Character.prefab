@@ -410,6 +410,7 @@ MonoBehaviour:
   aim: 0
   jetpack: 0
   jumpPressCount: 0
+  jetpackPressCount: 0
   reloadPressCount: 0
   abilityPressCount: 0
 --- !u!114 &-4718773345927608370
@@ -452,6 +453,11 @@ MonoBehaviour:
   reconciliationSnapDistance: 10
   reconciliationSmoothing: 12
   serverMaxStepsPerFrame: 6
+  debugDeterminism: 1
+  debugDeterminismEveryNSeq: 10
+  debugTargetOwnerClientId: -1
+  dbgSimSig: 1
+  dbgEveryNSeq: 5
 --- !u!114 &245510072461140579
 MonoBehaviour:
   m_ObjectHideFlags: 0

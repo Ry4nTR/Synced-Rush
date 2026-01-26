@@ -31,7 +31,7 @@ public class PlayerInputHandler : MonoBehaviour
     public bool Crouch => crouch;
     public bool Fire => fire;
     public bool Aim => aim;
-    public bool Jetpack => jetpack;
+    public bool JetHeld => jetpack;
     public int JetpackCount => jetpackPressCount;
     public int JumpCount => jumpPressCount;
     public int ReloadCount => reloadPressCount;
@@ -55,17 +55,18 @@ public class PlayerInputHandler : MonoBehaviour
 
     private void Update()
     {
-        ReadContinuousInputs();
+        ReadContinuousInputs_Update();
         ReadDiscreteInputs();
     }
+
     private void FixedUpdate()
     {
-        ReadContinuousInputs();
+        ReadContinuousInputs_Fixed();
     }
 
 
     // Continuous input polling (every frame)
-    private void ReadContinuousInputs()
+    private void ReadContinuousInputs_Update()
     {
         move = _controls.Player.Move.ReadValue<Vector2>();
         look = _controls.Player.Look.ReadValue<Vector2>();
@@ -76,6 +77,12 @@ public class PlayerInputHandler : MonoBehaviour
         crouch = _controls.Player.Crouch.IsPressed();
 
         jetpack = _controls.Player.Jetpack.IsPressed();
+    }
+
+    private void ReadContinuousInputs_Fixed()
+    {
+        move = _controls.Player.Move.ReadValue<Vector2>();
+        look = _controls.Player.Look.ReadValue<Vector2>();
     }
 
     // Discrete input edge-checking (latched until consumed by FixedUpdate)

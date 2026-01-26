@@ -1,10 +1,6 @@
 ﻿using Unity.Netcode;
 using UnityEngine;
 
-/// <summary>
-/// Struttura con tutti gli input di gameplay che vogliamo mandare al server.
-/// Viene serializzata tramite INetworkSerializable per usarla nei ServerRpc.
-/// </summary>
 public struct GameplayInputData : INetworkSerializable
 {
     public int AbilityCount;
@@ -15,17 +11,16 @@ public struct GameplayInputData : INetworkSerializable
     public Vector2 Look;
     public float AimYaw;
     public float AimPitch;
+
     public bool Sprint;
     public bool Crouch;
     public bool Fire;
     public bool Aim;
-    public bool Jetpack;
-    public int JetpackCount;
 
-    /// <summary>
-    /// Numero di sequenza di questo pacchetto di input. Viene assegnato dal client e incrementato per ogni input inviato. 
-    /// Serve per la predizione client‑side e la riconciliazione server.
-    /// </summary>
+    // Jetpack
+    public bool JetHeld;       // HELD state (space currently down)
+    public int JetpackCount;   // EDGE counter (increments on press)
+
     public int Sequence;
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -38,15 +33,15 @@ public struct GameplayInputData : INetworkSerializable
         serializer.SerializeValue(ref Look);
         serializer.SerializeValue(ref AimYaw);
         serializer.SerializeValue(ref AimPitch);
+
         serializer.SerializeValue(ref Sprint);
         serializer.SerializeValue(ref Crouch);
         serializer.SerializeValue(ref Fire);
         serializer.SerializeValue(ref Aim);
-        serializer.SerializeValue(ref Jetpack);
 
+        serializer.SerializeValue(ref JetHeld);
         serializer.SerializeValue(ref JetpackCount);
 
         serializer.SerializeValue(ref Sequence);
     }
-
 }

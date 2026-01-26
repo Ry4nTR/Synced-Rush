@@ -87,24 +87,22 @@ public class NetworkPlayerInput : NetworkBehaviour
             AimYaw = (_look != null) ? _look.SimYaw : 0f,
             AimPitch = (_look != null) ? _look.SimPitch : 0f,
 
-
-            // DISCRETE: consume latched presses so we never miss them
             AbilityCount = _inputHandler.AbilityCount,
             JumpCount = _inputHandler.JumpCount,
             ReloadCount = _inputHandler.ReloadCount,
 
-            // HELD states
             Sprint = _inputHandler.Sprint,
             Crouch = _inputHandler.Crouch,
             Fire = _inputHandler.Fire,
             Aim = _inputHandler.Aim,
-            Jetpack = _inputHandler.Jetpack,
+
+            JetHeld = _inputHandler.JetHeld,
             JetpackCount = _inputHandler.JetpackCount,
 
             Sequence = _sequenceNumber++
         };
 
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         if (debugClientSend && !IsServer) // only real clients (not host fast-path)
         {
             if (inputData.Sequence % 30 == 0) // log every ~30 inputs

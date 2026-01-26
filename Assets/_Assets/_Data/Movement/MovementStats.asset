@@ -39,10 +39,10 @@ MonoBehaviour:
   _dashkMaxCharge: 100
   _dashDrain: 50
   _dashRecharge: 16.6
-  _jetpackAcceleration: 16
+  _jetpackAcceleration: 3.63
   _jetpackMaxCharge: 100
-  _jetpackDrain: 25
-  _jetpackRecharge: 16.6
+  _jetpackDrain: 47.6
+  _jetpackRecharge: 20
   _hookMaxDistance: 50
   _hookSpeed: 40
   _hookPull: 30

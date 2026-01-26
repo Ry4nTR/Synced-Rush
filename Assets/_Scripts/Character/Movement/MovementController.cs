@@ -394,6 +394,14 @@ public class MovementController : NetworkBehaviour
         }
 
         _ability = new(this, hookCtrl);
+
+        Debug.Log(
+          $"[STATS {(IsServer ? "SV" : "CL")}] " +
+          $"JetDrain={Stats.JetpackDrain} JetAcc={Stats.JetpackAcceleration} " +
+          $"JetMax={Stats.JetpackMaxCharge} JetRech={Stats.JetpackRecharge} " +
+          $"Grav={Stats.Gravity} FixedDT={Time.fixedDeltaTime}"
+        );
+
     }
 
 
@@ -435,12 +443,54 @@ public class MovementController : NetworkBehaviour
         Debug.Log(
             $"[DET {role}] netId={netId} owner={ownerId} isS={(IsServer ? 1 : 0)} isO={(IsOwner ? 1 : 0)} " +
             $"seq={inp.Sequence} st={State} gnd={(IsOnGround ? 1 : 0)} " +
-            $" jet={(inp.Jetpack ? 1 : 0)} jetUsing={(Ability.UsingJetpack ? 1 : 0)} jetCh={Ability.JetpackCharge:F2}" +
+            $" jet={(inp.JetHeld ? 1 : 0)} jetUsing={(Ability.UsingJetpack ? 1 : 0)} jetCh={Ability.JetpackCharge:F2}" +
             $"pos=({pos.x:F3},{pos.y:F3},{pos.z:F3}) " +
             $"hV=({hv.x:F3},{hv.y:F3}) vV={vv:F3} " +
             $"move=({inp.Move.x:F2},{inp.Move.y:F2}) spr={(inp.Sprint ? 1 : 0)} cr={(inp.Crouch ? 1 : 0)} " +
             $"jCnt={inp.JumpCount}" +
             $"aimYaw={inp.AimYaw:F2} aimPitch={inp.AimPitch:F2}"
+        );
+    }
+#endif
+
+#if UNITY_EDITOR
+    [SerializeField] private bool dbgSimSig = true;
+    [SerializeField] private int dbgEveryNSeq = 5;
+
+    private void DebugSimSignature(string role, GameplayInputData inp)
+    {
+        if (!dbgSimSig) return;
+
+        bool stateChanged = State != _dbgLastState;
+        bool everyN = dbgEveryNSeq > 0 && (inp.Sequence % dbgEveryNSeq == 0);
+        if (!stateChanged && !everyN) return;
+
+        _dbgLastState = State;
+
+        var no = GetComponent<Unity.Netcode.NetworkObject>();
+        ulong ownerId = no != null ? no.OwnerClientId : 9999;
+        ulong netId = no != null ? no.NetworkObjectId : 9999;
+
+        Vector3 p = transform.position;
+        Vector2 hv = HorizontalVelocity;
+        float vv = VerticalVelocity;
+
+        // If you added server-authoritative jetpack fields, include them too:
+        float srvJetCh = 0f;
+        bool srvJetUsing = false;
+        if (_serverJetpackCharge != null) srvJetCh = _serverJetpackCharge.Value;
+        if (_serverUsingJetpack != null) srvJetUsing = _serverUsingJetpack.Value;
+
+        Debug.Log(
+            $"[SIG {role}] netId={netId} owner={ownerId} " +
+            $"seq={inp.Sequence} dt={Time.fixedDeltaTime:F4} " +
+            $"st={State} gnd={(IsOnGround ? 1 : 0)} " +
+            $"pos=({p.x:F2},{p.y:F2},{p.z:F2}) " +
+            $"hV=({hv.x:F2},{hv.y:F2}) vV={vv:F2} " +
+            $"move=({inp.Move.x:F2},{inp.Move.y:F2}) " +
+            $"jCnt={inp.JumpCount} abCnt={inp.AbilityCount} jetCnt={inp.JetpackCount} jetHeld={(inp.JetHeld ? 1 : 0)} " +
+            $"jetUsing={(Ability.UsingJetpack ? 1 : 0)} jetCh={Ability.JetpackCharge:F1} " +
+            $"srvJetUsing={(srvJetUsing ? 1 : 0)} srvJetCh={srvJetCh:F1}"
         );
     }
 #endif
@@ -475,6 +525,10 @@ public class MovementController : NetworkBehaviour
                 _characterFSM.ProcessUpdate();
                 Ability.ProcessUpdate();
 
+#if UNITY_EDITOR
+                //DebugSimSignature("SV", nextInput);
+#endif
+
                 _serverJetpackCharge.Value = Ability.JetpackCharge;
                 _serverUsingJetpack.Value = Ability.UsingJetpack;
 
@@ -484,11 +538,11 @@ public class MovementController : NetworkBehaviour
                 steps++;
             }
 
-            
+            /*
             #if UNITY_EDITOR
             Debug.Log($"[SERVER SIM] steps={steps} ackBefore={_lastProcessedSequence.Value} ackAfter={lastSeqProcessed} buffered={_netInput.ServerBufferedCount} nextExpected={_netInput.ServerNextExpected}");
             #endif
-            
+            */
 
             _serverPosition.Value = transform.position;
             _lastProcessedSequence.Value = lastSeqProcessed;
@@ -516,7 +570,13 @@ public class MovementController : NetworkBehaviour
             _characterFSM.ProcessUpdate();
             Ability.ProcessUpdate();
 
+#if UNITY_EDITOR
+            //DebugSimSignature("CL", CurrentInput);
+#endif
+
+
             Ability.JetpackCharge = _serverJetpackCharge.Value;
+            Ability.ForceUsingJetpack(_serverUsingJetpack.Value);
 
             //DebugDeterminismLog("CL", CurrentInput);
 

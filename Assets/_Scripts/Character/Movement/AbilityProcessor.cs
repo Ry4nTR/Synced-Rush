@@ -47,6 +47,10 @@ namespace SyncedRush.Character.Movement
         {
             UsingJetpack = false;
         }
+        public void ForceUsingJetpack(bool usingJetpack)
+        {
+            UsingJetpack = usingJetpack;
+        }
 
         /// <summary>
         /// Ritorna true se si attiva il Dash, nel caso di false il Dash non si attiva
