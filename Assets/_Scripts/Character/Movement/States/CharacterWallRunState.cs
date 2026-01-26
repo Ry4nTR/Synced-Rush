@@ -65,6 +65,7 @@ namespace SyncedRush.Character.Movement
             EnterBoost();
 
             Slowdown();
+            VerticalSlowdown();
 
             ProcessMovement();
 
@@ -79,7 +80,7 @@ namespace SyncedRush.Character.Movement
 
             ResetValues();
 
-            character.VerticalVelocity = 0f;
+            //character.VerticalVelocity = 0f;
 
             if (character.WallRunStartInfo != null)
             {
@@ -96,7 +97,7 @@ namespace SyncedRush.Character.Movement
 
         protected new void ProcessMovement()
         {
-            Vector3 moveDir = new(character.HorizontalVelocity.x, 0, character.HorizontalVelocity.y);
+            Vector3 moveDir = new(character.HorizontalVelocity.x, character.VerticalVelocity, character.HorizontalVelocity.y);
             float speed = moveDir.magnitude;
             if (speed < character.Stats.WallRunMinSpeed)
             {
@@ -282,7 +283,10 @@ namespace SyncedRush.Character.Movement
 
         private void EnterBoost()
         {
-            _enterBoostTimer = Mathf.MoveTowards(_enterBoostTimer, 0f, Time.fixedDeltaTime);
+            if (character.Stats.WallRunTargetSpeed < character.HorizontalVelocity.magnitude)
+                _enterBoostTimer = 0f;
+
+                _enterBoostTimer = Mathf.MoveTowards(_enterBoostTimer, 0f, Time.fixedDeltaTime);
 
             if (_enterBoostTimer > 0f)
             {
@@ -291,8 +295,6 @@ namespace SyncedRush.Character.Movement
                         * Time.fixedDeltaTime
                         * character.HorizontalVelocity.normalized;
             }
-
-
         }
 
         private void Slowdown()
@@ -319,6 +321,13 @@ namespace SyncedRush.Character.Movement
                     Vector2.zero,
                     Time.fixedDeltaTime * totalDecel);
             }
+        }
+
+        private void VerticalSlowdown()
+        {
+            float verticalSlowdown = 10f;
+
+            character.VerticalVelocity = Mathf.MoveTowards(character.VerticalVelocity, 0f, verticalSlowdown * Time.fixedDeltaTime);
         }
 
         private void ResetValues()

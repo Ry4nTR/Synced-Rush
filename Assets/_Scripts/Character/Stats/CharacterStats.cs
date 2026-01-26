@@ -46,6 +46,8 @@ public class CharacterStats : MonoBehaviour
 
     [Header("Wall Run Settings")]
     /// <summary>Decelerazione WallRun (m/s^2)</summary>
+    [SerializeField] private float _wallRunTargetSpeed = 50f;
+    /// <summary>Decelerazione WallRun (m/s^2)</summary>
     [SerializeField] private float _wallRunDeceleration = 5f;
     /// <summary>Frenata manuale del WallRun (m/s^2) NOTA: viene comunque applicata la <see cref="_wallRunDeceleration"/> durante la frenata</summary>
     [SerializeField] private float _wallRunBrake = 10f;
@@ -115,6 +117,7 @@ public class CharacterStats : MonoBehaviour
     public float SlideIncreasedDeceleration => _slideIncreasedDeceleration;
     public float SlideIncreasedDecelerationThreshold => _slideIncreasedDecelerationThreshold;
 
+    public float WallRunTargetSpeed => _wallRunTargetSpeed;
     public float WallRunDeceleration => _wallRunDeceleration;
     public float WallRunBrake => _wallRunBrake;
     public float WallRunMinSpeed => _wallRunMinimumSpeed;
