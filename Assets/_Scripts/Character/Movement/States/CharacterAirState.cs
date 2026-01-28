@@ -7,11 +7,6 @@ namespace SyncedRush.Character.Movement
         private int _wallCandidateStableTicks;
         private RaycastHit _wallCandidateHit;
 
-        private bool _blockJetpackInput = false;
-        private bool _jetpackEligible;          // true only if we entered air from a jump/wallrun jump
-        private bool _jetpackActive;            // jetpack currently allowed to apply thrust while held
-        private int _lastJetpackPressJumpCount; // we use JumpCount as the "re-press" edge
-
         public CharacterAirState(MovementController movementComponentReference) : base(movementComponentReference)
         {
         }
@@ -52,68 +47,19 @@ namespace SyncedRush.Character.Movement
             // ---------------------------
             // JETPACK (deterministic hold + "jump then re-press")
             // ---------------------------
+            bool jetThrustThisTick = false;
+
             if (character.Ability.CurrentAbility == CharacterAbility.Jetpack)
             {
-                // DASH (unchanged)
-                if (ConsumeAbilityPressed() && character.Ability.UseDash())
-                    return MovementState.Dash;
-
-                // Not held => reset and stop
-                if (!Input.JetHeld)
-                {
-                    _blockJetpackInput = false;
-                    _jetpackActive = false;
-                    character.Ability.StopJetpack();
-                }
-                else
-                {
-                    // Held but not allowed (didn't jump OR still blocked because you never released)
-                    if (!_jetpackEligible || _blockJetpackInput)
-                    {
-                        // IMPORTANT: do NOT drain charge while blocked
-                        character.Ability.StopJetpack();
-                    }
-                    else
-                    {
-                        // Require a NEW press in air to activate jetpack.
-                        // JumpCount increments on button-down -> use it as edge.
-                        if (Input.JumpCount > _lastJetpackPressJumpCount)
-                        {
-                            _lastJetpackPressJumpCount = Input.JumpCount;
-                            _jetpackActive = true;
-                        }
-
-                        if (_jetpackActive)
-                        {
-                            if (character.Ability.UseJetpack())
-                            {
-                                JetpackFly();
-                            }
-                            else
-                            {
-                                _jetpackActive = false;
-                                character.Ability.StopJetpack();
-                            }
-                        }
-                        else
-                        {
-                            // Held but not re-pressed yet -> no jetpack
-                            character.Ability.StopJetpack();
-                        }
-                    }
-                }
+                var ctx = new SimContext(character.IsOnGround, ParentStateMachine.CurrentStateEnum, ParentStateMachine.PreviousStateEnum);
+                jetThrustThisTick = character.Ability.JetpackSim.ShouldApplyThrust(character, character.Ability, Input, ctx);
             }
 
-            bool jetThrustThisTick =
-                character.Ability.CurrentAbility == CharacterAbility.Jetpack &&
-                _jetpackEligible &&
-                _jetpackActive &&
-                Input.JetHeld &&
-                !_blockJetpackInput &&
-                character.Ability.UsingJetpack;
-
-            if (!jetThrustThisTick)
+            if (jetThrustThisTick)
+                JetpackFly();
+            else
                 Fall();
+
 
             ProcessMovement();
 
@@ -124,23 +70,8 @@ namespace SyncedRush.Character.Movement
         {
             base.EnterState();
 
-            ResetFlags();
-
             _wallCandidateStableTicks = 0;
             _wallCandidateHit = default;
-
-            // Jetpack rule: only after a real jump/wallrun entry to air
-            bool cameFromJump = ParentStateMachine.PreviousStateEnum is MovementState.Jump
-                                                             or MovementState.WallRun;
-
-            _jetpackEligible = cameFromJump;
-            _jetpackActive = false;
-
-            // Must "re-press" in air to activate jetpack
-            _lastJetpackPressJumpCount = Input.JumpCount;
-
-            // If holding space on air entry (jump hold), require release first
-            _blockJetpackInput = Input.JetHeld;
         }
 
 
@@ -198,11 +129,6 @@ namespace SyncedRush.Character.Movement
                 character.VerticalVelocity += (character.Stats.Gravity * Time.fixedDeltaTime);
             else
                 character.VerticalVelocity += (character.Stats.JetpackAcceleration * Time.fixedDeltaTime);
-        }
-
-        private void ResetFlags()
-        {
-            _blockJetpackInput = false;
         }
 
         private bool TryFindWallCandidate(out RaycastHit hit)

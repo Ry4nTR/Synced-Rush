@@ -8,7 +8,6 @@ namespace SyncedRush.Character.Movement
         private bool _isEnding = false;
         private bool _blockCrouchInput = false;
         private Vector3 _previousGroundNormal = Vector3.zero;
-        private int _lastProcessedAbilityCount = -1;
 
         private float EndSpeed
         {
@@ -45,19 +44,6 @@ namespace SyncedRush.Character.Movement
             if (crouchInput && !_blockCrouchInput)
                 return MovementState.Move;
 
-            if (character.Ability.CurrentAbility == CharacterAbility.Jetpack)
-            {
-                bool dashRequested = Input.AbilityCount > _lastProcessedAbilityCount;
-
-                if (Input.AbilityCount != _lastProcessedAbilityCount)
-                {
-                    _lastProcessedAbilityCount = Input.AbilityCount;
-
-                    if (dashRequested && character.Ability.UseDash())
-                        return MovementState.Dash;
-                }
-            }
-
             Slide();
 
             if (EndSpeed > _currentEndSpeed)
@@ -73,8 +59,6 @@ namespace SyncedRush.Character.Movement
         public override void EnterState()
         {
             base.EnterState();
-
-            _lastProcessedAbilityCount = Input.AbilityCount;
 
             character.AnimController.SetSliding(true);
 

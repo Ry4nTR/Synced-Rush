@@ -394,14 +394,6 @@ public class MovementController : NetworkBehaviour
         }
 
         _ability = new(this, hookCtrl);
-
-        Debug.Log(
-          $"[STATS {(IsServer ? "SV" : "CL")}] " +
-          $"JetDrain={Stats.JetpackDrain} JetAcc={Stats.JetpackAcceleration} " +
-          $"JetMax={Stats.JetpackMaxCharge} JetRech={Stats.JetpackRecharge} " +
-          $"Grav={Stats.Gravity} FixedDT={Time.fixedDeltaTime}"
-        );
-
     }
 
 
@@ -522,7 +514,15 @@ public class MovementController : NetworkBehaviour
                 CheckGround();
                 GrappleHookAbility();
                 UpdateDiscretePresses();
+                Ability.DashSim.Tick(this, Ability, CurrentInput);
                 _characterFSM.ProcessUpdate();
+
+                if (Ability.DashSim.WantsDashThisTick && State != MovementState.Dash)
+                    _characterFSM.ChangeState(MovementState.Dash, false, false, true);
+
+                var ctx = new SimContext(IsOnGround, _characterFSM.CurrentStateEnum, _characterFSM.PreviousStateEnum);
+                Ability.JetpackSim.Tick(this, Ability, CurrentInput, ctx);
+
                 Ability.ProcessUpdate();
 
 #if UNITY_EDITOR
@@ -567,7 +567,15 @@ public class MovementController : NetworkBehaviour
             CheckGround();
             GrappleHookAbility();
             UpdateDiscretePresses();
+            Ability.DashSim.Tick(this, Ability, CurrentInput);
             _characterFSM.ProcessUpdate();
+
+            if (Ability.DashSim.WantsDashThisTick && State != MovementState.Dash)
+                _characterFSM.ChangeState(MovementState.Dash, false, false, true);
+
+            var ctx = new SimContext(IsOnGround, _characterFSM.CurrentStateEnum, _characterFSM.PreviousStateEnum);
+            Ability.JetpackSim.Tick(this, Ability, CurrentInput, ctx);
+
             Ability.ProcessUpdate();
 
 #if UNITY_EDITOR
@@ -575,8 +583,13 @@ public class MovementController : NetworkBehaviour
 #endif
 
 
-            Ability.JetpackCharge = _serverJetpackCharge.Value;
-            Ability.ForceUsingJetpack(_serverUsingJetpack.Value);
+            // Clamp charge only to avoid "infinite jetpack" feel.
+            Ability.JetpackCharge = Mathf.Min(Ability.JetpackCharge, _serverJetpackCharge.Value);
+
+            // Safety: if empty, stop locally too.
+            if (Ability.JetpackCharge <= 0f)
+                Ability.StopJetpack();
+
 
             //DebugDeterminismLog("CL", CurrentInput);
 

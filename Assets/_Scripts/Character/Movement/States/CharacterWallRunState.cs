@@ -12,7 +12,6 @@ namespace SyncedRush.Character.Movement
         private RaycastHit _lastWallHit;
         private bool _hasLastWallHit;
 
-        private int _lastProcessedAbilityCount = -1;
         private int _lastProcessedJumpCount = -1;
 
         /// <summary>
@@ -53,19 +52,6 @@ namespace SyncedRush.Character.Movement
                 return MovementState.Air;
             }
 
-
-            if (character.Ability.CurrentAbility == CharacterAbility.Jetpack)
-            {
-                int prevAb = _lastProcessedAbilityCount;
-                bool dashRequested = Input.AbilityCount > prevAb;
-
-                if (Input.AbilityCount != prevAb)
-                    _lastProcessedAbilityCount = Input.AbilityCount;
-
-                if (dashRequested && character.Ability.UseDash())
-                    return MovementState.Dash;
-            }
-
             bool crouchInput = Input.Crouch;
             if (crouchInput)
             {
@@ -87,7 +73,6 @@ namespace SyncedRush.Character.Movement
         {
             base.EnterState();
 
-            _lastProcessedAbilityCount = Input.AbilityCount;
             _lastProcessedJumpCount = Input.JumpCount;
 
             ResetValues();
