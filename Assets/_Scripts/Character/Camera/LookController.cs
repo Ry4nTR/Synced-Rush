@@ -50,11 +50,10 @@ public class LookController : NetworkBehaviour
             return;
         }
 
-        // Initialize yaw with pivot rotation
-        yaw = transform.localEulerAngles.y;
+        yaw = transform.eulerAngles.y;
         simYaw = yaw;
 
-        // Initialize pitch with camera holder angle
+        // Pitch is fine as local, because it's relative to the now-aligned YawPivot
         float rawPitch = cameraHolder.localEulerAngles.x;
         if (rawPitch > 180f) rawPitch -= 360f;
         pitch = rawPitch;
@@ -73,11 +72,12 @@ public class LookController : NetworkBehaviour
     {
         if (!IsOwner) return;
 
-        // Apply visual rotation from SIM values
         yaw = simYaw;
         pitch = simPitch;
 
-        transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+        transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+
+        // CameraHolder pitch stays local (relative to the Pivot we just rotated)
         cameraHolder.localRotation = Quaternion.Euler(pitch, 0f, 0f);
     }
 
