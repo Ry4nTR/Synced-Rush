@@ -453,11 +453,6 @@ MonoBehaviour:
   reconciliationSnapDistance: 10
   reconciliationSmoothing: 12
   serverMaxStepsPerFrame: 6
-  debugDeterminism: 1
-  debugDeterminismEveryNSeq: 10
-  debugTargetOwnerClientId: -1
-  dbgSimSig: 1
-  dbgEveryNSeq: 5
 --- !u!114 &245510072461140579
 MonoBehaviour:
   m_ObjectHideFlags: 0

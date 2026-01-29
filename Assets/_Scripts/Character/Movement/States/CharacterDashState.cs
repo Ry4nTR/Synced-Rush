@@ -21,7 +21,6 @@ namespace SyncedRush.Character.Movement
                 return MovementState.Air;
             }
 
-
             ProcessMovement();
 
             _dashTimer = Mathf.MoveTowards(_dashTimer, 0f, Time.fixedDeltaTime);
@@ -33,11 +32,44 @@ namespace SyncedRush.Character.Movement
         {
             base.EnterState();
 
+            Debug.Log($"[DASH PATH] owner={character.IsOwner} server={character.IsServer} seq={Input.Sequence}");
+
             _dashTimer = character.Stats.DashDuration;
 
             Vector3 dashDir = GetDashDirection();
+
+            // --- DASH DIR SIGNATURE (one-shot, deterministic) ---
+            float inputYaw = Input.AimYaw;
+            float inputPitch = Input.AimPitch;
+
+            float bodyYaw = character.Orientation != null
+                ? character.Orientation.transform.eulerAngles.y
+                : float.NaN;
+
+            float deltaYaw = float.IsNaN(bodyYaw) ? float.NaN : Mathf.DeltaAngle(inputYaw, bodyYaw);
+
+            Vector3 look = (Quaternion.Euler(inputPitch, inputYaw, 0f) * Vector3.forward).normalized;
+            Vector3 lookFlat = Vector3.ProjectOnPlane(look, Vector3.up).normalized;
+
+            Vector3 bodyFwd = character.Orientation != null
+                ? Vector3.ProjectOnPlane(character.Orientation.transform.forward, Vector3.up).normalized
+                : Vector3.zero;
+
+            float dotLookVsBody = (lookFlat == Vector3.zero || bodyFwd == Vector3.zero) ? 0f : Vector3.Dot(lookFlat, bodyFwd);
+
+            Debug.Log(
+                $"[DASH SIG] seq={Input.Sequence} owner={character.IsOwner} server={character.IsServer} " +
+                $"move={Input.Move} yaw={inputYaw:F1} pitch={inputPitch:F1} " +
+                $"bodyYaw={bodyYaw:F1} dYaw={deltaYaw:F1} dotLookVsBody={dotLookVsBody:F3} " +
+                $"lookFlat={lookFlat.ToString("F3")} bodyFwd={bodyFwd.ToString("F3")} dashDir={dashDir.ToString("F3")}"
+            );
+
+
+
             Vector3 velocityDir = character.TotalVelocity.normalized;
             float speed = character.TotalVelocity.magnitude;
+
+            Debug.Log($"[DASH] seq={Input.Sequence} move={Input.Move} yaw={Input.AimYaw:F1} pitch={Input.AimPitch:F1} look={(Quaternion.Euler(Input.AimPitch, Input.AimYaw, 0f) * Vector3.forward).ToString("F3")}");
 
             if (dashDir != Vector3.zero)
             {
@@ -59,25 +91,26 @@ namespace SyncedRush.Character.Movement
 
         private Vector3 GetDashDirection()
         {
-            Vector2 inputDir = character.MoveInputDirection;
-            inputDir.Normalize();
+            Vector2 move = Input.Move;
+
+            float ax = Mathf.Abs(move.x);
+            float ay = Mathf.Abs(move.y);
 
             float yaw = Input.AimYaw;
             float pitch = Input.AimPitch;
 
-            Vector3 look = Quaternion.Euler(pitch, yaw, 0f) * Vector3.forward;
+            Vector3 look = (Quaternion.Euler(pitch, yaw, 0f) * Vector3.forward).normalized;
+            Vector3 right = (Quaternion.Euler(0f, yaw, 0f) * Vector3.right).normalized;
 
-            Vector3 dir = Vector3.zero;
+            const float dead = 0.2f;
 
-            if (!Mathf.Approximately(inputDir.x, 0f))
-                dir += character.Orientation.transform.right * inputDir.x;
+            if (ax < dead && ay < dead)
+                return look;
 
-            if (!Mathf.Approximately(inputDir.y, 0f))
-                dir += look.normalized * inputDir.y;
-            else
-                dir += look.normalized;
+            if (ax > ay)
+                return (move.x >= 0f ? right : -right);
 
-            return dir.sqrMagnitude > 0.0001f ? dir.normalized : look.normalized;
+            return (move.y >= 0f ? look : -look);
         }
     }
 }
