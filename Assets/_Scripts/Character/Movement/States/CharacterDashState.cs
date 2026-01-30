@@ -32,8 +32,6 @@ namespace SyncedRush.Character.Movement
         {
             base.EnterState();
 
-            Debug.Log($"[DASH PATH] owner={character.IsOwner} server={character.IsServer} seq={Input.Sequence}");
-
             _dashTimer = character.Stats.DashDuration;
 
             Vector3 dashDir = GetDashDirection();
@@ -57,19 +55,8 @@ namespace SyncedRush.Character.Movement
 
             float dotLookVsBody = (lookFlat == Vector3.zero || bodyFwd == Vector3.zero) ? 0f : Vector3.Dot(lookFlat, bodyFwd);
 
-            Debug.Log(
-                $"[DASH SIG] seq={Input.Sequence} owner={character.IsOwner} server={character.IsServer} " +
-                $"move={Input.Move} yaw={inputYaw:F1} pitch={inputPitch:F1} " +
-                $"bodyYaw={bodyYaw:F1} dYaw={deltaYaw:F1} dotLookVsBody={dotLookVsBody:F3} " +
-                $"lookFlat={lookFlat.ToString("F3")} bodyFwd={bodyFwd.ToString("F3")} dashDir={dashDir.ToString("F3")}"
-            );
-
-
-
             Vector3 velocityDir = character.TotalVelocity.normalized;
             float speed = character.TotalVelocity.magnitude;
-
-            Debug.Log($"[DASH] seq={Input.Sequence} move={Input.Move} yaw={Input.AimYaw:F1} pitch={Input.AimPitch:F1} look={(Quaternion.Euler(Input.AimPitch, Input.AimYaw, 0f) * Vector3.forward).ToString("F3")}");
 
             if (dashDir != Vector3.zero)
             {

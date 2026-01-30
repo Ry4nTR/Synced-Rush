@@ -1,4 +1,5 @@
 using SyncedRush.Character.Movement;
+using UnityEngine;
 
 public sealed class DashAbilitySim
 {
@@ -31,6 +32,7 @@ public sealed class DashAbilitySim
 
         if (!pressed)
             return;
+        
 
         if (character.State == MovementState.Dash)
             return;
