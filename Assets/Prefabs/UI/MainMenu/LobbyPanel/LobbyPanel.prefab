@@ -1017,10 +1017,10 @@ GameObject:
   - component: {fileID: 435785793406167065}
   - component: {fileID: 8574480083655416542}
   - component: {fileID: 4061194864965916164}
-  - component: {fileID: 7670624129275463739}
   - component: {fileID: 3557417563589384364}
   - component: {fileID: 7591719807716043078}
   - component: {fileID: 6559642203919812192}
+  - component: {fileID: 7670624129275463739}
   m_Layer: 5
   m_Name: LobbyTeamAssignmentPanel
   m_TagString: Untagged
@@ -1070,23 +1070,6 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
---- !u!114 &7670624129275463739
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4840938975827924731}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b8f0be5cdd892374c8e4e006c028e78c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LobbyTeamAssignmentUI
-  playerItemPrefab: {fileID: 1935152805431113830, guid: eeb4319326e66054ca58ce6631c5fddc, type: 3}
-  unassignedContainer: {fileID: 2213379106683531253}
-  teamDropZones:
-  - {fileID: 2238127286855478194}
-  - {fileID: 256045353087995331}
 --- !u!114 &3557417563589384364
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1156,6 +1139,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Mask
   m_ShowMaskGraphic: 1
+--- !u!114 &7670624129275463739
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4840938975827924731}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8f0be5cdd892374c8e4e006c028e78c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LobbyTeamAssignmentUI
+  playerItemPrefab: {fileID: 1935152805431113830, guid: eeb4319326e66054ca58ce6631c5fddc, type: 3}
+  unassignedContainer: {fileID: 2213379106683531253}
+  teamDropZones:
+  - {fileID: 2238127286855478194}
+  - {fileID: 256045353087995331}
 --- !u!1 &5585685109987385122
 GameObject:
   m_ObjectHideFlags: 0
