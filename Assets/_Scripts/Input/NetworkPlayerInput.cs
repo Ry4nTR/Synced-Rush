@@ -131,26 +131,6 @@ public class NetworkPlayerInput : NetworkBehaviour
             return true;
         }
 
-        // GAP SKIP (industrial): if expected packet was dropped, don't stall forever.
-        // Consume the smallest available sequence and jump expected forward.
-        if (_serverBufferedInputs.Count > 0)
-        {
-            // Get smallest sequence currently buffered
-            int minKey = int.MaxValue;
-            foreach (var k in _serverBufferedInputs.Keys) { minKey = k; break; }
-
-            if (minKey > _serverNextExpectedSequence)
-            {
-
-                data = _serverBufferedInputs[minKey];
-                _serverBufferedInputs.Remove(minKey);
-
-                _serverNextExpectedSequence = minKey + 1;
-                return true;
-            }
-
-        }
-
         data = default;
         return false;
     }
