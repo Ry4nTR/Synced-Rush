@@ -23,6 +23,8 @@ namespace SyncedRush.Character.Movement
 
         private bool _isWallRunInvalid = false;
 
+        private bool _loggedExit = false;
+
         public CharacterWallRunState(MovementController movementComponentReference) : base(movementComponentReference)
         {
         }
@@ -34,10 +36,20 @@ namespace SyncedRush.Character.Movement
             base.ProcessUpdate();
 
             if (_isWallRunInvalid)
+            {
+#if UNITY_EDITOR
+                LogExit("invalid");
+#endif
                 return MovementState.Air;
+            }
 
             if (character.IsOnGround)
+            {
+#if UNITY_EDITOR
+                LogExit("grounded");
+#endif
                 return MovementState.Move;
+            }
 
 
             int prevJump = _lastProcessedJumpCount;
@@ -48,6 +60,9 @@ namespace SyncedRush.Character.Movement
 
             if (jumpRequested)
             {
+#if UNITY_EDITOR
+                LogExit("jump");
+#endif
                 WallJump();
                 return MovementState.Air;
             }
@@ -55,6 +70,9 @@ namespace SyncedRush.Character.Movement
             bool crouchInput = Input.Crouch;
             if (crouchInput)
             {
+#if UNITY_EDITOR
+                LogExit("crouch");
+#endif
                 WallDetach();
                 return MovementState.Air;
             }
@@ -72,6 +90,8 @@ namespace SyncedRush.Character.Movement
         public override void EnterState()
         {
             base.EnterState();
+
+            _loggedExit = false;
 
             _lastProcessedJumpCount = Input.JumpCount;
 
@@ -93,6 +113,18 @@ namespace SyncedRush.Character.Movement
                 {
                     _wallDir = -startDir.normalized;
                     _expectedWallDir = _wallDir;
+
+#if UNITY_EDITOR
+                    if ((character.IsOwner && !character.IsServer) || (character.IsServer && !character.IsOwner))
+                    {
+                        var inp = character.CurrentInput;
+                        Debug.Log(
+                            $"[WR_ENTER] role={(character.IsServer ? "SV" : "CL")} " +
+                            $"seq={inp.Sequence} hv=({character.HorizontalVelocity.x:F2},{character.HorizontalVelocity.y:F2}) vv={character.VerticalVelocity:F2} " +
+                            $"wallDir=({_wallDir.x:F2},{_wallDir.y:F2},{_wallDir.z:F2})"
+                        );
+                    }
+#endif
 
                     if (!CheckWall(out RaycastHit rayHit))
                         _isWallRunInvalid = true;
@@ -310,7 +342,6 @@ namespace SyncedRush.Character.Movement
             character.TotalVelocity += detachDir * detachStrength;
         }
 
-
         private void EnterBoost()
         {
             if (character.Stats.WallRunTargetSpeed < character.HorizontalVelocity.magnitude)
@@ -370,5 +401,19 @@ namespace SyncedRush.Character.Movement
             _isWallRunInvalid = false;
             _hasLastWallHit = false;
         }
+
+#if UNITY_EDITOR
+        void LogExit(string reason)
+        {
+            if (_loggedExit) return;
+            _loggedExit = true;
+
+            if ((character.IsOwner && !character.IsServer) || (character.IsServer && !character.IsOwner))
+            {
+                var inp = character.CurrentInput;
+                Debug.Log($"[WR_EXIT] role={(character.IsServer ? "SV" : "CL")} seq={inp.Sequence} reason={reason}");
+            }
+        }
+#endif
     }
 }

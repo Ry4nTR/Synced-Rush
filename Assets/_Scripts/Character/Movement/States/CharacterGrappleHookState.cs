@@ -11,7 +11,6 @@ namespace SyncedRush.Character.Movement
         private const float GroundClearanceLiftSpeed = 1.2f;  // m/s
 
         private bool _canWallRun = false;
-        private bool _loggedHookedStart = false;
 
         public CharacterGrappleHookState(MovementController movementComponentReference) : base(movementComponentReference) { }
 
@@ -68,7 +67,6 @@ namespace SyncedRush.Character.Movement
 
             _groundClearanceLiftRemaining = 0f;
             _canWallRun = false;
-            _loggedHookedStart = false;
 
             // 1. Determine Origin
             Vector3 origin = character.CurrentInput.GrappleOrigin;
