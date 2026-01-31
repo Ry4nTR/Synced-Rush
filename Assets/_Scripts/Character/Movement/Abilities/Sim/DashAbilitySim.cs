@@ -6,7 +6,7 @@ public sealed class DashAbilitySim
     private int _lastAbilityCount = -1;
     public bool WantsDashThisTick { get; private set; }
 
-    public void Tick(MovementController character, AbilityProcessor ability, in GameplayInputData input)
+    public void Tick(MovementController character, AbilityProcessor ability, in SimulationTickData input)
     {
         WantsDashThisTick = false;
 

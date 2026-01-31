@@ -2,94 +2,72 @@ using UnityEngine;
 
 public class HookController : MonoBehaviour
 {
-    [SerializeField] private LayerMask _layerMask;
+    [Header("Visuals (optional)")]
+    [SerializeField] private Transform tip;    // Sphere
+    [SerializeField] private Transform line;   // Cylinder
 
-    private float _speed = 40f;
-    private float _maxDistance = 50f;
-    private float _currentDistance = 0f;
+    [Header("Line Settings")]
+    [SerializeField] private float lineBaseLength = 1f; // cylinder length in its default scale (world units along Y)
+    [SerializeField] private float lineThickness = 1f;  // keep X/Z scale stable (or use current)
 
-    private Vector3 _startPosition;
-    private Vector3 _direction;
-
-    public bool IsHooked { get; private set; } = false;
-    public bool IsShooting { get; private set; } = false;
+    private Vector3 _lineInitialScale;
 
     private void Awake()
     {
+        _lineInitialScale = line != null ? line.localScale : Vector3.one;
         gameObject.SetActive(false);
     }
 
-    // La direzione deve essere normalizzata!
-    public void Shoot(Vector3 startPosition, Vector3 direction, float speed, float maxDistance)
+    /// <summary>
+    /// Called every frame by MovementController.RenderGrappleVisual().
+    /// from = rope start (character), to = tip position.
+    /// </summary>
+    public void ApplyVisualState(bool active, Vector3 from, Vector3 to)
     {
-        gameObject.SetActive(true);
-
-        _speed = speed;
-        _maxDistance = maxDistance;
-        _currentDistance = 0f;
-        IsHooked = false;
-        IsShooting = true;
-        
-
-        _startPosition = startPosition;
-        transform.position = startPosition;
-
-        direction.Normalize();
-        _direction = direction;
-        transform.forward = direction;
-    }
-
-    public void Retreat()
-    {
-        IsHooked = false;
-        IsShooting = false;
-        gameObject.SetActive(false);
-    }
-
-    void Update()
-    {
-        if (IsHooked || !IsShooting) return;
-
-        float distanceThisFrame = _speed * Time.deltaTime;
-        float newDistance = _currentDistance + distanceThisFrame;
-
-        //if (newDistance > _maxDistance)
-        //{
-        //    distanceThisFrame = newDistance - _maxDistance;
-        //    _currentDistance = _maxDistance;
-        //}
-        //else
-        //    _currentDistance = newDistance;
-
-        if (_currentDistance + distanceThisFrame > _maxDistance)
+        if (!active)
         {
-            distanceThisFrame = _maxDistance - _currentDistance;
+            if (gameObject.activeSelf)
+                gameObject.SetActive(false);
+            return;
         }
 
-        if (Physics.Raycast(transform.position, _direction, out RaycastHit hit, distanceThisFrame, _layerMask))
-        {
-            transform.position = hit.point;
-            IsHooked = true;
-            OnHookHit(hit.collider);
-        }
-        else
-        {
-            //transform.Translate(_direction * distanceThisFrame);
-            transform.position += _direction * distanceThisFrame;
-        }
+        if (!gameObject.activeSelf)
+            gameObject.SetActive(true);
 
-        if (Vector3.Distance(_startPosition, transform.position) > _maxDistance)
-        {
-            IsShooting = false;
-            gameObject.SetActive(false);
-        }
-    }
+        // Tip
+        if (tip != null)
+            tip.position = to;
 
-    private void OnHookHit(Collider other)
-    {
-        IsHooked = true;
-        IsShooting = false;
+        // Rope
+        if (line != null)
+        {
+            Vector3 dir = to - from;
+            float dist = dir.magnitude;
+
+            if (dist < 0.0001f)
+            {
+                line.gameObject.SetActive(false);
+                return;
+            }
+
+            line.gameObject.SetActive(true);
+
+            Vector3 mid = from + dir * 0.5f;
+            line.position = mid;
+
+            // Orient cylinder so its Y axis points along the rope
+            line.rotation = Quaternion.FromToRotation(Vector3.up, dir.normalized);
+
+            // Scale cylinder along Y to match distance
+            float yScale = dist / Mathf.Max(0.0001f, lineBaseLength);
+
+            // Keep thickness stable (X/Z), scale length on Y
+            Vector3 s = _lineInitialScale;
+            s.x = lineThickness * _lineInitialScale.x;
+            s.z = lineThickness * _lineInitialScale.z;
+            s.y = yScale * _lineInitialScale.y;
+
+            line.localScale = s;
+        }
     }
 }
-
-

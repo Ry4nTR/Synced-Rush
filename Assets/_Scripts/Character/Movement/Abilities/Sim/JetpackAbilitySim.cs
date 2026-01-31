@@ -13,7 +13,7 @@ public sealed class JetpackAbilitySim
     private bool _active;
     private int _lastPressCount;
 
-    public void Tick(MovementController character, AbilityProcessor ability, in GameplayInputData input, in SimContext ctx)
+    public void Tick(MovementController character, AbilityProcessor ability, in SimulationTickData input, in SimContext ctx)
     {
         if (ability.CurrentAbility != CharacterAbility.Jetpack)
         {
@@ -97,7 +97,7 @@ public sealed class JetpackAbilitySim
     public bool ShouldApplyThrust(
         MovementController character,
         AbilityProcessor ability,
-        in GameplayInputData input,
+        in SimulationTickData input,
         in SimContext ctx)
     {
         return ability.CurrentAbility == CharacterAbility.Jetpack

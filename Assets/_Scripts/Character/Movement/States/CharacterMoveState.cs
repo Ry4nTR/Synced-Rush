@@ -17,7 +17,6 @@ namespace SyncedRush.Character.Movement
         {
             base.ProcessUpdate();
 
-
             if (!CheckGround())
                 return MovementState.Air;
 

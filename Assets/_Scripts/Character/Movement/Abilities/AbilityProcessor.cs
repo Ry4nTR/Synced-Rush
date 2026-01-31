@@ -10,10 +10,12 @@ namespace SyncedRush.Character.Movement
         private readonly HookController _hookController;
         private readonly JetpackAbilitySim _jetpackSim = new JetpackAbilitySim();
         private readonly DashAbilitySim _dashSim = new DashAbilitySim();
+        private readonly GrappleAbilitySim _grappleSim = new GrappleAbilitySim();
 
 
         public JetpackAbilitySim JetpackSim => _jetpackSim;
         public DashAbilitySim DashSim => _dashSim;
+        public GrappleAbilitySim GrappleSim => _grappleSim;
 
 
         public CharacterAbility CurrentAbility { get => _currentAbility; set => _currentAbility = value; }

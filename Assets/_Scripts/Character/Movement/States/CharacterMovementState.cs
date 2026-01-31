@@ -10,7 +10,7 @@ namespace SyncedRush.Character.Movement
         /// <summary>
         /// Shortcut to SERVER-SIDE input.
         /// </summary>
-        protected GameplayInputData Input => character.CurrentInput;
+        protected SimulationTickData Input => character.CurrentInput;
 
         private CharacterMovementFSM _parentStateMachine;
         protected CharacterMovementFSM ParentStateMachine => _parentStateMachine;
