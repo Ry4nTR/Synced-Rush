@@ -2,47 +2,53 @@
 using Unity.Netcode;
 using UnityEngine;
 
-/// <summary>
-/// Handles player input in a networked environment with client-side prediction and server reconciliation.
-/// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(PlayerInputHandler))]
 [DefaultExecutionOrder(-100)]
 public class NetworkPlayerInput : NetworkBehaviour
 {
+    // =========================
+    // Components
+    // =========================
     private PlayerInputHandler _inputHandler;
     private LookController _look;
-    private MovementController _characterController;
+    private MovementController _character;
 
+    // =========================
+    // Owner-side
+    // =========================
     private int _sequenceNumber = 0;
-
-    // Pending inputs that have been sent to the server but not yet acknowledged.
-    private readonly List<SimulationTickData> _pendingInputs = new List<SimulationTickData>();
+    private readonly List<SimulationTickData> _pendingInputs = new();
+    public IReadOnlyList<SimulationTickData> PendingInputs => _pendingInputs;
 
     public SimulationTickData LocalPredictedInput { get; private set; }
     public SimulationTickData ServerInput { get; private set; }
 
-    // Server-side input buffer (ordered by sequence)
-    private readonly SortedDictionary<int, SimulationTickData> _serverBufferedInputs
-        = new SortedDictionary<int, SimulationTickData>();
+    private const int MaxPendingInputs = 256;
 
+    // =========================
+    // Server-side buffer
+    // =========================
+    private readonly SortedDictionary<int, SimulationTickData> _serverBufferedInputs = new();
     private int _serverNextExpectedSequence = 0;
 
-    // Safety limits
-    private const int MaxBufferedInputs = 256;
-
-    public IReadOnlyList<SimulationTickData> PendingInputs => _pendingInputs;
+    // Jitter tolerance
+    private int _stallTicks = 0;
+    private const int MaxStallTicks = 2; // ~40ms at 50Hz
 
     public int ServerBufferedCount => _serverBufferedInputs.Count;
     public int ServerNextExpected => _serverNextExpectedSequence;
 
-    public void ServerSetCurrentInput(SimulationTickData data) => ServerInput = data;
+    private const int MaxBufferedInputs = 256;
 
+    // =========================
+    // Unity lifecycle
+    // =========================
     private void Awake()
     {
         _inputHandler = GetComponent<PlayerInputHandler>();
         _look = GetComponentInChildren<LookController>();
-        _characterController = GetComponent<MovementController>();
+        _character = GetComponent<MovementController>();
     }
 
     private void FixedUpdate()
@@ -50,7 +56,25 @@ public class NetworkPlayerInput : NetworkBehaviour
         if (!IsOwner || !IsClient)
             return;
 
-        SimulationTickData inputData = new SimulationTickData
+        var input = BuildOwnerTickInput();
+        LocalPredictedInput = input;
+
+        _pendingInputs.Add(input);
+        if (_pendingInputs.Count > MaxPendingInputs)
+            _pendingInputs.RemoveAt(0);
+
+        if (IsServer)
+            ReceiveInputOnServer(input);
+        else
+            SendInputServerRpc(input);
+    }
+
+    // =========================
+    // Owner: build input
+    // =========================
+    private SimulationTickData BuildOwnerTickInput()
+    {
+        return new SimulationTickData
         {
             Move = _inputHandler.Move,
             Look = _inputHandler.Look,
@@ -58,8 +82,8 @@ public class NetworkPlayerInput : NetworkBehaviour
             AimYaw = (_look != null) ? _look.SimYaw : 0f,
             AimPitch = (_look != null) ? _look.SimPitch : 0f,
 
-            GrappleOrigin = _characterController.CenterPosition,
-            RequestDetach = _characterController.ConsumeDetachRequest(),
+            GrappleOrigin = _character.CenterPosition,
+            RequestDetach = _character.ConsumeDetachRequest(),
 
             AbilityCount = _inputHandler.AbilityCount,
             JumpCount = _inputHandler.JumpCount,
@@ -75,89 +99,80 @@ public class NetworkPlayerInput : NetworkBehaviour
 
             Sequence = _sequenceNumber++,
         };
-
-        LocalPredictedInput = inputData;
-        _pendingInputs.Add(inputData);
-
-        // HOST FAST-PATH: don't wait for a ServerRpc to deliver input to the server simulation
-        if (IsServer)
-            ReceiveInputOnServer(inputData);
-        else
-            SendInputServerRpc(inputData);
     }
 
-    //Chiamato sul client quando riceve la conferma dal server dell’ultimo input processato.
+    // =========================
+    // Owner: ack
+    // =========================
     public void ConfirmInputUpTo(int lastSequence)
     {
-        // Remove pending inputs up to the last acknowledged sequence
         int removeCount = 0;
         for (int i = 0; i < _pendingInputs.Count; i++)
         {
-            if (_pendingInputs[i].Sequence <= lastSequence)
-            {
-                removeCount++;
-            }
-            else
-            {
-                break;
-            }
+            if (_pendingInputs[i].Sequence <= lastSequence) removeCount++;
+            else break;
         }
         if (removeCount > 0)
-        {
             _pendingInputs.RemoveRange(0, removeCount);
-        }
-
-        /* Log di debug per verificare quanti input sono stati confermati e rimossi
-        if (removeCount > 0)
-        {
-            UnityEngine.Debug.Log($"[NetworkPlayerInput] ConfirmInputUpTo {lastSequence}, removed {removeCount} inputs");
-        }
-        */
     }
 
+    // =========================
+    // Server: receive
+    // =========================
     [ServerRpc(Delivery = RpcDelivery.Reliable)]
     private void SendInputServerRpc(SimulationTickData inputData)
     {
         ReceiveInputOnServer(inputData);
     }
 
+    private void ReceiveInputOnServer(SimulationTickData inputData)
+    {
+        // If first received input is ahead, sync expected forward
+        if (_serverBufferedInputs.Count == 0 && inputData.Sequence > _serverNextExpectedSequence)
+            _serverNextExpectedSequence = inputData.Sequence;
+
+        // Drop inputs that are already processed
+        if (inputData.Sequence < _serverNextExpectedSequence)
+            return;
+
+        _serverBufferedInputs[inputData.Sequence] = inputData;
+
+        // Cap buffer size
+        while (_serverBufferedInputs.Count > MaxBufferedInputs)
+        {
+            int firstKey = System.Linq.Enumerable.First(_serverBufferedInputs.Keys);
+            _serverBufferedInputs.Remove(firstKey);
+        }
+    }
+
+    // =========================
+    // Server: consume
+    // =========================
+    public void ServerSetCurrentInput(SimulationTickData data) => ServerInput = data;
+
     public bool TryConsumeNextServerInput(out SimulationTickData data)
     {
-        // Normal path: we have exactly the expected sequence
+        // Normal path: expected input present
         if (_serverBufferedInputs.TryGetValue(_serverNextExpectedSequence, out data))
         {
             _serverBufferedInputs.Remove(_serverNextExpectedSequence);
             _serverNextExpectedSequence++;
+            _stallTicks = 0;
             return true;
         }
 
+        // Expected input missing → possible jitter
+        _stallTicks++;
+
+        if (_stallTicks <= MaxStallTicks)
+        {
+            // Wait a bit; do not advance simulation this tick
+            data = default;
+            return false;
+        }
+
+        // After grace expires, still don't simulate (we keep correctness)
         data = default;
         return false;
     }
-
-    private void ReceiveInputOnServer(SimulationTickData inputData)
-    {
-        // If we have no buffered inputs yet and this is the first input we ever got,
-        // sync expected sequence to it (robust to first packet loss).
-        if (_serverBufferedInputs.Count == 0 && inputData.Sequence > _serverNextExpectedSequence)
-            _serverNextExpectedSequence = inputData.Sequence;
-
-        // Drop very old inputs (already processed)
-        if (inputData.Sequence < _serverNextExpectedSequence)
-        {
-            return;
-        }
-
-        _serverBufferedInputs[inputData.Sequence] = inputData;
-
-        if (_serverBufferedInputs.Count > MaxBufferedInputs)
-        {
-            while (_serverBufferedInputs.Count > MaxBufferedInputs)
-            {
-                var firstKey = System.Linq.Enumerable.First(_serverBufferedInputs.Keys);
-                _serverBufferedInputs.Remove(firstKey);
-            }
-        }
-    }
 }
- 
