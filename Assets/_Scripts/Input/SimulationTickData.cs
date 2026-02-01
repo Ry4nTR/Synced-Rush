@@ -28,6 +28,8 @@ public struct SimulationTickData : INetworkSerializable
     // -------------------------
     public Vector3 GrappleOrigin;
     public bool RequestDetach;
+    public Vector3 GrappleAimPoint;
+    public bool GrappleAimValid;
 
     // -------------------------
     // Other buttons / stateful inputs
@@ -61,6 +63,8 @@ public struct SimulationTickData : INetworkSerializable
         // Ability context
         serializer.SerializeValue(ref GrappleOrigin);
         serializer.SerializeValue(ref RequestDetach);
+        serializer.SerializeValue(ref GrappleAimPoint);
+        serializer.SerializeValue(ref GrappleAimValid);
 
         // Buttons
         serializer.SerializeValue(ref Sprint);

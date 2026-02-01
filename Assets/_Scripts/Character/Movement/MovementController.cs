@@ -84,9 +84,6 @@ public class MovementController : NetworkBehaviour
 
     private int _lastJumpCount = -1;
 
-    private GrappleNetState LocalGrappleState;
-    private bool _pendingDetachRequest;
-
     // Runtime (no inspector noise)
     private Vector3 _remoteFrom;
     private Vector3 _remoteTo;
@@ -141,14 +138,9 @@ public class MovementController : NetworkBehaviour
     {
         get
         {
-            // Server always trusts itself.
-            if (IsServer) return _serverGrappleState.Value;
-
-            // Owner trusts its local prediction (FSM output).
-            if (IsOwner) return LocalGrappleState;
-
-            // Proxies (other clients) must trust the server's replicated var.
-            return _serverGrappleState.Value;
+            // Server uses replicated var, owner uses predicted state stored in NetworkPlayerInput
+            if (_netInput == null) return _serverGrappleState.Value;
+            return _netInput.GetGrappleForSim();
         }
     }
 
@@ -380,7 +372,7 @@ public class MovementController : NetworkBehaviour
         // -------------------------
         // VISUALS LAST
         // -------------------------
-        RenderGrappleVisual();
+        Ability?.HookController?.TickVisual(this, GrappleForSim);
 
 #if UNITY_EDITOR
         // Optional: only draw debug on owner (otherwise it's confusing)
@@ -550,7 +542,7 @@ public class MovementController : NetworkBehaviour
         VerticalVelocity = _serverVerticalVel.Value;
 
         // Keep grapple state consistent too.
-        LocalGrappleState = _serverGrappleState.Value;
+        _netInput?.SyncLocalGrappleFromServer();
     }
     private void ApplySoftVisualCorrection(Vector3 authPos)
     {
@@ -805,9 +797,6 @@ public class MovementController : NetworkBehaviour
         _lastJumpCount = jumpCount;
     }
 
-    // -------------------------
-    // Helper Methods
-    // -------------------------
     public void ChangeAbility(CharacterAbility newAbility)
     {
         if (IsOwner)
@@ -816,51 +805,10 @@ public class MovementController : NetworkBehaviour
         }
     }
 
-
-
-
-
-
-
-
-    // TODO: move grapple tick logic to GrappleAbilitySim (ability pipeline), keep MovementController purely locomotion + sim orchestration.
-    private void RenderGrappleVisual()
+    public GrappleNetState GetServerGrappleState() => _serverGrappleState.Value;
+    public void SetServerGrappleState(GrappleNetState s)
     {
-        if (Ability?.HookController == null) return;
-
-        // Use local state for owner (smooth), server state for others
-        var s = GrappleForSim;
-        bool active = s.Phase != GrapplePhase.None;
-
-        if (!active)
-        {
-            Ability.HookController.ApplyVisualState(false, Vector3.zero, Vector3.zero);
-            return;
-        }
-
-        // Use the predicted TipPosition so the rope follows the projectile perfectly
-        Ability.HookController.ApplyVisualState(true, CenterPosition, s.TipPosition);
-    }
-
-
-    // Called by FSM to update the data container
-    public void UpdateGrappleState(GrappleNetState newState)
-    {
-        if (IsServer) _serverGrappleState.Value = newState;
-        else LocalGrappleState = newState;
-    }
-
-    // Called by FSM when it detects a physical detach
-    public void QueueDetachRequest()
-    {
-        if (IsOwner) _pendingDetachRequest = true;
-    }
-
-    // Call this from your NetworkPlayerInput script when generating SimulationTickData
-    public bool ConsumeDetachRequest()
-    {
-        bool val = _pendingDetachRequest;
-        _pendingDetachRequest = false;
-        return val;
+        if (IsServer)
+            _serverGrappleState.Value = s;
     }
 }

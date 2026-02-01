@@ -32,7 +32,9 @@ public class NetworkPlayerInput : NetworkBehaviour
     private readonly SortedDictionary<int, SimulationTickData> _serverBufferedInputs = new();
     private int _serverNextExpectedSequence = 0;
 
+    // =========================
     // Jitter tolerance
+    // =========================
     private int _stallTicks = 0;
     private const int MaxStallTicks = 2; // ~40ms at 50Hz
 
@@ -42,8 +44,12 @@ public class NetworkPlayerInput : NetworkBehaviour
     private const int MaxBufferedInputs = 256;
 
     // =========================
-    // Unity lifecycle
+    // Grapple state
     // =========================
+    // Grapple prediction + detach edge (owner-side)
+    private GrappleNetState _localGrappleState;
+    private bool _pendingDetachRequest;
+
     private void Awake()
     {
         _inputHandler = GetComponent<PlayerInputHandler>();
@@ -74,6 +80,8 @@ public class NetworkPlayerInput : NetworkBehaviour
     // =========================
     private SimulationTickData BuildOwnerTickInput()
     {
+        ComputeGrappleAim(out Vector3 aimPoint, out bool aimValid);
+
         return new SimulationTickData
         {
             Move = _inputHandler.Move,
@@ -83,7 +91,9 @@ public class NetworkPlayerInput : NetworkBehaviour
             AimPitch = (_look != null) ? _look.SimPitch : 0f,
 
             GrappleOrigin = _character.CenterPosition,
-            RequestDetach = _character.ConsumeDetachRequest(),
+            RequestDetach = ConsumeDetachRequest(),
+            GrappleAimPoint = aimPoint,
+            GrappleAimValid = aimValid,
 
             AbilityCount = _inputHandler.AbilityCount,
             JumpCount = _inputHandler.JumpCount,
@@ -99,6 +109,37 @@ public class NetworkPlayerInput : NetworkBehaviour
 
             Sequence = _sequenceNumber++,
         };
+    }
+
+    public bool ConsumeDetachRequest()
+    {
+        bool v = _pendingDetachRequest;
+        _pendingDetachRequest = false;
+        return v;
+    }
+    private void ComputeGrappleAim(out Vector3 aimPoint, out bool aimValid)
+    {
+        // Use the same aim you already send in the tick
+        float yaw = (_look != null) ? _look.SimYaw : 0f;
+        float pitch = (_look != null) ? _look.SimPitch : 0f;
+
+        Vector3 camPos = _character.CameraPosition;
+        Vector3 camDir = Quaternion.Euler(pitch, yaw, 0f) * Vector3.forward;
+
+        // For now: re-use whatever mask you already have
+        LayerMask mask = _character.LayerMask;
+
+        aimValid = Physics.Raycast(
+            camPos,
+            camDir,
+            out RaycastHit hit,
+            _character.Stats.HookMaxDistance,
+            mask
+        );
+
+        aimPoint = aimValid
+            ? hit.point
+            : camPos + camDir * _character.Stats.HookMaxDistance;
     }
 
     // =========================
@@ -175,4 +216,38 @@ public class NetworkPlayerInput : NetworkBehaviour
         data = default;
         return false;
     }
+
+    // =========================
+    // Grapple state
+    // =========================
+    public void UpdateGrappleState(GrappleNetState newState)
+    {
+        if (_character == null) return;
+
+        if (_character.IsServer)
+            _character.SetServerGrappleState(newState); // we add this setter below
+        else
+            _localGrappleState = newState;
+    }
+
+    public GrappleNetState GetGrappleForSim()
+    {
+        if (_character == null) return default;
+
+        if (_character.IsServer) return _character.GetServerGrappleState();
+        if (IsOwner) return _localGrappleState;
+        return _character.GetServerGrappleState();
+    }
+
+    public void QueueDetachRequest()
+    {
+        if (IsOwner) _pendingDetachRequest = true;
+    }
+
+    public void SyncLocalGrappleFromServer()
+    {
+        if (_character == null) return;
+        _localGrappleState = _character.GetServerGrappleState();
+    }
+
 }

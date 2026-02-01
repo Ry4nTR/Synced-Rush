@@ -4,6 +4,8 @@ namespace SyncedRush.Character.Movement
 {
     public class CharacterGrappleHookState : CharacterMovementState
     {
+        private readonly NetworkPlayerInput _netInput;
+
         private float _groundClearanceLiftRemaining = 0f;
 
         // tune these two values; start conservative
@@ -12,7 +14,10 @@ namespace SyncedRush.Character.Movement
 
         private bool _canWallRun = false;
 
-        public CharacterGrappleHookState(MovementController movementComponentReference) : base(movementComponentReference) { }
+        public CharacterGrappleHookState(MovementController movementComponentReference) : base(movementComponentReference)
+        {
+            _netInput = movementComponentReference.GetComponent<NetworkPlayerInput>();
+        }
 
         public override string ToString() => "GrappleHookState";
 
@@ -46,7 +51,7 @@ namespace SyncedRush.Character.Movement
                 if (groundHit || wallHit || minDistance)
                 {
                     // Important: Tell the Input system to notify server next tick
-                    character.QueueDetachRequest();
+                    _netInput.QueueDetachRequest();
 
                     if (wallHit) return MovementState.WallRun;
                     if (groundHit) return MovementState.Move;
@@ -55,7 +60,7 @@ namespace SyncedRush.Character.Movement
             }
 
             // Save the updated simulation state
-            character.UpdateGrappleState(s);
+            _netInput.UpdateGrappleState(s);
             ProcessMovement();
 
             return MovementState.None;
@@ -68,34 +73,48 @@ namespace SyncedRush.Character.Movement
             _groundClearanceLiftRemaining = 0f;
             _canWallRun = false;
 
-            // 1. Determine Origin
             Vector3 origin = character.CurrentInput.GrappleOrigin;
 
-            // 2. Initialize the NetState
+            // This is now authoritative from the input tick (owner computed it)
+            Vector3 aimPoint = character.CurrentInput.GrappleAimPoint;
+
+            // Aim from origin to aimPoint
+            Vector3 dir = (aimPoint - origin).normalized;
+
             GrappleNetState s = new GrappleNetState
             {
-                Phase = GrapplePhase.Shooting, // Start shooting immediately
+                Phase = GrapplePhase.Shooting,
                 Origin = origin,
                 TipPosition = origin,
-                Direction = character.AimDirection.normalized, // Use the current aim
+                Direction = dir,
                 CurrentDistance = 0f,
                 HookPoint = Vector3.zero
             };
 
-            // 3. Apply Anti-Cheat (Server Only)
-            // If the client claims an origin too far from reality, clamp it.
+            // Apply Anti-Cheat (Server Only)
             if (character.IsServer)
             {
-                float dist = Vector3.Distance(origin, character.CenterPosition);
-                if (dist > 2.0f)
+                // Clamp origin
+                float distOrigin = Vector3.Distance(origin, character.CenterPosition);
+                if (distOrigin > 2.0f)
                 {
-                    s.Origin = character.CenterPosition;
-                    s.TipPosition = character.CenterPosition;
+                    origin = character.CenterPosition;
+                    s.Origin = origin;
+                    s.TipPosition = origin;
+                }
+
+                // Clamp aim point to max distance from origin (prevents fake far target)
+                Vector3 toAim = character.CurrentInput.GrappleAimPoint - origin;
+                float max = character.Stats.HookMaxDistance;
+                if (toAim.sqrMagnitude > max * max)
+                {
+                    aimPoint = origin + toAim.normalized * max;
+                    s.Direction = (aimPoint - origin).normalized;
                 }
             }
 
-            // 4. Save to Simulation
-            character.UpdateGrappleState(s);
+            // Save to Simulation
+            _netInput.UpdateGrappleState(s);
         }
 
         public override void ExitState()
@@ -105,7 +124,7 @@ namespace SyncedRush.Character.Movement
             // Reset state to None on exit so visuals turn off
             GrappleNetState s = default;
             s.Phase = GrapplePhase.None;
-            character.UpdateGrappleState(s);
+            _netInput.UpdateGrappleState(s);
 
             // Safety: Dampen upward velocity slightly on detach to prevent "Moon Jumps"
             if (character.VerticalVelocity > 0f)
@@ -159,7 +178,7 @@ namespace SyncedRush.Character.Movement
 
             if (remaining <= 0f)
             {
-                character.QueueDetachRequest(); // Max range miss
+                _netInput.QueueDetachRequest();
                 return; // Will exit next frame via input check or state change
             }
 
@@ -185,7 +204,7 @@ namespace SyncedRush.Character.Movement
                 if (s.CurrentDistance >= character.Stats.HookMaxDistance)
                 {
                     // Missed, trigger exit
-                    character.QueueDetachRequest();
+                    _netInput.QueueDetachRequest();
                 }
             }
         }

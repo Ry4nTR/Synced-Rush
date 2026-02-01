@@ -18,6 +18,21 @@ public class HookController : MonoBehaviour
         gameObject.SetActive(false);
     }
 
+    public void TickVisual(MovementController character, GrappleNetState state)
+    {
+        if (character == null) return;
+
+        bool active = state.Phase != GrapplePhase.None;
+
+        if (!active)
+        {
+            ApplyVisualState(false, Vector3.zero, Vector3.zero);
+            return;
+        }
+
+        ApplyVisualState(true, character.CenterPosition, state.TipPosition);
+    }
+
     /// <summary>
     /// Called every frame by MovementController.RenderGrappleVisual().
     /// from = rope start (character), to = tip position.
