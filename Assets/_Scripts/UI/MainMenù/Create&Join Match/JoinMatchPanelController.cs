@@ -11,12 +11,24 @@ public class JoinMatchPanelController : MonoBehaviour
     [SerializeField] private LobbyManager lobbyManager;
     [SerializeField] private PanelManager uiManager;
 
+    [SerializeField] private CanvasGroup ipJoinWindow;
+
     private void Start()
     {
         playerNameInput.text = "";
     }
 
-    public void OnJoinPressed()
+    public void ShowJoinIPWindow()
+    {
+        Show(ipJoinWindow);
+    }
+
+    public void CloseJoinIPWindow()
+    {
+        Hide(ipJoinWindow);
+    }
+
+    public void OnIPJoinPressed()
     {
         string playerName = string.IsNullOrWhiteSpace(playerNameInput.text)
             ? "Client"
@@ -47,6 +59,24 @@ public class JoinMatchPanelController : MonoBehaviour
         NetworkLobbyState.Instance.SetPlayerNameServerRpc(MatchmakingManager.Instance.LocalPlayerName);
 
         uiManager.ShowLobby();
+    }
+
+    private void Show(CanvasGroup group)
+    {
+        if (group == null) return;
+
+        group.alpha = 1f;
+        group.interactable = true;
+        group.blocksRaycasts = true;
+    }
+
+    private void Hide(CanvasGroup group)
+    {
+        if (group == null) return;
+
+        group.alpha = 0f;
+        group.interactable = false;
+        group.blocksRaycasts = false;
     }
 
 }
