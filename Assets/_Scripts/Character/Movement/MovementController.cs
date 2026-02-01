@@ -247,6 +247,10 @@ public class MovementController : NetworkBehaviour
     public Vector3 LookDirection => _cameraTransform.forward;
 
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    public Vector3 DebugGetServerPosition() => _serverPosition.Value;
+#endif
+
 
 
     // Lista di proprietà messe "nel posto sbagliato"

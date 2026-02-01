@@ -66,14 +66,6 @@ public class ClientComponentSwitcher : NetworkBehaviour
 
         // HEALTH component
         if (healthSystem != null) healthSystem.enabled = false;
-
-        // --- Enable GLOBAL MAP (always on) ---
-        if (playerInput != null && playerInput.actions != null)
-        {
-            var globalMap = playerInput.actions.FindActionMap("Global");
-            if (globalMap != null)
-                globalMap.Enable();
-        }
     }
 
     public override void OnNetworkSpawn()
@@ -125,6 +117,9 @@ public class ClientComponentSwitcher : NetworkBehaviour
                 uiManager.UIRegisterPlayer(gameObject);
             }
         }
+
+        // --- Enable GLOBAL MAP (always on) ---
+        EnsureGlobalMapEnabled();
     }
 
     public override void OnNetworkDespawn()
@@ -191,6 +186,9 @@ public class ClientComponentSwitcher : NetworkBehaviour
         // Switch to UI map
         if (playerInput != null)
             playerInput.SwitchCurrentActionMap(uiMapName);
+
+        EnsureGlobalMapEnabled();
+
         if (inputHandler != null)
         {
             inputHandler.ClearAllInputs();
@@ -200,8 +198,6 @@ public class ClientComponentSwitcher : NetworkBehaviour
             lookController.enabled = false;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-
-        //LogState("SetState_UIMenu");
     }
 
     public void SetState_Loadout()
@@ -211,6 +207,9 @@ public class ClientComponentSwitcher : NetworkBehaviour
             playerInput.enabled = true;
         if (playerInput != null)
             playerInput.SwitchCurrentActionMap(uiMapName);
+
+        EnsureGlobalMapEnabled();
+
         if (inputHandler != null)
         {
             inputHandler.ClearAllInputs();
@@ -220,8 +219,6 @@ public class ClientComponentSwitcher : NetworkBehaviour
             lookController.enabled = false;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-
-        //LogState("SetState_Loadout");
     }
 
     public void SetState_Gameplay()
@@ -232,6 +229,9 @@ public class ClientComponentSwitcher : NetworkBehaviour
         // Switch to gameplay map
         if (playerInput != null)
             playerInput.SwitchCurrentActionMap(gameplayMapName);
+
+        EnsureGlobalMapEnabled();
+
         if (inputHandler != null)
         {
             inputHandler.ClearAllInputs();
@@ -241,23 +241,20 @@ public class ClientComponentSwitcher : NetworkBehaviour
             lookController.enabled = true;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-
-        //LogState("SetState_Gameplay");
     }
 
-    private void LogState(string from)
+    /// <summary>
+    /// Helpers
+    /// </summary>
+    private void EnsureGlobalMapEnabled()
     {
-        string map = playerInput != null && playerInput.currentActionMap != null
-            ? playerInput.currentActionMap.name
-            : "NULL";
+        if (playerInput == null || playerInput.actions == null)
+            return;
 
-        Debug.Log(
-            $"[InputState] {from} | owner={IsOwner} server={IsServer} " +
-            $"map={map} inputHandler={(inputHandler ? inputHandler.enabled : false)} " +
-            $"look={(lookController ? lookController.enabled : false)} " +
-            $"cursorLock={Cursor.lockState} cursorVisible={Cursor.visible}",
-            this
-        );
+        var globalMap = playerInput.actions.FindActionMap("Global", throwIfNotFound: false);
+        if (globalMap != null && !globalMap.enabled)
+            globalMap.Enable();
     }
+
 
 }

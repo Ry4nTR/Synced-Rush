@@ -4968,7 +4968,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 6682496564423701245}
         m_TargetAssemblyTypeName: JoinMatchPanelController, Assembly-CSharp
-        m_MethodName: OnJoinPressed
+        m_MethodName: OnIPJoinPressed
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -10423,9 +10423,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CreateMatchPanelController
   playerNameInput: {fileID: 1813897248}
+  lobbyNameInput: {fileID: 956474934184561802}
   gamemodeDropdown: {fileID: 7509706502075451899}
   mapDropdown: {fileID: 4543229788321207759}
-  lobbyNameInput: {fileID: 956474934184561802}
   lobbyManager: {fileID: 111421191}
   uiManager: {fileID: 5582182046221182523}
   gamemodes:

@@ -5,10 +5,9 @@ public class CreateMatchPanelController : MonoBehaviour
 {
     [Header("Inputs")]
     [SerializeField] private TMP_InputField playerNameInput;
-    [SerializeField] private TMP_Dropdown gamemodeDropdown;
-    [SerializeField] private TMP_Dropdown mapDropdown;
     [SerializeField] private TMP_InputField lobbyNameInput;
-
+    [SerializeField] private TMP_Dropdown gamemodeDropdown;
+    [SerializeField] private TMP_Dropdown mapDropdown;  
 
     [Header("Refs")]
     [SerializeField] private LobbyManager lobbyManager;

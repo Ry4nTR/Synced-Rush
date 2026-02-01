@@ -195,6 +195,7 @@ GameObject:
   - component: {fileID: 7345408544588076399}
   - component: {fileID: -1213673637414683771}
   - component: {fileID: 3812799252896454869}
+  - component: {fileID: 4314794800417626439}
   m_Layer: 6
   m_Name: Character
   m_TagString: Untagged
@@ -426,8 +427,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkPlayerInput
   ShowTopMostFoldoutHeaderGroup: 1
-  debugServerInputBuffer: 0
-  debugClientSend: 0
 --- !u!114 &-2986967647247276543
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -452,6 +451,7 @@ MonoBehaviour:
   remoteLerpTime: 0.08
   reconciliationSnapDistance: 10
   reconciliationSmoothing: 12
+  highSpeedSnapDistance: 10
   serverMaxStepsPerFrame: 6
 --- !u!114 &245510072461140579
 MonoBehaviour:
@@ -585,6 +585,28 @@ CharacterController:
   m_SkinWidth: 0.01
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0.87, z: 0}
+--- !u!114 &4314794800417626439
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2338101018676570622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85478cdc9cb52674ca30640f3963cc88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ServerGhostRuntimeDebug
+  movement: {fileID: 0}
+  playerInput: {fileID: 0}
+  debugActionName: DebugServerPlayer
+  enabledByDefault: 0
+  drawLine: 1
+  lineWidth: 0.02
+  lineColor: {r: 1, g: 0, b: 0, a: 1}
+  lineMinDistance: 0.05
+  drawCapsule: 1
+  capsuleColor: {r: 1, g: 0, b: 0, a: 0.25}
 --- !u!1 &3021046638070524493
 GameObject:
   m_ObjectHideFlags: 0
