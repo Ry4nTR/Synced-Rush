@@ -1,6 +1,7 @@
 ﻿using SyncedRush.Character.Movement;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.TextCore.Text;
 
 namespace SyncedRush.Character.Movement
 {
@@ -16,12 +17,30 @@ namespace SyncedRush.Character.Movement
 [RequireComponent(typeof(CharacterMovementFSM))]
 public class MovementController : NetworkBehaviour
 {
+    // =========================
+    // Inspector
+    // =========================
     [SerializeField] private MovementData _characterStats;
     [SerializeField] private GameObject _orientation;
     [SerializeField] private Transform _cameraTransform;
     [SerializeField] private LayerMask _groundLayerMask;
     [SerializeField] private GameObject _hook;
 
+    [Header("References")]
+    [SerializeField] private Transform _visualRoot;
+
+    [Header("Networking")]
+    [SerializeField] private float remoteLerpTime = 0.08f; // smooth remote movement
+    [SerializeField] private float reconciliationSnapDistance = 0.75f;
+    [SerializeField] private float reconciliationSmoothing = 12f;
+    [SerializeField] private float highSpeedSnapDistance = 10f;
+
+    [Header("Server Simulation")]
+    [SerializeField] private int serverMaxStepsPerFrame = 12; // catch-up budget
+
+    // =========================
+    // Components / Systems (cached)
+    // =========================
     private CharacterController _characterController;
     //private CharacterStats _characterStats;
     private CharacterMovementFSM _characterFSM;
@@ -31,63 +50,66 @@ public class MovementController : NetworkBehaviour
     private PlayerAnimationController _animController;
     private LookController _lookController;
 
-    // Variabile di rete che memorizza la posizione autoritativa del server.
+    // =========================
+    // Netcode State
+    // =========================
     private NetworkVariable<Vector3> _serverPosition = new NetworkVariable<Vector3>();
 
-    // Numero di sequenza dell'ultimo input processato dal server.
+    private readonly NetworkVariable<Vector2> _serverHorizontalVel = new(writePerm: NetworkVariableWritePermission.Server);
+    private readonly NetworkVariable<float> _serverVerticalVel = new(writePerm: NetworkVariableWritePermission.Server);
+
     private NetworkVariable<int> _lastProcessedSequence = new NetworkVariable<int>();
 
-    // Local yaw accumulator used on the owning client.  This stores the current yaw angle in degrees.
-    private float _yawAngle;
-    private int _lastProcessedGrappleAbilityCount = -1;
-
-    // Server authoritative yaw value.  The server writes this value and all clients read it.
     private NetworkVariable<float> _serverYaw = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
-    private NetworkVariable<CharacterAbility> _syncedAbility =
-    new NetworkVariable<CharacterAbility>(
-        CharacterAbility.None,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server
-    );
+    private NetworkVariable<CharacterAbility> _syncedAbility = new NetworkVariable<CharacterAbility>(
+            CharacterAbility.None,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server
+        );
 
     private NetworkVariable<float> _serverJetpackCharge = new(0f);
     private NetworkVariable<bool> _serverUsingJetpack = new(false);
 
-    [Header("References")]
-    [SerializeField] private Transform _visualRoot;
+    private NetworkVariable<GrappleNetState> _serverGrappleState = new(new GrappleNetState(), NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
+    // =========================
+    // Runtime State
+    // =========================
+    // Local yaw accumulator used on the owning client.  This stores the current yaw angle in degrees.
+    private float _yawAngle;
     private bool _ownerHasInitialServerPos;
 
-    [Header("Networking")]
-    [SerializeField] private float remoteLerpTime = 0.08f; // smooth remote movement
-    [SerializeField] private float reconciliationSnapDistance = 0.75f;
-    [SerializeField] private float reconciliationSmoothing = 12f;
+    private RaycastHit _groundInfo;
 
-    [Header("Server Simulation")]
-    [SerializeField] private int serverMaxStepsPerFrame = 12; // catch-up budget
+    private int _lastJumpCount = -1;
 
+    private GrappleNetState LocalGrappleState;
+    private bool _pendingDetachRequest;
 
     // Runtime (no inspector noise)
     private Vector3 _remoteFrom;
     private Vector3 _remoteTo;
     private float _remoteT;
 
-    private RaycastHit _groundInfo;
-
-    private int _lastJumpCount = -1;
-    private int _lastAbilityCount = -1;
-
+    // =========================
+    // Tick Flags
+    // =========================
     public bool JumpPressedThisTick { get; private set; }
-    public bool AbilityPressedThisTick { get; private set; }
 
+    // =========================
+    // Velocity (simulation-facing)
+    // =========================
     /// <summary>
     /// Vettore di movimento orizzontale del character.
     /// </summary>
     public Vector2 HorizontalVelocity { get; set; }
+
     /// <summary>
     /// Valore di movimento verticale del character.
     /// </summary>
     public float VerticalVelocity { get; set; }
+
     /// <summary>
     /// Vettore di movimento tridimensionale del character. Indica lo spostamento orizzontale e verticale.<br/>
     /// Internamente la velocity rimane comunque divisa fra <seealso cref="HorizontalVelocity"/> e <seealso cref="VerticalVelocity"/>.
@@ -105,29 +127,52 @@ public class MovementController : NetworkBehaviour
         }
     }
 
+    // =========================
+    // Core Accessors
+    // =========================
     public CharacterController Controller => _characterController;
     public MovementData Stats => _characterStats;
     public AbilityProcessor Ability => _ability;
     public GameObject Orientation => _orientation;
     public LayerMask LayerMask => _groundLayerMask;
     public MovementState State => _characterFSM.CurrentStateEnum;
+
+    public GrappleNetState GrappleForSim
+    {
+        get
+        {
+            // Server always trusts itself.
+            if (IsServer) return _serverGrappleState.Value;
+
+            // Owner trusts its local prediction (FSM output).
+            if (IsOwner) return LocalGrappleState;
+
+            // Proxies (other clients) must trust the server's replicated var.
+            return _serverGrappleState.Value;
+        }
+    }
+
     public bool IsOnGround { get; private set; }
+
     /// <summary>
     /// Posizione centrale della capsula del character in world space
     /// </summary>
     public Vector3 CenterPosition => _characterController.transform.position + _characterController.center;
+
     public Vector3 CameraPosition => _cameraTransform.position;
-    public GameplayInputData InputData => _netInput.ServerInput;
+
+    public SimulationTickData InputData => _netInput.ServerInput;
+
     public PlayerInputHandler LocalInputHandler => _inputHandler;
     public PlayerAnimationController AnimController => _animController;
+
+    // Input / Movement Directions
     public Vector2 MoveInputDirection
     {
         get
         {
             Vector2 input = CurrentInput.Move;
-
             input.Normalize();
-
             return input;
         }
     }
@@ -138,7 +183,6 @@ public class MovementController : NetworkBehaviour
         {
             Vector2 input = LocalInputHandler.Move;
             input.Normalize();
-
             return input;
         }
     }
@@ -147,7 +191,7 @@ public class MovementController : NetworkBehaviour
     {
         get
         {
-            GameplayInputData input = CurrentInput;
+            SimulationTickData input = CurrentInput;
 
             Vector3 motion =
                 Orientation.transform.forward * input.Move.y +
@@ -175,23 +219,21 @@ public class MovementController : NetworkBehaviour
         }
     }
 
-    public GameplayInputData CurrentInput
+    public SimulationTickData CurrentInput
     {
         get
         {
-            // Server always uses authoritative input
-            if (IsServer)
-                return _netInput.ServerInput;
-
-            // Owner client uses predicted local input (the one generated this tick)
             if (IsOwner)
                 return _netInput.LocalPredictedInput;
 
-            // Remote clients: not used for simulation
+            if (IsServer)
+                return _netInput.ServerInput;
+
             return _netInput.ServerInput;
         }
     }
 
+    // Aim / Look
     public Vector3 AimDirection
     {
         get
@@ -204,6 +246,9 @@ public class MovementController : NetworkBehaviour
 
     public Vector3 LookDirection => _cameraTransform.forward;
 
+
+
+
     // Lista di proprietà messe "nel posto sbagliato"
 
     // Non trovo un modo per passare questo parametro dall'AirState al WallRunState senza refactorare la state machine
@@ -212,6 +257,8 @@ public class MovementController : NetworkBehaviour
     /// </summary>
     public bool HasWallRunStartInfo { get; set; }
     public RaycastHit WallRunStartInfo { get; set; }
+
+
 
     public override void OnNetworkSpawn()
     {
@@ -236,6 +283,9 @@ public class MovementController : NetworkBehaviour
             // If host, initialize yaw too (optional but good)
             if (_lookController != null)
                 _yawAngle = _lookController.SimYaw;
+
+            _serverHorizontalVel.Value = HorizontalVelocity;
+            _serverVerticalVel.Value = VerticalVelocity;
         }
 
         // Ability sync hook
@@ -270,6 +320,331 @@ public class MovementController : NetworkBehaviour
         CleanupHook();
     }
 
+    private void Awake()
+    {
+        if (_characterController == null)
+            _characterController = GetComponent<CharacterController>();
+
+        //if (_characterStats == null)
+        //    _characterStats = GetComponent<CharacterStats>();
+
+        if (_characterFSM == null)
+            _characterFSM = GetComponent<CharacterMovementFSM>();
+
+        if (_netInput == null)
+            _netInput = GetComponent<NetworkPlayerInput>();
+
+        if (_inputHandler == null)
+            _inputHandler = GetComponent<PlayerInputHandler>();
+
+        if (_animController == null)
+            _animController = GetComponent<PlayerAnimationController>();
+
+        if (_lookController == null)
+            _lookController = GetComponentInChildren<LookController>();
+
+        // Spawn the grapple hook & assign to ability processor
+        HookController hookCtrl = SpawnHook();
+        _ability = new(this, hookCtrl);
+    }
+
+    // -------------------------
+    // Update (visuals, interpolation)
+    // -------------------------
+    private void Update()
+    {
+        if (!IsSpawned)
+            return;
+
+        // -------------------------
+        // REMOTE CLIENT: interpolate
+        // -------------------------
+        if (!IsOwner && !IsServer)
+        {
+            if (_orientation != null)
+                _orientation.transform.rotation = Quaternion.Euler(0f, _serverYaw.Value, 0f);
+
+            _remoteT += Time.deltaTime / Mathf.Max(0.001f, remoteLerpTime);
+            float lerpFactor = Mathf.Clamp01(_remoteT);
+            transform.position = Vector3.Lerp(_remoteFrom, _remoteTo, lerpFactor);
+
+            // Remote clients should never have reconciliation offset
+            if (_visualRoot != null && _visualRoot.localPosition != Vector3.zero)
+                _visualRoot.localPosition = Vector3.zero;
+        }
+
+        // -------------------------
+        // VISUALS LAST
+        // -------------------------
+        RenderGrappleVisual();
+
+#if UNITY_EDITOR
+        // Optional: only draw debug on owner (otherwise it's confusing)
+        if (IsOwner)
+        {
+            Vector3 authoritative = _serverPosition.Value;
+            Vector3 predicted = transform.position;
+            Debug.DrawLine(predicted, predicted + Vector3.up * 0.5f, Color.green);
+            Debug.DrawLine(authoritative, authoritative + Vector3.up * 0.5f, Color.red);
+            Debug.DrawLine(predicted, authoritative, Color.magenta);
+        }
+#endif
+
+#if UNITY_EDITOR
+        var s = _serverGrappleState.Value;
+        if (s.Phase != GrapplePhase.None)
+        {
+            Debug.DrawLine(s.Origin, s.TipPosition, Color.cyan);
+            if (s.Phase == GrapplePhase.Hooked)
+                Debug.DrawLine(s.HookPoint, s.HookPoint + Vector3.up * 0.5f, Color.yellow);
+        }
+#endif
+    }
+
+    // -------------------------
+    // FixedUpdate (simulation)
+    // -------------------------
+    private void FixedUpdate()
+    {
+        if (!IsSpawned) return;
+
+        if (IsOwner) SimulateOwnerTick();
+        if (IsServer) PublishServerState(); // Now publishes velocity too
+        if (IsServer && !IsOwner) SimulateServerRemoteTick();
+    }
+
+    // Simulation: Owner Prediction
+    private void SimulateOwnerTick()
+    {
+        // ===== Aim / orientation (sim-relevant yaw) =====
+        ApplyAimYaw(CurrentInput.AimYaw);
+
+        // ===== Pre-sim: ground, grapple, discrete edges =====
+        PreSim();
+
+        // ===== Pre-FSM: dash/grapple request must happen BEFORE FSM =====
+        TickDashRequest(CurrentInput);
+        TickGrappleRequest(CurrentInput);
+
+        _characterFSM.ProcessUpdate();
+
+        // ===== Ability sims that depend on ctx/state =====
+        TickJetpack(CurrentInput);
+
+        Ability.ProcessUpdate();
+
+        // ===== Owner-only: clamp jetpack charge from server =====
+        if (!IsServer)
+        {
+            Ability.JetpackCharge = Mathf.Min(Ability.JetpackCharge, _serverJetpackCharge.Value);
+            if (Ability.JetpackCharge <= 0f)
+                Ability.StopJetpack();
+        }
+
+        // ===== Reconciliation =====
+        _netInput.ConfirmInputUpTo(_lastProcessedSequence.Value);
+        if (!_ownerHasInitialServerPos)
+            return;
+
+        ReconcileOwnerToServer();
+    }
+
+    // Simulation: Server Remote Players
+    private void SimulateServerRemoteTick()
+    {
+        int steps = 0;
+        int lastSeqProcessed = _lastProcessedSequence.Value;
+
+        while (steps < serverMaxStepsPerFrame && _netInput.TryConsumeNextServerInput(out var nextInput))
+        {
+            _netInput.ServerSetCurrentInput(nextInput);
+
+            // ===== Aim / orientation =====
+            _serverYaw.Value = nextInput.AimYaw;
+            ApplyAimYaw(nextInput.AimYaw);
+
+            // ===== Pre-sim =====
+            PreSim();
+
+            // ===== Pre-FSM (FIX): dash request BEFORE FSM =====
+            TickDashRequest(nextInput);
+            TickGrappleRequest(nextInput);
+
+            _characterFSM.ProcessUpdate();
+
+            // ===== Ability sims =====
+            TickJetpack(nextInput);
+
+            Ability.ProcessUpdate();
+
+            // ===== Publish server-side ability state =====
+            _serverJetpackCharge.Value = Ability.JetpackCharge;
+            _serverUsingJetpack.Value = Ability.UsingJetpack;
+
+            lastSeqProcessed = nextInput.Sequence;
+            steps++;
+        }
+
+        _lastProcessedSequence.Value = lastSeqProcessed;
+    }
+
+    // Server publishes authoritative state
+    private void PublishServerState()
+    {
+        if (!IsServer) return;
+
+        _serverPosition.Value = transform.position;
+        _serverHorizontalVel.Value = HorizontalVelocity;
+        _serverVerticalVel.Value = VerticalVelocity;
+
+        if (IsOwner)
+        {
+            _serverJetpackCharge.Value = Ability.JetpackCharge;
+            _serverUsingJetpack.Value = Ability.UsingJetpack;
+            _serverYaw.Value = _yawAngle;
+        }
+    }
+
+    // Owner reconciliation against server authoritative position
+    private void ReconcileOwnerToServer()
+    {
+        if (!IsOwner) return;
+
+        Vector3 authPos = _serverPosition.Value;
+        float dist = Vector3.Distance(transform.position, authPos);
+
+        if (ShouldHardSnap(dist))
+        {
+            HardSnapToServer(authPos);
+            return;
+        }
+
+        ApplySoftVisualCorrection(authPos);
+
+        // Only correct velocity when server is caught up (no pending inputs),
+        // otherwise you stomp predicted impulses (jump/dash/grapple).
+        if (_netInput.PendingInputs.Count == 0)
+            ApplyVelocityCorrection();
+    }
+
+    private bool ShouldHardSnap(float dist)
+    {
+        bool highSpeed = State == MovementState.Dash || State == MovementState.GrappleHook;
+        float snapDist = highSpeed ? highSpeedSnapDistance : reconciliationSnapDistance;
+        return dist > snapDist;
+    }
+    private void HardSnapToServer(Vector3 authPos)
+    {
+        transform.position = authPos;
+
+        if (_visualRoot != null)
+            _visualRoot.localPosition = Vector3.zero;
+
+        // After a hard snap, trust server velocity even if we have pending inputs,
+        // because our local sim is invalidated.
+        HorizontalVelocity = _serverHorizontalVel.Value;
+        VerticalVelocity = _serverVerticalVel.Value;
+
+        // Keep grapple state consistent too.
+        LocalGrappleState = _serverGrappleState.Value;
+    }
+    private void ApplySoftVisualCorrection(Vector3 authPos)
+    {
+        if (_visualRoot == null) return;
+
+        // Visual-only smoothing to avoid rubber banding the capsule/controller.
+        Vector3 offsetWorld = authPos - transform.position;
+        Vector3 offsetLocal = _visualRoot.parent.InverseTransformVector(offsetWorld);
+
+        float t = 1f - Mathf.Exp(-reconciliationSmoothing * Time.fixedDeltaTime);
+        _visualRoot.localPosition = Vector3.Lerp(_visualRoot.localPosition, offsetLocal, t);
+    }
+    private void ApplyVelocityCorrection()
+    {
+        Vector2 authH = _serverHorizontalVel.Value;
+        float authV = _serverVerticalVel.Value;
+
+        // Use ONE set of thresholds (no duplicate snapping blocks).
+        const float hVelEps = 0.1f;
+        const float vVelEps = 0.1f;
+
+        if (Vector2.Distance(HorizontalVelocity, authH) > hVelEps)
+            HorizontalVelocity = authH;
+
+        if (Mathf.Abs(VerticalVelocity - authV) > vVelEps)
+            VerticalVelocity = authV;
+    }
+
+
+    // -------------------------
+    // Tick Phases (HELPER METHODS)
+    // -------------------------
+    private void ApplyAimYaw(float yaw)
+    {
+        _yawAngle = yaw;
+
+        if (_orientation == null)
+            return;
+
+        _orientation.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+    }
+
+    private void PreSim()
+    {
+        CheckGround();
+        UpdateDiscretePresses();
+    }
+
+    private void TickDashRequest(SimulationTickData input)
+    {
+        Ability.DashSim.Tick(this, Ability, input);
+
+        if (Ability.DashSim.WantsDashThisTick && State != MovementState.Dash)
+        {
+            _characterFSM.ChangeState(MovementState.Dash, false, false, true);
+        }
+    }
+
+    private void TickJetpack(SimulationTickData input)
+    {
+        var ctx = new SimContext(IsOnGround, _characterFSM.CurrentStateEnum, _characterFSM.PreviousStateEnum);
+        Ability.JetpackSim.Tick(this, Ability, input, ctx);
+    }
+
+    private void TickGrappleRequest(SimulationTickData input)
+    {
+        // 1. Run the Sim logic (determines if the button was clicked this tick)
+        Ability.GrappleSim.Tick(this, Ability, input);
+
+        // 2. If it's a toggle click, let the FSM handle the transition
+        if (Ability.GrappleSim.WantsToggleThisTick)
+        {
+            if (State == MovementState.GrappleHook)
+                _characterFSM.ChangeState(MovementState.Air);
+            else
+                _characterFSM.ChangeState(MovementState.GrappleHook);
+        }
+    }
+
+    // -------------------------
+    // Network spawn/despawn helpers
+    // -------------------------
+    private HookController SpawnHook()
+    {
+        if (_hook == null)
+        {
+            Debug.LogError("Hook prefab is not set on the Character! (null reference)");
+            return null;
+        }
+
+        var instance = Instantiate(_hook);
+        instance.transform.localPosition = Vector3.zero;
+        instance.transform.localRotation = Quaternion.identity;
+
+        _hook = instance;
+
+        return instance.GetComponent<HookController>();
+    }
     private void CleanupHook()
     {
         if (_hook == null)
@@ -343,341 +718,22 @@ public class MovementController : NetworkBehaviour
     }
 
     // Called when the authoritative yaw value changes on the server.
-    private void OnServerYawChanged(float oldYaw, float newYaw) 
+    private void OnServerYawChanged(float oldYaw, float newYaw)
     {
         // Owner + Server handle their yaw locally
         if (IsOwner || IsServer)
             return;
 
+        float before = _orientation != null ? _orientation.transform.eulerAngles.y : float.NaN;
+
         // Orientation MUST be BodyYaw (rotate body only)
         if (_orientation != null)
-            _orientation.transform.localRotation = Quaternion.Euler(0f, newYaw, 0f);
+            _orientation.transform.rotation = Quaternion.Euler(0f, newYaw, 0f);
     }
 
-    private void Awake()
-    {
-        if (_characterController == null)
-            _characterController = GetComponent<CharacterController>();
-
-        //if (_characterStats == null)
-        //    _characterStats = GetComponent<CharacterStats>();
-
-        if (_characterFSM == null)
-            _characterFSM = GetComponent<CharacterMovementFSM>();
-
-        if (_netInput == null)
-            _netInput = GetComponent<NetworkPlayerInput>();
-
-        if (_inputHandler == null)
-            _inputHandler = GetComponent<PlayerInputHandler>();
-
-        if (_animController == null)
-            _animController = GetComponent<PlayerAnimationController>();
-
-        if (_lookController == null)
-            _lookController = GetComponentInChildren<LookController>();
-
-        // Spawn the grapple hook
-        HookController hookCtrl = null;
-        if (_hook != null)
-        {
-            var parent = transform;
-            var instance = Instantiate(_hook);
-            instance.transform.localPosition = Vector3.zero;
-            instance.transform.localRotation = Quaternion.identity;
-            _hook = instance;
-            hookCtrl = instance.GetComponent<HookController>();
-        }
-        else
-        {
-            Debug.LogError("Non è stato settato il prefab dell'hook sul Character! (null reference)");
-        }
-
-        _ability = new(this, hookCtrl);
-
-        Debug.Log(
-          $"[STATS {(IsServer ? "SV" : "CL")}] " +
-          $"JetDrain={Stats.JetpackDrain} JetAcc={Stats.JetpackAcceleration} " +
-          $"JetMax={Stats.JetpackMaxCharge} JetRech={Stats.JetpackRecharge} " +
-          $"Grav={Stats.Gravity} FixedDT={Time.fixedDeltaTime}"
-        );
-
-    }
-
-
-#if UNITY_EDITOR
-    [SerializeField] private bool debugDeterminism = true;
-    [SerializeField] private int debugDeterminismEveryNSeq = 10;
-
-    // -1 = log all players
-    // 0 = host player
-    // 1 = client player
-    [SerializeField] private int debugTargetOwnerClientId = -1;
-
-    private MovementState _dbgLastState = MovementState.None;
-#endif
-
-
-#if UNITY_EDITOR
-    private void DebugDeterminismLog(string role, GameplayInputData inp)
-    {
-        if (!debugDeterminism) return;
-
-        bool stateChanged = (State != _dbgLastState);
-        bool everyN = (debugDeterminismEveryNSeq > 0) && (inp.Sequence % debugDeterminismEveryNSeq == 0);
-        if (!stateChanged && !everyN) return;
-
-        _dbgLastState = State;
-
-        var no = GetComponent<Unity.Netcode.NetworkObject>();
-        ulong ownerId = no != null ? no.OwnerClientId : 9999;
-        ulong netId = no != null ? no.NetworkObjectId : 9999;
-
-        if (no != null && debugTargetOwnerClientId >= 0 && no.OwnerClientId != (ulong)debugTargetOwnerClientId)
-            return;
-
-        Vector3 pos = transform.position;
-        Vector2 hv = HorizontalVelocity;
-        float vv = VerticalVelocity;
-
-        Debug.Log(
-            $"[DET {role}] netId={netId} owner={ownerId} isS={(IsServer ? 1 : 0)} isO={(IsOwner ? 1 : 0)} " +
-            $"seq={inp.Sequence} st={State} gnd={(IsOnGround ? 1 : 0)} " +
-            $" jet={(inp.JetHeld ? 1 : 0)} jetUsing={(Ability.UsingJetpack ? 1 : 0)} jetCh={Ability.JetpackCharge:F2}" +
-            $"pos=({pos.x:F3},{pos.y:F3},{pos.z:F3}) " +
-            $"hV=({hv.x:F3},{hv.y:F3}) vV={vv:F3} " +
-            $"move=({inp.Move.x:F2},{inp.Move.y:F2}) spr={(inp.Sprint ? 1 : 0)} cr={(inp.Crouch ? 1 : 0)} " +
-            $"jCnt={inp.JumpCount}" +
-            $"aimYaw={inp.AimYaw:F2} aimPitch={inp.AimPitch:F2}"
-        );
-    }
-#endif
-
-#if UNITY_EDITOR
-    [SerializeField] private bool dbgSimSig = true;
-    [SerializeField] private int dbgEveryNSeq = 5;
-
-    private void DebugSimSignature(string role, GameplayInputData inp)
-    {
-        if (!dbgSimSig) return;
-
-        bool stateChanged = State != _dbgLastState;
-        bool everyN = dbgEveryNSeq > 0 && (inp.Sequence % dbgEveryNSeq == 0);
-        if (!stateChanged && !everyN) return;
-
-        _dbgLastState = State;
-
-        var no = GetComponent<Unity.Netcode.NetworkObject>();
-        ulong ownerId = no != null ? no.OwnerClientId : 9999;
-        ulong netId = no != null ? no.NetworkObjectId : 9999;
-
-        Vector3 p = transform.position;
-        Vector2 hv = HorizontalVelocity;
-        float vv = VerticalVelocity;
-
-        // If you added server-authoritative jetpack fields, include them too:
-        float srvJetCh = 0f;
-        bool srvJetUsing = false;
-        if (_serverJetpackCharge != null) srvJetCh = _serverJetpackCharge.Value;
-        if (_serverUsingJetpack != null) srvJetUsing = _serverUsingJetpack.Value;
-
-        Debug.Log(
-            $"[SIG {role}] netId={netId} owner={ownerId} " +
-            $"seq={inp.Sequence} dt={Time.fixedDeltaTime:F4} " +
-            $"st={State} gnd={(IsOnGround ? 1 : 0)} " +
-            $"pos=({p.x:F2},{p.y:F2},{p.z:F2}) " +
-            $"hV=({hv.x:F2},{hv.y:F2}) vV={vv:F2} " +
-            $"move=({inp.Move.x:F2},{inp.Move.y:F2}) " +
-            $"jCnt={inp.JumpCount} abCnt={inp.AbilityCount} jetCnt={inp.JetpackCount} jetHeld={(inp.JetHeld ? 1 : 0)} " +
-            $"jetUsing={(Ability.UsingJetpack ? 1 : 0)} jetCh={Ability.JetpackCharge:F1} " +
-            $"srvJetUsing={(srvJetUsing ? 1 : 0)} srvJetCh={srvJetCh:F1}"
-        );
-    }
-#endif
-
-
-    private void FixedUpdate()
-    {
-        if (!IsSpawned)
-            return;
-
-        // -------------------------
-        // SERVER: authoritative sim
-        // -------------------------
-        if (IsServer)
-        {
-            int steps = 0;
-            int lastSeqProcessed = _lastProcessedSequence.Value;
-
-            // Catch-up: process multiple queued inputs this FixedUpdate (bounded)
-            while (steps < serverMaxStepsPerFrame && _netInput.TryConsumeNextServerInput(out var nextInput))
-            {
-                _netInput.ServerSetCurrentInput(nextInput);
-
-                _serverYaw.Value = nextInput.AimYaw;
-
-                if (_orientation != null)
-                    _orientation.transform.localRotation = Quaternion.Euler(0f, nextInput.AimYaw, 0f);
-                
-                CheckGround();
-                GrappleHookAbility();
-                UpdateDiscretePresses();
-                _characterFSM.ProcessUpdate();
-                Ability.ProcessUpdate();
-
-#if UNITY_EDITOR
-                //DebugSimSignature("SV", nextInput);
-#endif
-
-                _serverJetpackCharge.Value = Ability.JetpackCharge;
-                _serverUsingJetpack.Value = Ability.UsingJetpack;
-
-                //DebugDeterminismLog("SV", nextInput);
-
-                lastSeqProcessed = nextInput.Sequence;
-                steps++;
-            }
-
-            /*
-            #if UNITY_EDITOR
-            Debug.Log($"[SERVER SIM] steps={steps} ackBefore={_lastProcessedSequence.Value} ackAfter={lastSeqProcessed} buffered={_netInput.ServerBufferedCount} nextExpected={_netInput.ServerNextExpected}");
-            #endif
-            */
-
-            _serverPosition.Value = transform.position;
-            _lastProcessedSequence.Value = lastSeqProcessed;
-
-            return;
-        }
-
-        // --------------------------------
-        // OWNER: prediction + reconciliation
-        // --------------------------------
-        if (IsOwner)
-        {
-            // Use yaw from LookController (unwrapped, includes sensitivity)
-            if (_lookController != null)
-                _yawAngle = _lookController.SimYaw;
-
-            // Rotate body yaw (Orientation == BodyYaw)
-            if (_orientation != null)
-                _orientation.transform.localRotation = Quaternion.Euler(0f, _yawAngle, 0f);
-
-            // Simulate locally
-            CheckGround();
-            GrappleHookAbility();
-            UpdateDiscretePresses();
-            _characterFSM.ProcessUpdate();
-            Ability.ProcessUpdate();
-
-#if UNITY_EDITOR
-            //DebugSimSignature("CL", CurrentInput);
-#endif
-
-
-            Ability.JetpackCharge = _serverJetpackCharge.Value;
-            Ability.ForceUsingJetpack(_serverUsingJetpack.Value);
-
-            //DebugDeterminismLog("CL", CurrentInput);
-
-            // Drop acked inputs
-            _netInput.ConfirmInputUpTo(_lastProcessedSequence.Value);
-
-            if (!_ownerHasInitialServerPos)
-                return;
-
-            // Reconcile
-            Vector3 authoritative = _serverPosition.Value;
-            Vector3 predicted = transform.position;
-
-            Vector3 offsetWorld = authoritative - predicted;
-            float dist = offsetWorld.magnitude;
-
-            bool highSpeed =
-                State == MovementState.Dash ||
-                (Ability.CurrentAbility == CharacterAbility.Jetpack && Ability.UsingJetpack);
-
-            float snapDist = highSpeed ? 10f : reconciliationSnapDistance;
-
-            if (dist > snapDist)
-            {
-                Debug.LogWarning($"[RECON SNAP] dist={dist:F3} snapDist={snapDist:F3} server={authoritative} client={predicted} seqAck={_lastProcessedSequence.Value}");
-                transform.position = authoritative;
-                if (_visualRoot != null)
-                    _visualRoot.localPosition = Vector3.zero;
-            }
-            else
-            {
-                //Debug.Log($"[RECON] dist={dist:F3} offsetLocal={(_visualRoot != null ? _visualRoot.localPosition : Vector3.zero)} ack={_lastProcessedSequence.Value}");
-                if (_visualRoot != null)
-                {
-                    // VisualRoot parent is non-rotating in your new hierarchy, but keep safe conversion
-                    Vector3 offsetLocal = offsetWorld;
-                    if (_visualRoot.parent != null)
-                        offsetLocal = _visualRoot.parent.InverseTransformVector(offsetWorld);
-
-                    float t = 1f - Mathf.Exp(-reconciliationSmoothing * Time.fixedDeltaTime);
-                    _visualRoot.localPosition = Vector3.Lerp(_visualRoot.localPosition, offsetLocal, t);
-                }
-            }
-
-            #if UNITY_EDITOR
-            Debug.DrawRay(transform.position, TotalVelocity * 0.1f, Color.cyan, Time.fixedDeltaTime);
-            Debug.DrawRay(transform.position, MoveDirection * 1.0f, Color.yellow, Time.fixedDeltaTime);
-            #endif
-
-
-            return;
-        }
-    }
-
-    private float _nextVisLogTime;
-
-    private void Update()
-    {
-        if (!IsSpawned)
-            return;
-
-        // Remote clients should never have reconciliation offset
-        if (!IsOwner && !IsServer && _visualRoot != null && _visualRoot.localPosition != Vector3.zero)
-            _visualRoot.localPosition = Vector3.zero;
-
-        // -------------------------
-        // REMOTE CLIENT: interpolate
-        // -------------------------
-        if (!IsOwner && !IsServer)
-        {
-            // Apply authoritative yaw to body yaw (Orientation == BodyYaw)
-            if (_orientation != null)
-                _orientation.transform.localRotation = Quaternion.Euler(0f, _serverYaw.Value, 0f);
-
-            // Smooth position between server updates (render-time interpolation)
-            _remoteT += Time.deltaTime / Mathf.Max(0.001f, remoteLerpTime);
-            float lerpFactor = Mathf.Clamp01(_remoteT);
-
-            transform.position = Vector3.Lerp(_remoteFrom, _remoteTo, lerpFactor);
-        }
-
-#if UNITY_EDITOR
-        // Optional: only draw debug on owner (otherwise it's confusing)
-        if (IsOwner)
-        {
-            Vector3 authoritative = _serverPosition.Value;
-            Vector3 predicted = transform.position;
-            Debug.DrawLine(predicted, predicted + Vector3.up * 0.5f, Color.green);
-            Debug.DrawLine(authoritative, authoritative + Vector3.up * 0.5f, Color.red);
-            Debug.DrawLine(predicted, authoritative, Color.magenta);
-        }
-#endif
-
-#if UNITY_EDITOR
-        if (IsOwner && _visualRoot != null && Time.unscaledTime >= _nextVisLogTime)
-        {
-            _nextVisLogTime = Time.unscaledTime + 0.25f; // 4 logs/sec
-        }
-#endif
-    }
-
+    // -------------------------
+    // Ground Check
+    // -------------------------
     public void CheckGround()
     {
         float skinWidth = _characterController.skinWidth;
@@ -708,51 +764,9 @@ public class MovementController : NetworkBehaviour
         return IsOnGround;
     }
 
-    private void GrappleHookAbility()
-    {
-        if (Ability.CurrentAbility != CharacterAbility.Grapple)
-            return;
-
-        // Initialize tracker once (safe on host/client)
-        if (_lastProcessedGrappleAbilityCount < 0)
-            _lastProcessedGrappleAbilityCount = CurrentInput.AbilityCount;
-
-        // Edge detect on AbilityCount (works even if bool edges are lost)
-        bool pressed = CurrentInput.AbilityCount > _lastProcessedGrappleAbilityCount;
-
-        if (CurrentInput.AbilityCount != _lastProcessedGrappleAbilityCount)
-            _lastProcessedGrappleAbilityCount = CurrentInput.AbilityCount;
-
-        if (pressed)
-        {
-            if (Ability.HookController.IsHooked || Ability.HookController.IsShooting)
-                Ability.HookController.Retreat();
-            else
-                Ability.HookController.Shoot(_cameraTransform.position, AimDirection, Stats.HookSpeed, Stats.HookMaxDistance);
-        }
-
-        if (Ability.HookController.IsHooked)
-        {
-            if (State != MovementState.GrappleHook)
-            {
-                _characterFSM.ChangeState(MovementState.GrappleHook, false, false, true);
-            }
-        }
-    }
-
-    private void OnControllerColliderHit(ControllerColliderHit hit)
-    {
-        _characterFSM.ProcessCollision(hit);
-    }
-
-    public void ChangeAbility(CharacterAbility newAbility)
-    {
-        if (IsOwner)
-        {
-            RequestSetAbilityServerRpc(newAbility);
-        }
-    }
-
+    // -------------------------
+    // Helper Methods
+    // -------------------------
     public bool ConsumeJumpPressedIfAllowed()
     {
         // only allow on ground
@@ -770,24 +784,79 @@ public class MovementController : NetworkBehaviour
     private void UpdateDiscretePresses()
     {
         JumpPressedThisTick = false;
-        AbilityPressedThisTick = false;
 
         int jumpCount = CurrentInput.JumpCount;
+
         if (_lastJumpCount < 0)
+        {
             _lastJumpCount = jumpCount;
+            return; // no edge on first tick
+        }
 
         if (jumpCount > _lastJumpCount)
+        {
             JumpPressedThisTick = true;
+        }
 
         _lastJumpCount = jumpCount;
+    }
 
-        int abilityCount = CurrentInput.AbilityCount;
-        if (_lastAbilityCount < 0)
-            _lastAbilityCount = abilityCount;
+    // -------------------------
+    // Helper Methods
+    // -------------------------
+    public void ChangeAbility(CharacterAbility newAbility)
+    {
+        if (IsOwner)
+        {
+            RequestSetAbilityServerRpc(newAbility);
+        }
+    }
 
-        if (abilityCount > _lastAbilityCount)
-            AbilityPressedThisTick = true;
 
-        _lastAbilityCount = abilityCount;
+
+
+
+
+
+
+    // TODO: move grapple tick logic to GrappleAbilitySim (ability pipeline), keep MovementController purely locomotion + sim orchestration.
+    private void RenderGrappleVisual()
+    {
+        if (Ability?.HookController == null) return;
+
+        // Use local state for owner (smooth), server state for others
+        var s = GrappleForSim;
+        bool active = s.Phase != GrapplePhase.None;
+
+        if (!active)
+        {
+            Ability.HookController.ApplyVisualState(false, Vector3.zero, Vector3.zero);
+            return;
+        }
+
+        // Use the predicted TipPosition so the rope follows the projectile perfectly
+        Ability.HookController.ApplyVisualState(true, CenterPosition, s.TipPosition);
+    }
+
+
+    // Called by FSM to update the data container
+    public void UpdateGrappleState(GrappleNetState newState)
+    {
+        if (IsServer) _serverGrappleState.Value = newState;
+        else LocalGrappleState = newState;
+    }
+
+    // Called by FSM when it detects a physical detach
+    public void QueueDetachRequest()
+    {
+        if (IsOwner) _pendingDetachRequest = true;
+    }
+
+    // Call this from your NetworkPlayerInput script when generating SimulationTickData
+    public bool ConsumeDetachRequest()
+    {
+        bool val = _pendingDetachRequest;
+        _pendingDetachRequest = false;
+        return val;
     }
 }

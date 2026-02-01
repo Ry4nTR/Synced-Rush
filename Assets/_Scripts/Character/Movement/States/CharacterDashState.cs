@@ -15,23 +15,11 @@ namespace SyncedRush.Character.Movement
         public override MovementState ProcessUpdate()
         {
             base.ProcessUpdate();
-     
-            /*
-            if (CheckGround())
-            {
-                return MovementState.Move;
-            }
-            */
-            
 
             if (_dashTimer <= 0f)
             {
-#if UNITY_EDITOR
-                Debug.Log($"[DASH END] reason=Timer netId={character.NetworkObjectId} ownerId={character.OwnerClientId} isServer={character.IsServer} isOwner={character.IsOwner} seq={Input.Sequence}");
-#endif
                 return MovementState.Air;
             }
-
 
             ProcessMovement();
 
@@ -47,6 +35,26 @@ namespace SyncedRush.Character.Movement
             _dashTimer = character.Stats.DashDuration;
 
             Vector3 dashDir = GetDashDirection();
+
+            // --- DASH DIR SIGNATURE (one-shot, deterministic) ---
+            float inputYaw = Input.AimYaw;
+            float inputPitch = Input.AimPitch;
+
+            float bodyYaw = character.Orientation != null
+                ? character.Orientation.transform.eulerAngles.y
+                : float.NaN;
+
+            float deltaYaw = float.IsNaN(bodyYaw) ? float.NaN : Mathf.DeltaAngle(inputYaw, bodyYaw);
+
+            Vector3 look = (Quaternion.Euler(inputPitch, inputYaw, 0f) * Vector3.forward).normalized;
+            Vector3 lookFlat = Vector3.ProjectOnPlane(look, Vector3.up).normalized;
+
+            Vector3 bodyFwd = character.Orientation != null
+                ? Vector3.ProjectOnPlane(character.Orientation.transform.forward, Vector3.up).normalized
+                : Vector3.zero;
+
+            float dotLookVsBody = (lookFlat == Vector3.zero || bodyFwd == Vector3.zero) ? 0f : Vector3.Dot(lookFlat, bodyFwd);
+
             Vector3 velocityDir = character.TotalVelocity.normalized;
             float speed = character.TotalVelocity.magnitude;
 
@@ -70,35 +78,26 @@ namespace SyncedRush.Character.Movement
 
         private Vector3 GetDashDirection()
         {
-            // OLD BEHAVIOR:
-            // - Server uses the server-simulated input direction
-            // - Owner client uses the local input direction (what the player actually pressed)
-            Vector2 inputDir = (character.IsServer || character.LocalInputHandler == null)
-                ? character.MoveInputDirection
-                : character.LocalMoveInputDirection;
+            Vector2 move = Input.Move;
 
-            inputDir.Normalize();
+            float ax = Mathf.Abs(move.x);
+            float ay = Mathf.Abs(move.y);
 
-            Vector3 dir = Vector3.zero;
+            float yaw = Input.AimYaw;
+            float pitch = Input.AimPitch;
 
-            // Left/Right (relative to orientation)
-            if (!Mathf.Approximately(inputDir.x, 0f))
-            {
-                dir += character.Orientation.transform.right * inputDir.x;
-            }
+            Vector3 look = (Quaternion.Euler(pitch, yaw, 0f) * Vector3.forward).normalized;
+            Vector3 right = (Quaternion.Euler(0f, yaw, 0f) * Vector3.right).normalized;
 
-            // Forward/Back
-            // If there's no forward/back input, use LookDirection to preserve "dash where you're looking"
-            if (!Mathf.Approximately(inputDir.y, 0f))
-            {
-                dir += character.LookDirection.normalized * inputDir.y;
-            }
-            else
-            {
-                dir += character.LookDirection.normalized;
-            }
+            const float dead = 0.2f;
 
-            return dir.sqrMagnitude > 0.0001f ? dir.normalized : character.LookDirection.normalized;
+            if (ax < dead && ay < dead)
+                return look;
+
+            if (ax > ay)
+                return (move.x >= 0f ? right : -right);
+
+            return (move.y >= 0f ? look : -look);
         }
     }
 }

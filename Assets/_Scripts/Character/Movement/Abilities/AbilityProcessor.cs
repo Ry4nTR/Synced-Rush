@@ -8,6 +8,15 @@ namespace SyncedRush.Character.Movement
 
         private CharacterAbility _currentAbility = CharacterAbility.None;
         private readonly HookController _hookController;
+        private readonly JetpackAbilitySim _jetpackSim = new JetpackAbilitySim();
+        private readonly DashAbilitySim _dashSim = new DashAbilitySim();
+        private readonly GrappleAbilitySim _grappleSim = new GrappleAbilitySim();
+
+
+        public JetpackAbilitySim JetpackSim => _jetpackSim;
+        public DashAbilitySim DashSim => _dashSim;
+        public GrappleAbilitySim GrappleSim => _grappleSim;
+
 
         public CharacterAbility CurrentAbility { get => _currentAbility; set => _currentAbility = value; }
 
@@ -46,10 +55,6 @@ namespace SyncedRush.Character.Movement
         public void StopJetpack()
         {
             UsingJetpack = false;
-        }
-        public void ForceUsingJetpack(bool usingJetpack)
-        {
-            UsingJetpack = usingJetpack;
         }
 
         /// <summary>
