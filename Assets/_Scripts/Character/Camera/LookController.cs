@@ -33,6 +33,8 @@ public class LookController : NetworkBehaviour
     private float simYaw;
     private float simPitch;
 
+    private float localPitch;
+    private float localYaw;
     private bool confirmVisualUpdate = false;
 
     public float SimYaw => simYaw;
@@ -56,12 +58,14 @@ public class LookController : NetworkBehaviour
 
         yaw = transform.eulerAngles.y;
         simYaw = yaw;
+        localPitch = simYaw;
 
         // Pitch is fine as local, because it's relative to the now-aligned YawPivot
         float rawPitch = cameraHolder.localEulerAngles.x;
         if (rawPitch > 180f) rawPitch -= 360f;
         pitch = rawPitch;
         simPitch = pitch;
+        localPitch = simPitch;
 
         inputHandler.SetCursorLocked(true);
     }
@@ -93,17 +97,19 @@ public class LookController : NetworkBehaviour
 
         Vector2 look = inputHandler.Look;
 
-        float deltaX = look.x * sensitivity * 0.01f;
-        float deltaY = look.y * sensitivity * 0.01f;
+        float deltaX = look.x * sensitivity * 0.8f * Time.deltaTime;
+        float deltaY = look.y * sensitivity * 0.8f * Time.deltaTime;
 
-        simYaw += deltaX;
+        localYaw += deltaX;
 
-        simPitch += invertY ? deltaY : -deltaY;
-        simPitch = Mathf.Clamp(simPitch, minPitch, maxPitch);
+        localPitch += invertY ? deltaY : -deltaY;
+        localPitch = Mathf.Clamp(localPitch, minPitch, maxPitch);
     }
 
     private void FixedUpdate()
     {
         confirmVisualUpdate = true;
+        simPitch = localPitch;
+        simYaw = localYaw;
     }
 }
