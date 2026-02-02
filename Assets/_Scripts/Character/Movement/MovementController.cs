@@ -797,6 +797,11 @@ public class MovementController : NetworkBehaviour
         _lastJumpCount = jumpCount;
     }
 
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        _characterFSM.ProcessCollision(hit);
+    }
+
     public void ChangeAbility(CharacterAbility newAbility)
     {
         if (IsOwner)
