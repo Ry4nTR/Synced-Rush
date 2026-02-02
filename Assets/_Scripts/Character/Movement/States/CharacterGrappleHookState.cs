@@ -9,7 +9,7 @@ namespace SyncedRush.Character.Movement
         private float _groundClearanceLiftRemaining = 0f;
 
         // tune these two values; start conservative
-        private const float GroundClearanceLiftHeight = 0.08f; // 8 cm
+        private const float GroundClearanceLiftHeight = 1f; // metri
         private const float GroundClearanceLiftSpeed = 1.2f;  // m/s
 
         private bool _canWallRun = false;
@@ -236,7 +236,7 @@ namespace SyncedRush.Character.Movement
 
         private bool CheckGround()
         {
-            return character.IsOnGround && character.VerticalVelocity <= 0f;
+            return _groundClearanceLiftRemaining <= 0f && character.IsOnGround && character.VerticalVelocity <= 0f;
         }
     }
 }
