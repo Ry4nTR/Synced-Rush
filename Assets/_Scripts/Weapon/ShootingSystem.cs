@@ -24,71 +24,35 @@ public class ShootingSystem : MonoBehaviour
     }
 
     // Client-side shooting logic
-    public void PerformShoot(Vector3 origin, Vector3 direction, float spread, int weaponID)
+    public void PerformShoot(Vector3 origin, Vector3 finalDirection, float range)
     {
-        if (weaponController == null || weaponController.weaponData == null)
-            return;
-
-        Vector3 finalDir = weaponData.ApplySpread(direction, spread);
-
-        RaycastHit[] hits = Physics.RaycastAll(
-            origin,
-            finalDir,
-            weaponData.range,
-            weaponData.layerMask,
-            QueryTriggerInteraction.Collide
-        );
-
-        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
-
-        RaycastHit validHit = default;
-        bool hasValidHit = false;
-
-        foreach (var hit in hits)
-        {
-            // IGNORE SELF
-            if (hit.collider.transform.IsChildOf(playerRoot))
-                continue;
-
-            validHit = hit;
-            hasValidHit = true;
-            break;
-        }
-
-        if (hasValidHit)
-        {
-            lastRayOrigin = origin;
-            lastRayEnd = validHit.point;
-            hasLastRay = true;
-
-            ShowImpactEffect(validHit.point, validHit.normal);
-            ShowBulletTracer(origin, validHit.point);
-
-            float distance = Vector3.Distance(origin, validHit.point);
-            float damage = weaponData.CalculateDamageByDistance(distance);
-        }
-        else
-        {
-            Vector3 endPoint = origin + finalDir * weaponData.range;
-
-            lastRayOrigin = origin;
-            lastRayEnd = endPoint;
-            hasLastRay = true;
-
-            ShowBulletTracer(origin, endPoint);
-        }
-
+        // Visuals only - Logic is handled by NetworkHandler or Controller
         PlayFireAnimation();
         PlayMuzzleFlash();
         PlayShootSound();
+
+        // Raycast purely for visual placement (Impact effect & Tracer end point)
+        RaycastHit hit;
+        Vector3 endPoint;
+
+        if (Physics.Raycast(origin, finalDirection, out hit, range, weaponData.layerMask))
+        {
+            endPoint = hit.point;
+            ShowImpactEffect(hit.point, hit.normal);
+        }
+        else
+        {
+            endPoint = origin + finalDirection * range;
+        }
+
+        ShowBulletTracer(origin, endPoint);
     }
 
     /// =========================
     /// VFX & SFX
     /// =========================
-
     // Spawns an impact effect at the given point
-    private void ShowImpactEffect(Vector3 position, Vector3 normal)
+    public void ShowImpactEffect(Vector3 position, Vector3 normal)
     {
         if (weaponData.impactEffectPrefab != null)
         {
@@ -99,7 +63,7 @@ public class ShootingSystem : MonoBehaviour
     }
 
     // Spawns a bullet tracer from origin to end. Replace this with your own tracer implementation.
-    private void ShowBulletTracer(Vector3 origin, Vector3 end)
+    public void ShowBulletTracer(Vector3 origin, Vector3 end)
     {
         if (weaponData.bulletTracerPrefab != null)
         {

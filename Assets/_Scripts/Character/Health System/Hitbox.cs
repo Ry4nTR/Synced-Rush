@@ -1,21 +1,8 @@
+using Unity.Netcode;
 using UnityEngine;
 
-/// <summary>
-/// Types of body parts for hitboxes.
-/// </summary>
-public enum BodyPartType
-{
-    Head,
-    Chest,
-    Arms,
-    Hands,
-    Legs,
-    Feet
-}
+public enum BodyPartType { Head, Chest, Arms, Hands, Legs, Feet }
 
-/// <summary>
-/// Attached to body-part colliders. Defines damage multiplier.
-/// </summary>
 public class Hitbox : MonoBehaviour
 {
     [Header("Hitbox Settings")]
@@ -23,15 +10,23 @@ public class Hitbox : MonoBehaviour
     public float damageMultiplier = 1f;
 
     private HealthSystem healthSystem;
+    private NetworkObject parentNetworkObject;
 
     private void Awake()
     {
         healthSystem = GetComponentInParent<HealthSystem>();
+        parentNetworkObject = GetComponentInParent<NetworkObject>();
     }
 
-    //returns the HealthSystem of the player this hitbox belongs to
-    public HealthSystem GetHealthSystem()
+    public HealthSystem GetHealthSystem() => healthSystem;
+
+    // Helper to get the ID of the player this hitbox belongs to
+    public ulong OwnerNetworkId
     {
-        return healthSystem;
+        get
+        {
+            if (parentNetworkObject != null) return parentNetworkObject.NetworkObjectId;
+            return 0;
+        }
     }
 }

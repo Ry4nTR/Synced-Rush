@@ -94,7 +94,8 @@ public class WeaponInventorySpawner : NetworkBehaviour
 
             var ss = currentWeapon.GetComponent<ShootingSystem>();
 
-            var wh = currentWeapon.GetComponentInParent<WeaponNetworkHandler>();
+            var wh = GetComponent<WeaponNetworkHandler>();
+            wh?.UpdateWeaponReferences(ss);
 
             componentSwitcher?.RegisterWeapon(wc, ss, wh);
 
@@ -103,6 +104,7 @@ public class WeaponInventorySpawner : NetworkBehaviour
         }
         else
         {
+            // Optimization: For remote players (TPS)
             weaponWorldModel = Instantiate(data.worldModelPrefab, tpsWeaponSocket, false);
         }
     }

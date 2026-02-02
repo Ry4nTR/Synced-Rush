@@ -70,27 +70,27 @@ public class WeaponController : MonoBehaviour
     // Performs local validation, fires the weapon locally and notifies the network about the shot.
     public void RequestFire()
     {
-        if (!CanShoot)
-        {
-            return; 
-        }
+        if (!CanShoot) return;
 
-        // Update the next allowed fire time based on fire rate (shots per second)
         nextFireTime = Time.time + (1f / weaponData.fireRate);
 
-        // Assigning origin/direction based on fireOrigin
         Vector3 origin = fireOrigin.position;
-        Vector3 direction = fireOrigin.forward;
+        Vector3 baseDirection = fireOrigin.forward;
 
-        // Perform the actual shot locally for immediate feedback
-        shootingSystem?.PerformShoot(origin, direction, CurrentSpread, weaponData.weaponID);
+        // 1. Calculate the FINAL direction with spread here on the Client
+        float currentSpread = CurrentSpread;
+        Vector3 finalDirection = weaponData.ApplySpread(baseDirection, currentSpread);
 
-        // Consume ammo and increase spread
+        // 2. Perform visual shoot (Tracer/Muzzle) using this EXACT direction
+        shootingSystem?.PerformShoot(origin, finalDirection, weaponData.range);
+
+        // 3. Notify Network - Send the FINAL direction, not the spread value
+        // We pass 'currentSpread' only for server-side validation if needed, 
+        // but we USE finalDirection for the hit.
+        networkHandler?.NotifyShot(origin, finalDirection);
+
         ConsumeAmmo();
         IncreaseSpread();
-
-        // Notify the network handler about the shot
-        networkHandler?.NotifyShot(origin, direction, currentSpread);
     }
 
     public void SetAiming(bool aiming)
