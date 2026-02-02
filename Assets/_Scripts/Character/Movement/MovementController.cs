@@ -1,7 +1,6 @@
 ﻿using SyncedRush.Character.Movement;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.TextCore.Text;
 
 namespace SyncedRush.Character.Movement
 {

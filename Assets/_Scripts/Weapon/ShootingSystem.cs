@@ -72,6 +72,10 @@ public class ShootingSystem : MonoBehaviour
             // Set up tracer movement here or use a line renderer
             Destroy(tracer, 1f);
         }
+
+        Debug.DrawLine(origin, end, Color.red, 2.0f);
+        lastRayOrigin = origin;
+        lastRayEnd = end;
     }
 
     // Plays the muzzle flash effect at the muzzle position.
