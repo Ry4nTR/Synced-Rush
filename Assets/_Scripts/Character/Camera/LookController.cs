@@ -33,6 +33,8 @@ public class LookController : NetworkBehaviour
     private float simYaw;
     private float simPitch;
 
+    private bool confirmVisualUpdate = false;
+
     public float SimYaw => simYaw;
     public float SimPitch => simPitch;
 
@@ -49,6 +51,8 @@ public class LookController : NetworkBehaviour
             enabled = false;
             return;
         }
+
+        confirmVisualUpdate = false;
 
         yaw = transform.eulerAngles.y;
         simYaw = yaw;
@@ -70,7 +74,9 @@ public class LookController : NetworkBehaviour
 
     private void LateUpdate()
     {
-        if (!IsOwner) return;
+        if (!IsOwner || !confirmVisualUpdate) return;
+
+        confirmVisualUpdate = false;
 
         yaw = simYaw;
         pitch = simPitch;
@@ -81,7 +87,7 @@ public class LookController : NetworkBehaviour
         cameraHolder.localRotation = Quaternion.Euler(pitch, 0f, 0f);
     }
 
-    private void FixedUpdate()
+    private void Update()
     {
         if (!IsOwner) return;
 
@@ -94,5 +100,10 @@ public class LookController : NetworkBehaviour
 
         simPitch += invertY ? deltaY : -deltaY;
         simPitch = Mathf.Clamp(simPitch, minPitch, maxPitch);
+    }
+
+    private void FixedUpdate()
+    {
+        confirmVisualUpdate = true;
     }
 }
