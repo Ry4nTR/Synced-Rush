@@ -146,6 +146,10 @@ namespace SyncedRush.Character.Movement
             if (remaining <= 0f)
             {
                 _character.NetInput.QueueDetachRequest();
+
+                s.Phase = GrapplePhase.None;
+                _character.NetInput.UpdateGrappleState(s);
+
                 return; // Will exit next frame via input check or state change
             }
 
@@ -169,6 +173,11 @@ namespace SyncedRush.Character.Movement
                 {
                     // Missed, trigger exit
                     _character.NetInput.QueueDetachRequest();
+
+                    s.Phase = GrapplePhase.None;
+                    _character.NetInput.UpdateGrappleState(s);
+
+                    return;
                 }
             }
         }
