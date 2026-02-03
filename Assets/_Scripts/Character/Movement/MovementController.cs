@@ -131,6 +131,7 @@ public class MovementController : NetworkBehaviour
     public AbilityProcessor Ability => _ability;
     public GameObject Orientation => _orientation;
     public LayerMask LayerMask => _groundLayerMask;
+    public CharacterMovementFSM FSM => _characterFSM;
     public MovementState State => _characterFSM.CurrentStateEnum;
 
     public GrappleNetState GrappleForSim
@@ -153,6 +154,7 @@ public class MovementController : NetworkBehaviour
     public Vector3 CameraPosition => _cameraTransform.position;
 
     public SimulationTickData InputData => _netInput.ServerInput;
+    public NetworkPlayerInput NetInput => _netInput;
 
     public PlayerInputHandler LocalInputHandler => _inputHandler;
     public PlayerAnimationController AnimController => _animController;
@@ -243,12 +245,9 @@ public class MovementController : NetworkBehaviour
 #endif
 
 
-
-    // Lista di proprietà messe "nel posto sbagliato"
-
     // Non trovo un modo per passare questo parametro dall'AirState al WallRunState senza refactorare la state machine
     /// <summary>
-    /// Parametro nel posto sbagliato. DA NON TOCCARE SE NON SAI A COSA SERVE
+    /// Parametro nel posto "sbagliato". DA NON TOCCARE SE NON SAI A COSA SERVE
     /// </summary>
     public bool HasWallRunStartInfo { get; set; }
     public RaycastHit WallRunStartInfo { get; set; }
@@ -611,13 +610,9 @@ public class MovementController : NetworkBehaviour
         // 1. Run the Sim logic (determines if the button was clicked this tick)
         Ability.GrappleSim.Tick(this, Ability, input);
 
-        // 2. If it's a toggle click, let the FSM handle the transition
         if (Ability.GrappleSim.WantsToggleThisTick)
         {
-            if (State == MovementState.GrappleHook)
-                _characterFSM.ChangeState(MovementState.Air);
-            else
-                _characterFSM.ChangeState(MovementState.GrappleHook);
+            Ability.ToggleGrappleHook();
         }
     }
 
