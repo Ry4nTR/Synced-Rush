@@ -74,17 +74,18 @@ public class WeaponInventorySpawner : NetworkBehaviour
             return;
         }
 
-        Animator animator = animationController.GetComponent<Animator>();
-
         animationController.Equip();
-        animationController?.SetWeaponAnimations(data);
 
+        // move setup after SpawnModels so we can pass animators
         SpawnModels(data);
     }
 
     //Spawning weapon models
     private void SpawnModels(WeaponData data)
     {
+        Animator fpsAnim = null;
+        Animator tpsAnim = null;
+
         if (IsOwner)
         {
             currentWeapon = Instantiate(data.weaponPrefab, fpsWeaponSocket, false);
@@ -99,14 +100,15 @@ public class WeaponInventorySpawner : NetworkBehaviour
 
             componentSwitcher?.RegisterWeapon(wc, ss, wh);
 
-            Animator weaponAnimator = currentWeapon.GetComponent<Animator>();
-            animationController.SetWeaponAnimation(data, weaponAnimator);
+            fpsAnim = currentWeapon.GetComponent<Animator>();
         }
         else
         {
-            // Optimization: For remote players (TPS)
             weaponWorldModel = Instantiate(data.worldModelPrefab, tpsWeaponSocket, false);
+            tpsAnim = weaponWorldModel.GetComponent<Animator>();
         }
+
+        animationController.ApplyWeaponSetup(data, fpsAnim, tpsAnim);
     }
 
     //Cleanup existing weapon

@@ -76,6 +76,7 @@ public class ShootingSystem : MonoBehaviour
         Debug.DrawLine(origin, end, Color.red, 2.0f);
         lastRayOrigin = origin;
         lastRayEnd = end;
+        hasLastRay = true;
     }
 
     // Plays the muzzle flash effect at the muzzle position.

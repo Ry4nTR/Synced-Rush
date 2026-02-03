@@ -1,6 +1,5 @@
 using UnityEngine;
 
-[RequireComponent(typeof(FullBodyNetworkAnimatorSync))]
 public class PlayerAnimationController : MonoBehaviour
 {
     [Header("Animators")]
@@ -10,6 +9,7 @@ public class PlayerAnimationController : MonoBehaviour
 
     [Header("Networking (FullBody)")]
     [SerializeField] private FullBodyNetworkAnimatorSync fullBodyNetSync;
+    [SerializeField] private WeaponNetworkAnimatorSync worldWeaponNetSync;
 
     //========================
     // Animator Hashes
@@ -20,6 +20,7 @@ public class PlayerAnimationController : MonoBehaviour
     private static readonly int VerticalSpeedHash = Animator.StringToHash("VerticalSpeed");
     private static readonly int IsWallRunningHash = Animator.StringToHash("IsWallRunning");
     private static readonly int WallRunSideHash = Animator.StringToHash("WallRunSide");
+    private static readonly int AimHash = Animator.StringToHash("Aim");
 
     private static readonly int FireHash = Animator.StringToHash("Fire");
     private static readonly int JumpHash = Animator.StringToHash("Jump");
@@ -28,36 +29,51 @@ public class PlayerAnimationController : MonoBehaviour
     private static readonly int HolsterHash = Animator.StringToHash("Holster");
 
     //========================
-    // Weapon Setup
+    // Weapon Setup (single entry point)
     //========================
-    public void SetWeaponAnimations(WeaponData data)
+    public void ApplyWeaponSetup(WeaponData data, Animator fpsWeaponAnimator = null, Animator tpsWeaponAnimator = null)
     {
         if (data == null) return;
 
-        // Arms override (local only)
+        //------------- Arms (1p) -------------
         if (data.armsAnimatorOverride != null && armsAnimator != null)
             armsAnimator.runtimeAnimatorController = data.armsAnimatorOverride;
 
-        // FullBody override (local + networked index)
+        //------------- FullBody (3p) -------------
         if (data.fullBodyAnimatorOverride != null)
         {
-            // Local apply (optional, mostly for host/owner immediate visuals)
+            // optional local apply (host feel)
             if (fullBodyAnimator != null)
                 fullBodyAnimator.runtimeAnimatorController = data.fullBodyAnimatorOverride;
 
-            // Network apply (late joiner safe if sync uses NV index)
+            // authoritative network apply (late join safe)
             if (fullBodyNetSync != null)
                 fullBodyNetSync.NetSetFullBodyControllerByIndex(data.fullBodyControllerIndex);
         }
-    }
 
-    public void SetWeaponAnimation(WeaponData data, Animator wAnimator)
-    {
-        if (data == null) return;
-
-        weaponAnimator = wAnimator;
-        if (weaponAnimator != null && data.weaponAnimatorOverride != null)
+        //------------- FPS weapon animator (viewmodel gun) -------------
+        if (fpsWeaponAnimator != null && data.weaponAnimatorOverride != null)
+        {
+            weaponAnimator = fpsWeaponAnimator;
             weaponAnimator.runtimeAnimatorController = data.weaponAnimatorOverride;
+        }
+
+        //------------- TPS weapon animator (world model gun) -------------
+        if (tpsWeaponAnimator != null)
+        {
+            if (worldWeaponNetSync != null)
+            {
+                worldWeaponNetSync.SetWeaponAnimator(tpsWeaponAnimator);
+
+                if (data.worldWeaponAnimatorOverride != null)
+                    worldWeaponNetSync.ApplyOverride(data.worldWeaponAnimatorOverride);
+            }
+            else
+            {
+                if (data.worldWeaponAnimatorOverride != null)
+                    tpsWeaponAnimator.runtimeAnimatorController = data.worldWeaponAnimatorOverride;
+            }
+        }
     }
 
     //========================
@@ -113,15 +129,19 @@ public class PlayerAnimationController : MonoBehaviour
     //========================
     public void SetAimWeight(float weight)
     {
-        // Arms local
         if (armsAnimator != null)
             armsAnimator.SetLayerWeight(1, weight);
 
-        // Fullbody local + network (NV fanout for late joiners)
         if (fullBodyNetSync != null)
             fullBodyNetSync.NetSetAimLayerWeight(weight, 1);
         else if (fullBodyAnimator != null)
             fullBodyAnimator.SetLayerWeight(1, weight);
+
+        // Drive world weapon Aim param too
+        if (worldWeaponNetSync != null)
+            worldWeaponNetSync.NetSetAim(weight);
+        else if (weaponAnimator != null)
+            weaponAnimator.SetFloat(AimHash, weight);
     }
 
     //========================
@@ -129,14 +149,14 @@ public class PlayerAnimationController : MonoBehaviour
     //========================
     public void SetWallRun(bool isWallRunning, float side /* -1 left, +1 right */)
     {
-        // You can also set these on arms if needed (usually not)
         if (fullBodyNetSync != null)
         {
-            fullBodyNetSync.NetSetBool(IsWallRunningHash, isWallRunning);
-            fullBodyNetSync.NetSetFloat(WallRunSideHash, side);
-            fullBodyNetSync.NetSetLayerWeight(isWallRunning ? 1f : 0f, FullBodyNetworkAnimatorSync.DefaultWallRunLayerIndex);
+            fullBodyNetSync.NetSetWallRunState(isWallRunning, side);
+            return;
         }
-        else if (fullBodyAnimator != null)
+
+        // fallback (offline / no net sync)
+        if (fullBodyAnimator != null)
         {
             fullBodyAnimator.SetBool(IsWallRunningHash, isWallRunning);
             fullBodyAnimator.SetFloat(WallRunSideHash, side);
@@ -176,13 +196,19 @@ public class PlayerAnimationController : MonoBehaviour
         if (armsAnimator != null)
             armsAnimator.SetTrigger(ReloadHash);
 
+        // local weapon animator (if this is 1p weapon animator)
         if (weaponAnimator != null)
             weaponAnimator.SetTrigger(ReloadHash);
 
+        // fullbody network
         if (fullBodyNetSync != null)
             fullBodyNetSync.NetSetTrigger(ReloadHash);
         else if (fullBodyAnimator != null)
             fullBodyAnimator.SetTrigger(ReloadHash);
+
+        // world model weapon network
+        if (worldWeaponNetSync != null)
+            worldWeaponNetSync.NetReload();
     }
 
     public void Equip()

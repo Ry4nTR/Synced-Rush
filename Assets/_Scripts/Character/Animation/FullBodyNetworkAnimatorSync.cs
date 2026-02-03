@@ -7,13 +7,8 @@ public class FullBodyNetworkAnimatorSync : NetworkBehaviour
     // Constants / Defaults
     //========================
     public const int DefaultAimLayerIndex = 1;
-
-    // Set this to whatever you decide in the Animator (Layer 3 recommended)
     public const int DefaultWallRunLayerIndex = 3;
 
-    //========================
-    // Inspector
-    //========================
     [Header("Target Animator")]
     [SerializeField] private Animator fullBodyAnimator;
 
@@ -22,14 +17,17 @@ public class FullBodyNetworkAnimatorSync : NetworkBehaviour
     [SerializeField] private RuntimeAnimatorController[] fullBodyControllers;
 
     //========================
-    // Network Variables (late-joiner safe)
+    // Network Variables
     //========================
-
-    // Aim layer weight (fan-out + late joiners)
     private readonly NetworkVariable<float> netAimLayerWeight = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-
-    // Fullbody controller index (fan-out + late joiners)
     private readonly NetworkVariable<ushort> netControllerIndex = new NetworkVariable<ushort>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    
+    //========================
+    // Animator Hashes (FullBody)
+    //========================
+    private static readonly int IsWallRunningHash = Animator.StringToHash("IsWallRunning");
+    private static readonly int WallRunSideHash = Animator.StringToHash("WallRunSide");
+
 
     //========================
     // Internal State
@@ -39,9 +37,6 @@ public class FullBodyNetworkAnimatorSync : NetworkBehaviour
     private NetworkVariable<float>.OnValueChangedDelegate _aimChangedHandler;
     private NetworkVariable<ushort>.OnValueChangedDelegate _controllerChangedHandler;
 
-    //========================
-    // Unity Netcode Lifecycle
-    //========================
     public override void OnNetworkSpawn()
     {
         // Subscribe (store delegates so unsubscribe works!)
@@ -107,9 +102,6 @@ public class FullBodyNetworkAnimatorSync : NetworkBehaviour
         SetTriggerServerRpc(paramHash);
     }
 
-    /// <summary>
-    /// Sets aim layer weight locally, and replicates via NetworkVariable (late joiners safe).
-    /// </summary>
     public void NetSetAimLayerWeight(float weight, int layerIndex = DefaultAimLayerIndex)
     {
         if (!IsSpawned || fullBodyAnimator == null) return;
@@ -122,9 +114,6 @@ public class FullBodyNetworkAnimatorSync : NetworkBehaviour
         SetAimLayerWeightServerRpc(weight, layerIndex);
     }
 
-    /// <summary>
-    /// Sets fullbody runtime controller index (late joiners safe).
-    /// </summary>
     public void NetSetFullBodyControllerByIndex(ushort index)
     {
         if (!IsSpawned || fullBodyAnimator == null) return;
@@ -136,9 +125,6 @@ public class FullBodyNetworkAnimatorSync : NetworkBehaviour
         SetControllerIndexServerRpc(index);
     }
 
-    /// <summary>
-    /// Utility: layer weights must be set by code (Animator doesn't conditionally control weights).
-    /// </summary>
     public void NetSetLayerWeight(float weight, int layerIndex)
     {
         if (!IsSpawned || fullBodyAnimator == null) return;
@@ -150,6 +136,19 @@ public class FullBodyNetworkAnimatorSync : NetworkBehaviour
         // Optional: replicate if you want exact matching on remotes.
         // Usually NOT necessary if remotes derive from IsWallRunning/IsAiming etc.
         // If you want replication, add a NetworkVariable per layer or pack into a small struct.
+    }
+
+    public void NetSetWallRunState(bool isWallRunning, float side)
+    {
+        if (!IsSpawned || fullBodyAnimator == null) return;
+
+        // local apply first
+        ApplyWallRunState(isWallRunning, side);
+
+        // only owner broadcasts
+        if (!IsOwner) return;
+
+        SetWallRunStateServerRpc(isWallRunning, side);
     }
 
     //========================
@@ -172,6 +171,19 @@ public class FullBodyNetworkAnimatorSync : NetworkBehaviour
         var ctrl = fullBodyControllers[index];
         if (ctrl != null)
             fullBodyAnimator.runtimeAnimatorController = ctrl;
+    }
+
+    private void ApplyWallRunState(bool isWallRunning, float side)
+    {
+        if (fullBodyAnimator == null) return;
+
+        fullBodyAnimator.SetBool(IsWallRunningHash, isWallRunning);
+        fullBodyAnimator.SetFloat(WallRunSideHash, side);
+
+        // Drive layer weight here (the whole point of Option A)
+        int layer = DefaultWallRunLayerIndex;
+        if (layer >= 0 && layer < fullBodyAnimator.layerCount)
+            fullBodyAnimator.SetLayerWeight(layer, isWallRunning ? 1f : 0f);
     }
 
     //========================
@@ -235,5 +247,18 @@ public class FullBodyNetworkAnimatorSync : NetworkBehaviour
     private void SetControllerIndexServerRpc(ushort index)
     {
         netControllerIndex.Value = index;
+    }
+
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
+    private void SetWallRunStateServerRpc(bool isWallRunning, float side)
+    {
+        SetWallRunStateClientRpc(isWallRunning, side);
+    }
+
+    [ClientRpc]
+    private void SetWallRunStateClientRpc(bool isWallRunning, float side)
+    {
+        if (IsOwner) return;
+        ApplyWallRunState(isWallRunning, side);
     }
 }
