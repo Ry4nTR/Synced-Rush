@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.TextCore.Text;
 
 namespace SyncedRush.Character.Movement
 {
@@ -217,8 +216,6 @@ namespace SyncedRush.Character.Movement
                 SimulateShooting(ref s);
                 _character.NetInput.UpdateGrappleState(s);
             }
-
-            Debug.Log("Stato Hook a None? " + (s.Phase == GrapplePhase.None).ToString());
         }
 
     }

@@ -17,22 +17,25 @@ MonoBehaviour:
   _groundAccelDecel: 10
   _groundOverspeedDeceleration: 10
   _jumpHeight: 1.5
+  _wallJumpHeight: 4
   _airTargetSpeed: 6
   _airAcceleration: 6
   _airDeceleration: 3
   _airOverspeedDeceleration: 6
+  _slideTargetSpeed: 16
   _slideStartBoost: 7.5
   _slideMoveInfluence: 4
   _slideDeceleration: 10
   _slideIncreasedDeceleration: 20
   _slideIncreasedDecelerationThreshold: 90
-  _wallRunTargetSpeed: 50
+  _slideCancelCooldown: 0.6
+  _wallRunTargetSpeed: 15
   _wallRunDeceleration: 1
   _wallRunVerticalDeceleration: 10
   _wallRunBrake: 10
   _wallRunMinimumSpeed: 2
   _wallRunLookAngleLimit: 110
-  _wallRunInitialBoostDuration: 0.3
+  _wallRunInitialBoostDuration: 0.2
   _wallRunInitialBoostAcceleration: 30
   _dashSpeed: 17
   _dashDuration: 0.3

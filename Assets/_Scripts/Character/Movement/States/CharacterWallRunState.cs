@@ -105,7 +105,8 @@ namespace SyncedRush.Character.Movement
                 _isWallRunInvalid = true;
             }
 
-            _enterBoostTimer = character.Stats.WallRunInitialBoostDuration;
+            if (character.HorizontalVelocity.magnitude < character.Stats.WallRunTargetSpeed)
+                _enterBoostTimer = character.Stats.WallRunInitialBoostDuration;
         }
 
         protected new void ProcessMovement()
@@ -281,7 +282,7 @@ namespace SyncedRush.Character.Movement
                     return;
             }
 
-            float jumpSpeed = Mathf.Sqrt(2 * character.Stats.Gravity * character.Stats.JumpHeight);
+            float jumpSpeed = Mathf.Sqrt(2 * character.Stats.Gravity * character.Stats.WallJumpHeight);
 
             // Push away from wall + upward
             Vector3 jumpDir = new Vector3(hit.normal.x, 1f, hit.normal.z).normalized;
@@ -368,6 +369,7 @@ namespace SyncedRush.Character.Movement
             _expectedWallDir = Vector3.zero;
             _isWallRunInvalid = false;
             _hasLastWallHit = false;
+            _enterBoostTimer = 0f;
         }
     }
 }
