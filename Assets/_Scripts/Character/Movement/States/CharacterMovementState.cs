@@ -26,6 +26,12 @@ namespace SyncedRush.Character.Movement
             character = movementComponentReference;
         }
 
+        public override MovementState ProcessUpdate()
+        {
+            ParentStateMachine.TickCooldowns();
+            return MovementState.None;
+        }
+
         public override void ExitState()
         {
             base.ExitState();

@@ -37,7 +37,9 @@ namespace SyncedRush.Character.Movement
             if (character.HorizontalVelocity.magnitude < character.Stats.WallRunMinSpeed)
                 wallStable = false;
 
-            if (wallStable && !Input.Crouch)
+            bool isWallRunReady = ParentStateMachine.WallRunCooldown <= 0f;
+
+            if (isWallRunReady && wallStable && !Input.Crouch)
             {
                 character.WallRunStartInfo = _wallCandidateHit;
                 character.HasWallRunStartInfo = true;

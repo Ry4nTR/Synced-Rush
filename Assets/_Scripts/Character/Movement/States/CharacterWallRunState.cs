@@ -109,6 +109,13 @@ namespace SyncedRush.Character.Movement
                 _enterBoostTimer = character.Stats.WallRunInitialBoostDuration;
         }
 
+        public override void ExitState()
+        {
+            base.ExitState();
+
+            ParentStateMachine.StartWallRunCooldown();
+        }
+
         protected new void ProcessMovement()
         {
             Vector3 moveDir = new(character.HorizontalVelocity.x, character.VerticalVelocity, character.HorizontalVelocity.y);

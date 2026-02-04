@@ -21,8 +21,13 @@ namespace SyncedRush.Character.Movement
 	{
         private MovementController _movementComponent;
 
+        private float _wallRunCooldown = 0f;
+        public float WallRunCooldown => _wallRunCooldown;
+
         private void Awake()
         {
+            _wallRunCooldown = 0f;
+
             _movementComponent = GetComponent<MovementController>();
 
             CharacterMoveState moveState = new(_movementComponent);
@@ -55,6 +60,13 @@ namespace SyncedRush.Character.Movement
         public void ProcessCollision(ControllerColliderHit hit)
         {
             CurrentState.ProcessCollision(hit);
+        }
+
+        public void StartWallRunCooldown() { _wallRunCooldown = 0.25f;}
+
+        public void TickCooldowns()
+        {
+            _wallRunCooldown = Mathf.MoveTowards(_wallRunCooldown, 0f, Time.fixedDeltaTime);
         }
     }
 }

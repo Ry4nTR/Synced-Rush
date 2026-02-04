@@ -41,7 +41,6 @@ public class MovementController : NetworkBehaviour
     // Components / Systems (cached)
     // =========================
     private CharacterController _characterController;
-    //private CharacterStats _characterStats;
     private CharacterMovementFSM _characterFSM;
     private AbilityProcessor _ability;
     private NetworkPlayerInput _netInput;

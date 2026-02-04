@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.TextCore.Text;
 
 namespace SyncedRush.Character.Movement
 {
@@ -49,7 +48,8 @@ namespace SyncedRush.Character.Movement
                     // Important: Tell the Input system to notify server next tick
                     _netInput.QueueDetachRequest();
 
-                    if (wallHit) return MovementState.WallRun;
+                    bool isWallRunReady = ParentStateMachine.WallRunCooldown <= 0f;
+                    if (isWallRunReady && wallHit) return MovementState.WallRun;
                     if (groundHit) return MovementState.Move;
                     return MovementState.Air;
                 }
