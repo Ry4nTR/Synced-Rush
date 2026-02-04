@@ -72,6 +72,7 @@ public class WeaponData : ScriptableObject
     public AnimatorOverrideController armsAnimatorOverride;
     public AnimatorOverrideController fullBodyAnimatorOverride;
     public AnimatorOverrideController weaponAnimatorOverride;
+    public AnimatorOverrideController worldWeaponAnimatorOverride;
     public float recoilWeight = 1f;
     public float aimedRecoilMultiplier = 0.6f;
     public float aimBlendSpeed = 12f;

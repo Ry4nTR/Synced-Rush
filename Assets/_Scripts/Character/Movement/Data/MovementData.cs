@@ -21,6 +21,7 @@ public class MovementData : ScriptableObject
     [Header("Jump Settings")]
     /// <summary>L'altezza che viene raggiunta con un salto (indipendente dalla gravitŕ)</summary>
     [SerializeField] private float _jumpHeight = 2f;
+    [SerializeField] private float _wallJumpHeight = 4f;
 
     [Header("Air Movement")]
     /// <summary>Velocità desiderata in aria (m/s)</summary>
@@ -31,7 +32,8 @@ public class MovementData : ScriptableObject
     [SerializeField] private float _airOverspeedDeceleration = 6f;
 
     [Header("Slide Settings")]
-    //TODO _slideMoveInfluence e _slideDeceleration sono da definire meglio
+    /// <summary> </summary>
+    [SerializeField] private float _slideTargetSpeed = 11f;
     /// <summary> </summary>
     [SerializeField] private float _slideStartBoost = 7.5f;
     /// <summary> </summary>
@@ -42,6 +44,8 @@ public class MovementData : ScriptableObject
     [SerializeField] private float _slideIncreasedDeceleration = 20f;
     /// <summary> </summary>
     [SerializeField] private float _slideIncreasedDecelerationThreshold = 70f;
+    /// <summary>Cooldown per tornare in camminata (in secondi)</summary>
+    [SerializeField] private float _slideCancelCooldown = 0.75f;
 
     [Header("Wall Run Settings")]
     /// <summary>Decelerazione WallRun (m/s^2)</summary>
@@ -105,17 +109,20 @@ public class MovementData : ScriptableObject
     public float GroundOverspeedDeceleration => _groundOverspeedDeceleration;
 
     public float JumpHeight => _jumpHeight;
+    public float WallJumpHeight => _wallJumpHeight;
 
     public float AirTargetSpeed => _airTargetSpeed;
     public float AirAcceleration => _airAcceleration;
     public float AirDeceleration => _airDeceleration;
     public float AirOverspeedDeceleration => _airOverspeedDeceleration;
 
+    public float SlideTargetSpeed => _slideTargetSpeed;
     public float SlideStartBoost => _slideStartBoost;
     public float SlideMoveInfluence => _slideMoveInfluence;
     public float SlideDeceleration => _slideDeceleration;
     public float SlideIncreasedDeceleration => _slideIncreasedDeceleration;
     public float SlideIncreasedDecelerationThreshold => _slideIncreasedDecelerationThreshold;
+    public float SlideCancelCooldown => _slideCancelCooldown;
 
     public float WallRunTargetSpeed => _wallRunTargetSpeed;
     public float WallRunDeceleration => _wallRunDeceleration;

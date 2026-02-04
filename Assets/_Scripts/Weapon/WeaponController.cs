@@ -1,4 +1,5 @@
 using System.Collections;
+using Unity.Netcode;
 using UnityEngine;
 
 [RequireComponent(typeof(Animator))]
@@ -15,7 +16,7 @@ public class WeaponController : MonoBehaviour
     private WeaponNetworkHandler networkHandler;
     private Transform fireOrigin;
     private PlayerAnimationController playerAnimationController;
-    private Animator Animator;
+    private NetworkObject ownerNetBehaviour;
 
     private int currentAmmo;
     private int reserveAmmo;
@@ -40,15 +41,16 @@ public class WeaponController : MonoBehaviour
         shootingSystem = GetComponent<ShootingSystem>();
         networkHandler = GetComponentInParent<WeaponNetworkHandler>();
         playerAnimationController = GetComponentInParent<PlayerAnimationController>();
-        Animator = GetComponent<Animator>();
+        ownerNetBehaviour = GetComponentInParent<NetworkObject>();
 
         AssignFireOrigin();
     }
 
     private void Update()
     {
-        RecoverSpread(Time.deltaTime);
+        if (ownerNetBehaviour != null && !ownerNetBehaviour.IsOwner) return;
 
+        RecoverSpread(Time.deltaTime);
         CalculateAimWeight();
     }
 
@@ -95,6 +97,7 @@ public class WeaponController : MonoBehaviour
 
     public void SetAiming(bool aiming)
     {
+        isAiming = aiming;
         aimTarget = aiming ? 1f : 0f;
     }
 

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.TextCore.Text;
 
 namespace SyncedRush.Character.Movement
 {
@@ -9,7 +10,7 @@ namespace SyncedRush.Character.Movement
         private float _groundClearanceLiftRemaining = 0f;
 
         // tune these two values; start conservative
-        private const float GroundClearanceLiftHeight = 1f; // metri
+        private const float GroundClearanceLiftHeight = 2f; // metri
         private const float GroundClearanceLiftSpeed = 1.2f;  // m/s
 
         private bool _canWallRun = false;
@@ -32,16 +33,11 @@ namespace SyncedRush.Character.Movement
             {
                 return MovementState.Air;
             }
-
-            // 2. Process Physics (Shooting / Hooked)
-            if (s.Phase == GrapplePhase.Shooting)
-            {
-                SimulateShooting(ref s);
-                AirMove(); // Allow air control while shooting
-            }
-            else if (s.Phase == GrapplePhase.Hooked)
+            
+            if (s.Phase == GrapplePhase.Hooked)
             {
                 HookPull(in s);
+                AirMove();
 
                 // Physics-based Detach Checks
                 bool groundHit = CheckGround();
@@ -58,9 +54,11 @@ namespace SyncedRush.Character.Movement
                     return MovementState.Air;
                 }
             }
+            else
+            {
+                return MovementState.Air;
+            }
 
-            // Save the updated simulation state
-            _netInput.UpdateGrappleState(s);
             ProcessMovement();
 
             return MovementState.None;
@@ -70,63 +68,19 @@ namespace SyncedRush.Character.Movement
         {
             base.EnterState();
 
-            _groundClearanceLiftRemaining = 0f;
+            _groundClearanceLiftRemaining = character.IsOnGround && character.VerticalVelocity <= 0f
+                ? _groundClearanceLiftRemaining = GroundClearanceLiftHeight
+                : 0f;
+
             _canWallRun = false;
-
-            Vector3 origin = character.CurrentInput.GrappleOrigin;
-
-            // This is now authoritative from the input tick (owner computed it)
-            Vector3 aimPoint = character.CurrentInput.GrappleAimPoint;
-
-            // Aim from origin to aimPoint
-            Vector3 dir = (aimPoint - origin).normalized;
-
-            GrappleNetState s = new GrappleNetState
-            {
-                Phase = GrapplePhase.Shooting,
-                Origin = origin,
-                TipPosition = origin,
-                Direction = dir,
-                CurrentDistance = 0f,
-                HookPoint = Vector3.zero
-            };
-
-            // Apply Anti-Cheat (Server Only)
-            if (character.IsServer)
-            {
-                // Clamp origin
-                float distOrigin = Vector3.Distance(origin, character.CenterPosition);
-                if (distOrigin > 2.0f)
-                {
-                    origin = character.CenterPosition;
-                    s.Origin = origin;
-                    s.TipPosition = origin;
-                }
-
-                // Clamp aim point to max distance from origin (prevents fake far target)
-                Vector3 toAim = character.CurrentInput.GrappleAimPoint - origin;
-                float max = character.Stats.HookMaxDistance;
-                if (toAim.sqrMagnitude > max * max)
-                {
-                    aimPoint = origin + toAim.normalized * max;
-                    s.Direction = (aimPoint - origin).normalized;
-                }
-            }
-
-            // Save to Simulation
-            _netInput.UpdateGrappleState(s);
         }
 
         public override void ExitState()
         {
             base.ExitState();
 
-            // Reset state to None on exit so visuals turn off
-            GrappleNetState s = default;
-            s.Phase = GrapplePhase.None;
-            _netInput.UpdateGrappleState(s);
+            character.Ability.DeactivateGrappleHook();
 
-            // Safety: Dampen upward velocity slightly on detach to prevent "Moon Jumps"
             if (character.VerticalVelocity > 0f)
             {
                 character.VerticalVelocity *= 0.8f;
@@ -169,44 +123,6 @@ namespace SyncedRush.Character.Movement
             }
 
             character.Controller.Move(v);
-        }
-
-        private void SimulateShooting(ref GrappleNetState s)
-        {
-            float step = character.Stats.HookSpeed * Time.fixedDeltaTime;
-            float remaining = character.Stats.HookMaxDistance - s.CurrentDistance;
-
-            if (remaining <= 0f)
-            {
-                _netInput.QueueDetachRequest();
-                return; // Will exit next frame via input check or state change
-            }
-
-            if (step > remaining) step = remaining;
-
-            // Raycast for hit
-            if (Physics.Raycast(s.TipPosition, s.Direction, out RaycastHit hit, step, character.LayerMask))
-            {
-                s.TipPosition = hit.point;
-                s.HookPoint = hit.point;
-                s.CurrentDistance += hit.distance;
-                s.Phase = GrapplePhase.Hooked;
-
-                if (character.IsOnGround && character.VerticalVelocity <= 0f)
-                {
-                    _groundClearanceLiftRemaining = GroundClearanceLiftHeight;
-                }
-            }
-            else
-            {
-                s.TipPosition += s.Direction * step;
-                s.CurrentDistance += step;
-                if (s.CurrentDistance >= character.Stats.HookMaxDistance)
-                {
-                    // Missed, trigger exit
-                    _netInput.QueueDetachRequest();
-                }
-            }
         }
 
         private void HookPull(in GrappleNetState s)

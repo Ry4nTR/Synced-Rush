@@ -193,6 +193,8 @@ GameObject:
   - component: {fileID: 3468843234944903985}
   - component: {fileID: 7510125466554032796}
   - component: {fileID: 7345408544588076399}
+  - component: {fileID: 8190285537631889196}
+  - component: {fileID: 2792661549440050076}
   - component: {fileID: -1213673637414683771}
   - component: {fileID: 3812799252896454869}
   - component: {fileID: 4314794800417626439}
@@ -232,7 +234,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3354322385
+  GlobalObjectIdHash: 2877608786
   InScenePlacedSourceGlobalObjectIdHash: 1514268395
   DeferredDespawnTick: 0
   Ownership: 1
@@ -301,7 +303,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.PlayerInput
-  m_Actions: {fileID: 0}
+  m_Actions: {fileID: -944628639613478452, guid: ba699f85d4cdecf499a983150b9bc31c, type: 3}
   m_NotificationBehavior: 3
   m_UIInputModule: {fileID: 0}
   m_DeviceLostEvent:
@@ -543,7 +545,39 @@ MonoBehaviour:
   armsAnimator: {fileID: 4121773550202162793}
   fullBodyAnimator: {fileID: 311798812297858282}
   weaponAnimator: {fileID: 0}
-  fullBodyNetSync: {fileID: 2864843101338900412}
+  fullBodyNetSync: {fileID: 8190285537631889196}
+  worldWeaponNetSync: {fileID: 0}
+--- !u!114 &8190285537631889196
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2338101018676570622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4901ea5f7dfa14c43aa81a2aa2dec683, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FullBodyNetworkAnimatorSync
+  ShowTopMostFoldoutHeaderGroup: 1
+  fullBodyAnimator: {fileID: 311798812297858282}
+  fullBodyControllers:
+  - {fileID: 22100000, guid: 35552480ce2b2fc4b99a9c99b75697fd, type: 2}
+  - {fileID: 22100000, guid: 03dd3f7bca03cfe4d8556a0d6afde6d6, type: 2}
+--- !u!114 &2792661549440050076
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2338101018676570622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b3c0bd3c1d881f4792ebc1fc8d72af3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponNetworkAnimatorSync
+  ShowTopMostFoldoutHeaderGroup: 1
+  weaponAnimator: {fileID: 0}
 --- !u!114 &-1213673637414683771
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1248,17 +1282,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 5569515662200711363, guid: 0592155fb21db11409526c463cc6c0a3, type: 3}
   m_PrefabInstance: {fileID: 7793268867664032247}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2864843101338900412 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 5469260153619555915, guid: 0592155fb21db11409526c463cc6c0a3, type: 3}
-  m_PrefabInstance: {fileID: 7793268867664032247}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4901ea5f7dfa14c43aa81a2aa2dec683, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FullBodyNetworkAnimatorSync
 --- !u!4 &5479678249993434959 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2318503796863616696, guid: 0592155fb21db11409526c463cc6c0a3, type: 3}

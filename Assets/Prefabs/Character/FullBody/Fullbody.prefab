@@ -1607,7 +1607,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4509465745463404391}
   - component: {fileID: 7526917819022097693}
-  - component: {fileID: 5469260153619555915}
   m_Layer: 0
   m_Name: Fullbody
   m_TagString: Untagged
@@ -1654,23 +1653,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &5469260153619555915
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3881829755776089565}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4901ea5f7dfa14c43aa81a2aa2dec683, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FullBodyNetworkAnimatorSync
-  ShowTopMostFoldoutHeaderGroup: 1
-  fullBodyAnimator: {fileID: 7526917819022097693}
-  fullBodyControllers:
-  - {fileID: 22100000, guid: 35552480ce2b2fc4b99a9c99b75697fd, type: 2}
-  - {fileID: 22100000, guid: 03dd3f7bca03cfe4d8556a0d6afde6d6, type: 2}
 --- !u!1 &4099925428350463883
 GameObject:
   m_ObjectHideFlags: 0

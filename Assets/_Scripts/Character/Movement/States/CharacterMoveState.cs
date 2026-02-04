@@ -146,7 +146,7 @@ namespace SyncedRush.Character.Movement
 
             float targetSpeed = sprintInput && !movingBackwardsOnly ? character.Stats.RunSpeed : character.Stats.WalkSpeed;
 
-            bool isOverSpeed = character.HorizontalVelocity.magnitude > targetSpeed;
+            bool isOverSpeed = character.HorizontalVelocity.magnitude > character.Stats.RunSpeed;
 
             if (isOverSpeed)
             {

@@ -4,6 +4,7 @@ namespace SyncedRush.Character.Movement
 {
     public class CharacterSlideState : CharacterMovementState
     {
+        private float _slideCooldown = 0f;
         private float _currentEndSpeed = 0f;
         private bool _isEnding = false;
         private bool _blockCrouchInput = false;
@@ -41,8 +42,9 @@ namespace SyncedRush.Character.Movement
             if (character.HorizontalVelocity.magnitude < 1f)
                 return MovementState.Move;
 
-            if (crouchInput && !_blockCrouchInput)
+            if (_slideCooldown <= 0f && crouchInput && !_blockCrouchInput)
                 return MovementState.Move;
+            _slideCooldown = Mathf.MoveTowards(_slideCooldown, 0f, Time.fixedDeltaTime);
 
             Slide();
 
@@ -71,9 +73,20 @@ namespace SyncedRush.Character.Movement
             if (!Mathf.Approximately(worldDir.magnitude, 0f))
             {
                 worldDir.Normalize();
-                character.HorizontalVelocity += new Vector2(worldDir.x, worldDir.z) * character.Stats.SlideStartBoost;
+
+                float currentVelocity = character.HorizontalVelocity.magnitude;
+                float newVelocity = currentVelocity + character.Stats.SlideStartBoost;
+
+                if (newVelocity > character.Stats.SlideTargetSpeed)
+                {
+                    if (currentVelocity < character.Stats.SlideTargetSpeed)
+                        character.HorizontalVelocity += new Vector2(worldDir.x, worldDir.z) * (character.Stats.SlideTargetSpeed - currentVelocity);
+                }
+                else
+                    character.HorizontalVelocity += new Vector2(worldDir.x, worldDir.z) * character.Stats.SlideStartBoost;
             }
 
+            _slideCooldown = character.Stats.SlideCancelCooldown;
             _isEnding = false;
             _previousGroundNormal = Vector3.zero;
             _currentEndSpeed = EndSpeed;
