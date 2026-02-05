@@ -177,6 +177,12 @@ public class FullBodyNetworkAnimatorSync : NetworkBehaviour
     {
         if (fullBodyAnimator == null) return;
 
+        if (isWallRunning)
+        {
+            if (side == 0f) side = 1f;
+            side = side < 0f ? -1f : 1f;
+        }
+
         fullBodyAnimator.SetBool(IsWallRunningHash, isWallRunning);
         fullBodyAnimator.SetFloat(WallRunSideHash, side);
 

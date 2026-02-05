@@ -80,7 +80,6 @@ public class WeaponData : ScriptableObject
 
     [Header("Models & ModelParts")]
     public GameObject worldModelPrefab; // Third-person model prefab
-    public Transform Muzzle; // Muzzle transform for effects (TO TEST AND SOLVE)
 
     // =========================
     // HELPER METHODS

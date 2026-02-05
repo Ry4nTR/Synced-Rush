@@ -9,7 +9,6 @@ using UnityEngine;
 /// </summary>
 public class WeaponController : MonoBehaviour
 {
-    [Tooltip("Static data asset for this weapon")]
     public WeaponData weaponData;
 
     private ShootingSystem shootingSystem;
@@ -17,6 +16,8 @@ public class WeaponController : MonoBehaviour
     private Transform fireOrigin;
     private PlayerAnimationController playerAnimationController;
     private NetworkObject ownerNetBehaviour;
+    private WeaponFxService fxService;
+    private IWeaponAudioService audioService;
 
     private int currentAmmo;
     private int reserveAmmo;
@@ -31,6 +32,7 @@ public class WeaponController : MonoBehaviour
     public float CurrentSpread => CalculateCurrentSpread();
     public bool CanShoot => !isReloading && currentAmmo > 0 && Time.time >= nextFireTime;
     public bool IsAiming => isAiming;
+    public WeaponVfxSockets VfxSockets { get; private set; }
 
     // Public getters for HUD
     public int CurrentAmmo => currentAmmo;
@@ -42,6 +44,7 @@ public class WeaponController : MonoBehaviour
         networkHandler = GetComponentInParent<WeaponNetworkHandler>();
         playerAnimationController = GetComponentInParent<PlayerAnimationController>();
         ownerNetBehaviour = GetComponentInParent<NetworkObject>();
+        VfxSockets = GetComponent<WeaponVfxSockets>();
 
         AssignFireOrigin();
     }
@@ -204,5 +207,11 @@ public class WeaponController : MonoBehaviour
             return;
 
         fireOrigin = lookController.CameraTransform;
+    }
+
+    public void SetServices(WeaponFxService fxService, IWeaponAudioService audioService)
+    {
+        this.fxService = fxService;
+        this.audioService = audioService;
     }
 }

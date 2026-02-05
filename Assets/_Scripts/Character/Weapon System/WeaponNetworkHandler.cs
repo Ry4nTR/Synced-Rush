@@ -124,7 +124,7 @@ public class WeaponNetworkHandler : NetworkBehaviour
         // Don't play effects for the shooter (they already saw them instantly)
         if (NetworkManager.Singleton.LocalClientId == shooterId) return;
 
-        currentShootingSystem?.ShowImpactEffect(hitPoint, normal);
+        //currentShootingSystem?.ShowImpactEffect(hitPoint, normal);
     }
 
     [ClientRpc]
@@ -132,7 +132,7 @@ public class WeaponNetworkHandler : NetworkBehaviour
     {
         if (NetworkManager.Singleton.LocalClientId == shooterId) return;
 
-        currentShootingSystem?.ShowBulletTracer(origin, endPoint);
+        //currentShootingSystem?.ShowBulletTracer(origin, endPoint);
     }
 
     // ========================================================================

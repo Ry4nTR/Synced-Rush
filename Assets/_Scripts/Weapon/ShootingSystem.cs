@@ -8,7 +8,8 @@ public class ShootingSystem : MonoBehaviour
     private WeaponController weaponController;
     private PlayerAnimationController playerAnimationController;
     private WeaponData weaponData;
-    private Transform playerRoot;
+    private WeaponFxService fxService;
+    private IWeaponAudioService audioService;
 
     // TEMPORARY DEBUG RAY (GIZMOS)
     private Vector3 lastRayOrigin;
@@ -20,81 +21,50 @@ public class ShootingSystem : MonoBehaviour
         weaponController = GetComponent<WeaponController>();
         playerAnimationController = GetComponentInParent<PlayerAnimationController>();
         weaponData = weaponController.weaponData;
-        playerRoot = weaponController.transform.root;
     }
 
     // Client-side shooting logic
     public void PerformShoot(Vector3 origin, Vector3 finalDirection, float range)
     {
-        // Visuals only - Logic is handled by NetworkHandler or Controller
-        PlayFireAnimation();
-        PlayMuzzleFlash();
-        PlayShootSound();
+        var data = weaponController.weaponData;
+        if (data == null) return;
 
-        // Raycast purely for visual placement (Impact effect & Tracer end point)
+        PlayFireAnimation();
+
+        // Muzzle
+        var muzzle = weaponController.VfxSockets != null ? weaponController.VfxSockets.muzzle : null;
+        if (fxService != null && muzzle != null)
+            fxService.PlayMuzzleFlash(data.muzzleFlashPrefab, muzzle);
+
+        // Audio
+        audioService?.Play(data, WeaponSfxEvent.Fire, transform.position, isOwner: true);
+
+        // Raycast for end point (visual only)
         RaycastHit hit;
         Vector3 endPoint;
-
-        if (Physics.Raycast(origin, finalDirection, out hit, range, weaponData.layerMask))
+        if (Physics.Raycast(origin, finalDirection, out hit, range, data.layerMask))
         {
             endPoint = hit.point;
-            ShowImpactEffect(hit.point, hit.normal);
+            if (fxService != null)
+                fxService.PlayImpact(data.impactEffectPrefab, hit.point, hit.normal);
         }
         else
         {
             endPoint = origin + finalDirection * range;
         }
 
-        ShowBulletTracer(origin, endPoint);
+        if (fxService != null)
+            fxService.PlayTracer(data.bulletTracerPrefab, origin, endPoint);
     }
+
 
     /// =========================
     /// VFX & SFX
     /// =========================
-    // Spawns an impact effect at the given point
-    public void ShowImpactEffect(Vector3 position, Vector3 normal)
+    public void SetServices(WeaponFxService fxService, IWeaponAudioService audioService)
     {
-        if (weaponData.impactEffectPrefab != null)
-        {
-            GameObject impact = Instantiate(weaponData.impactEffectPrefab,
-                                            position, Quaternion.LookRotation(normal));
-            Destroy(impact, 2f);
-        }
-    }
-
-    // Spawns a bullet tracer from origin to end. Replace this with your own tracer implementation.
-    public void ShowBulletTracer(Vector3 origin, Vector3 end)
-    {
-        if (weaponData.bulletTracerPrefab != null)
-        {
-            GameObject tracer = Instantiate(weaponData.bulletTracerPrefab,
-                                            origin, Quaternion.identity);
-            // Set up tracer movement here or use a line renderer
-            Destroy(tracer, 1f);
-        }
-
-        Debug.DrawLine(origin, end, Color.red, 2.0f);
-        lastRayOrigin = origin;
-        lastRayEnd = end;
-        hasLastRay = true;
-    }
-
-    // Plays the muzzle flash effect at the muzzle position.
-    private void PlayMuzzleFlash()
-    {
-        if (weaponData.muzzleFlashPrefab != null)
-        {
-            Instantiate(weaponData.muzzleFlashPrefab, weaponData.Muzzle.transform.position, transform.rotation);
-        }
-    }
-
-    // Plays the shoot sound at the weapon's position.
-    private void PlayShootSound()
-    {
-        if (weaponData.shootSound != null)
-        {
-            AudioSource.PlayClipAtPoint(weaponData.shootSound, transform.position);
-        }
+        this.fxService = fxService;
+        this.audioService = audioService;
     }
 
     private void PlayFireAnimation()

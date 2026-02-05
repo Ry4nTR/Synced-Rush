@@ -199,6 +199,7 @@ GameObject:
   - component: {fileID: 1910958156988278501}
   - component: {fileID: -4446878739969535622}
   - component: {fileID: -3211098864592928759}
+  - component: {fileID: 7408024820039390554}
   - component: {fileID: -1219730231403702949}
   m_Layer: 7
   m_Name: M4
@@ -260,6 +261,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd0becbbe49df714e945995ee9d4bad3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShootingSystem
+--- !u!114 &7408024820039390554
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1283181734671400031}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c17b6c8ec0840d34f81a52667ca540aa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponVfxSockets
+  muzzle: {fileID: 9159031987427200311}
 --- !u!95 &-1219730231403702949
 Animator:
   serializedVersion: 7
@@ -528,7 +542,7 @@ Transform:
   m_GameObject: {fileID: 2754817894660249851}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.2789, z: 0}
+  m_LocalPosition: {x: 0, y: 0.28, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

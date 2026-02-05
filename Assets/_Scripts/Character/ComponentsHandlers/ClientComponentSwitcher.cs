@@ -43,6 +43,9 @@ public class ClientComponentSwitcher : NetworkBehaviour
     [Header("UI Components")]
     [SerializeField] private UIManager uiManager;
 
+    [Header("Services")]
+    [SerializeField] private GameplayServicesRef services;
+
     private void Awake()
     {
         // INPUT components
@@ -66,6 +69,9 @@ public class ClientComponentSwitcher : NetworkBehaviour
 
         // HEALTH component
         if (healthSystem != null) healthSystem.enabled = false;
+
+        // SERVICES component
+        if (services == null) services = FindFirstObjectByType<GameplayServicesRef>();
     }
 
     public override void OnNetworkSpawn()
@@ -99,11 +105,8 @@ public class ClientComponentSwitcher : NetworkBehaviour
         if (healthSystem != null) healthSystem.enabled = isServer;
 
 
-        // Register the local player with the active UI once all components are initialized.
         if (isOwner)
         {
-            // Cache the local switcher so other systems can find it even if
-            // NetworkManager.LocalClient.PlayerObject is temporarily null.
             ClientComponentSwitcherLocal.Local = this;
 
             // Prefer the new GameplayUIManager if present; fallback to the legacy UIManager.
@@ -146,6 +149,15 @@ public class ClientComponentSwitcher : NetworkBehaviour
         weaponController = wc;
         shootingSystem = ss;
         weaponNetworkHandler = wh;
+
+        if (services != null)
+        {
+            if (weaponController != null)
+                weaponController.SetServices(services.weaponFx, services.WeaponAudio);
+
+            if (shootingSystem != null)
+                shootingSystem.SetServices(services.weaponFx, services.WeaponAudio);
+        }
 
         UpdateWeaponComponentState();
 

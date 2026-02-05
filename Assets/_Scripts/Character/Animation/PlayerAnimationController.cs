@@ -137,7 +137,6 @@ public class PlayerAnimationController : MonoBehaviour
         else if (fullBodyAnimator != null)
             fullBodyAnimator.SetLayerWeight(1, weight);
 
-        // Drive world weapon Aim param too
         if (worldWeaponNetSync != null)
             worldWeaponNetSync.NetSetAim(weight);
         else if (weaponAnimator != null)
