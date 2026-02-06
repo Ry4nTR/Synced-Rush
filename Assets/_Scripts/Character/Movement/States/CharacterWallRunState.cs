@@ -98,15 +98,24 @@ namespace SyncedRush.Character.Movement
                         _isWallRunInvalid = true;
                 }
 
+                if (character.HorizontalVelocity.magnitude < character.Stats.WallRunTargetSpeed)
+                    _enterBoostTimer = character.Stats.WallRunInitialBoostDuration;
+
+                float wallSide = Vector3.Dot(character.Orientation.transform.right, _wallDir);
+
+                if (wallSide < 0f)
+                    wallSide = -1f; // Muro a sinistra
+                else
+                    wallSide = 1f; // Muro a destra
+
+                character.AnimController.SetWallRun(true, wallSide);
+
                 character.HasWallRunStartInfo = false;
             }
             else
             {
                 _isWallRunInvalid = true;
             }
-
-            if (character.HorizontalVelocity.magnitude < character.Stats.WallRunTargetSpeed)
-                _enterBoostTimer = character.Stats.WallRunInitialBoostDuration;
         }
 
         public override void ExitState()
@@ -114,6 +123,8 @@ namespace SyncedRush.Character.Movement
             base.ExitState();
 
             ParentStateMachine.StartWallRunCooldown();
+
+            character.AnimController.SetWallRun(false, 0f);
         }
 
         protected new void ProcessMovement()

@@ -15,6 +15,7 @@ namespace SyncedRush.Character.Movement
             base.EnterState();
 
             character.AnimController.Jump();
+            character.AnimController.SetVerticalSpeed(character.VerticalVelocity);
 
             Jump();
         }

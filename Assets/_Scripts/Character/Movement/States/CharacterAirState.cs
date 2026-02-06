@@ -21,6 +21,7 @@ namespace SyncedRush.Character.Movement
                 return MovementState.Move;
 
             AirMove();
+            character.AnimController.SetVerticalSpeed(character.VerticalVelocity);
 
             if (TryFindWallCandidate(out RaycastHit wh))
             {
@@ -76,6 +77,12 @@ namespace SyncedRush.Character.Movement
             _wallCandidateHit = default;
         }
 
+        public override void ExitState()
+        {
+            base.ExitState();
+
+            character.AnimController.SetVerticalSpeed(0f);
+        }
 
         public override void ProcessCollision(ControllerColliderHit hit)
         {
