@@ -48,7 +48,6 @@ namespace SyncedRush.Character.Movement
             var collision = character.LastCollision;
             if (collision.hasCollision)
             {
-                Debug.Log("YES YES YES");
                 HandleCollision(collision);
             }
         }
