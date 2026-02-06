@@ -61,9 +61,9 @@ namespace SyncedRush.Character.Movement
             base.ExitState();
         }
 
-        public override void ProcessCollision(ControllerColliderHit hit)
+        protected override void HandleCollision(CollisionInfo hit)
         {
-            base.ProcessCollision(hit);
+            base.HandleCollision(hit);
 
             if (hit.normal.y >= 0.5f)
                 return;

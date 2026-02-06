@@ -84,7 +84,7 @@ namespace SyncedRush.Character.Movement
             character.AnimController.SetVerticalSpeed(0f);
         }
 
-        public override void ProcessCollision(ControllerColliderHit hit)
+        protected override void HandleCollision(CollisionInfo hit)
         {
             Vector3 currentVelocity = new(character.HorizontalVelocity.x, character.VerticalVelocity, character.HorizontalVelocity.y);
 

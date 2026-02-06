@@ -1,6 +1,7 @@
 ﻿using SyncedRush.Character.Movement;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.TextCore.Text;
 
 namespace SyncedRush.Character.Movement
 {
@@ -9,6 +10,14 @@ namespace SyncedRush.Character.Movement
         None = 0,
         Jetpack = 1,
         Grapple = 2,
+    }
+
+    public struct CollisionInfo
+    {
+        public bool hasCollision;
+        public Vector3 normal;
+        public Vector3 point;
+        public Collider collider;
     }
 }
 
@@ -125,6 +134,7 @@ public class MovementController : NetworkBehaviour
     // =========================
     // Core Accessors
     // =========================
+    public CollisionInfo LastCollision { get; private set; }
     public CharacterController Controller => _characterController;
     public MovementData Stats => _characterStats;
     public AbilityProcessor Ability => _ability;
@@ -420,6 +430,7 @@ public class MovementController : NetworkBehaviour
         TickGrappleRequest(CurrentInput);
 
         _characterFSM.ProcessUpdate();
+        CalculateCollision();
 
         // ===== Ability sims that depend on ctx/state =====
         TickJetpack(CurrentInput);
@@ -464,6 +475,7 @@ public class MovementController : NetworkBehaviour
             TickGrappleRequest(nextInput);
 
             _characterFSM.ProcessUpdate();
+            CalculateCollision();
 
             // ===== Ability sims =====
             TickJetpack(nextInput);
@@ -479,6 +491,36 @@ public class MovementController : NetworkBehaviour
         }
 
         _lastProcessedSequence.Value = lastSeqProcessed;
+    }
+
+    public void CalculateCollision()
+    {
+        float radius = _characterController.radius;
+        float height = _characterController.height;
+
+        Vector3 center = transform.position + _characterController.center;
+
+        float halfHeight = (height * 0.5f) - radius;
+        Vector3 p1 = center + Vector3.up * halfHeight;
+        Vector3 p2 = center - Vector3.up * halfHeight;
+
+        Vector3 direction = TotalVelocity.normalized;
+        float distance = (TotalVelocity * Time.fixedDeltaTime).magnitude + 0.05f; // Aggiungiamo un piccolo margine (skin width)
+
+        if (Physics.CapsuleCast(p1, p2, radius, direction, out RaycastHit hit, distance, LayerMask))
+        {
+            LastCollision =  new CollisionInfo
+            {
+                hasCollision = true,
+                normal = hit.normal,
+                point = hit.point,
+                collider = hit.collider
+            };
+            return;
+        }
+
+        LastCollision = new CollisionInfo { hasCollision = false };
+        return;
     }
 
     // Server publishes authoritative state
@@ -790,10 +832,10 @@ public class MovementController : NetworkBehaviour
         _lastJumpCount = jumpCount;
     }
 
-    private void OnControllerColliderHit(ControllerColliderHit hit)
-    {
-        _characterFSM.ProcessCollision(hit);
-    }
+    //private void OnControllerColliderHit(ControllerColliderHit hit)
+    //{
+    //    _characterFSM.ProcessCollision(hit);
+    //}
 
     public void ChangeAbility(CharacterAbility newAbility)
     {

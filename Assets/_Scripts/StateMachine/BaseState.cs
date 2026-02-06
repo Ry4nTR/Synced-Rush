@@ -14,6 +14,7 @@ namespace SyncedRush.Generics
         //public virtual TStateEnum ProcessUpdate() => default;
 
         public virtual TStateEnum ProcessUpdate() => default;
+        public abstract void ProcessLateUpdate();
 
         protected void RequestForcedStateEnter()
         {

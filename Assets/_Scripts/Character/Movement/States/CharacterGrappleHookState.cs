@@ -87,7 +87,7 @@ namespace SyncedRush.Character.Movement
             }
         }
 
-        public override void ProcessCollision(ControllerColliderHit hit)
+        protected override void HandleCollision(CollisionInfo hit)
         {
             Vector3 currentVelocity = new(character.HorizontalVelocity.x, character.VerticalVelocity, character.HorizontalVelocity.y);
             Vector3 projectedVelocity = Vector3.ProjectOnPlane(currentVelocity, hit.normal);

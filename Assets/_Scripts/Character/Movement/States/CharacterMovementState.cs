@@ -32,13 +32,28 @@ namespace SyncedRush.Character.Movement
             return MovementState.None;
         }
 
+        public override void ProcessLateUpdate()
+        {
+            CheckCollision();
+        }
+
         public override void ExitState()
         {
             base.ExitState();
             ProcessMovement();
         }
 
-        public virtual void ProcessCollision(ControllerColliderHit hit) { }
+        private void CheckCollision()
+        {
+            var collision = character.LastCollision;
+            if (collision.hasCollision)
+            {
+                Debug.Log("YES YES YES");
+                HandleCollision(collision);
+            }
+        }
+
+        protected virtual void HandleCollision(CollisionInfo collision) { }
 
         protected virtual void ProcessMovement()
         {

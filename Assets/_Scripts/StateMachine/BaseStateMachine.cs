@@ -84,12 +84,14 @@ namespace SyncedRush.Generics
                 Debug.LogError("Stato non trovato!");
         }
 
-        public void ProcessUpdate()
+        public virtual void ProcessUpdate()
         {
             TStateEnum newState = CurrentState.ProcessUpdate();
+            CurrentState.ProcessLateUpdate();
             if (newState != null && !newState.Equals(default(TStateEnum)))
                 ChangeState(newState, _forcedEnterRequested);
         }
+
 
         public void RequestForcedEnter()
         {

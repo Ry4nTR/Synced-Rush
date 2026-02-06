@@ -57,11 +57,6 @@ namespace SyncedRush.Character.Movement
             Initialize(states, MovementState.Move);
         }
 
-        public void ProcessCollision(ControllerColliderHit hit)
-        {
-            CurrentState.ProcessCollision(hit);
-        }
-
         public void StartWallRunCooldown() { _wallRunCooldown = 0.25f;}
 
         public void TickCooldowns()
