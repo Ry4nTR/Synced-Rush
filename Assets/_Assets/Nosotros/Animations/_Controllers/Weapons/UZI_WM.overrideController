@@ -6,8 +6,6 @@ AnimatorOverrideController:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: M4_WM
+  m_Name: UZI_WM
   m_Controller: {fileID: 9100000, guid: 2fcde18d48a1ab04291ddf4bfb1e3e66, type: 2}
-  m_Clips:
-  - m_OriginalClip: {fileID: 7400000, guid: bbdfd984026128c4991fc5df312d1d10, type: 2}
-    m_OverrideClip: {fileID: 7400000, guid: 6697651966aa9d04f8be2d23f5c1ccb4, type: 2}
+  m_Clips: []

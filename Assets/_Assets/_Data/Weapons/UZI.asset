@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a790ab0243820d42a8a07a6a5e50bde, type: 3}
   m_Name: UZI
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
-  weaponName: SMG
+  weaponName: Uzi
   weaponType: 1
   weaponID: 2
   layerMask:
@@ -46,8 +46,9 @@ MonoBehaviour:
   fullBodyControllerIndex: 1
   armsAnimatorOverride: {fileID: 22100000, guid: 71c8d2db74ef597499a7472ccdfa0644, type: 2}
   fullBodyAnimatorOverride: {fileID: 22100000, guid: 03dd3f7bca03cfe4d8556a0d6afde6d6, type: 2}
+  weaponAnimatorOverride: {fileID: 0}
+  worldWeaponAnimatorOverride: {fileID: 0}
   recoilWeight: 1
   aimedRecoilMultiplier: 0.6
   aimBlendSpeed: 12
   worldModelPrefab: {fileID: 1019066457430675845, guid: 0d243808bb1400e4c9c8838aab9ddf9e, type: 3}
-  Muzzle: {fileID: 0}
