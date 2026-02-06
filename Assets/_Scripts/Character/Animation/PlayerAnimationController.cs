@@ -182,12 +182,6 @@ public class PlayerAnimationController : MonoBehaviour
         // Keep trigger for responsiveness (arms especially)
         if (armsAnimator != null)
             armsAnimator.SetTrigger(JumpHash);
-
-        // Optional for fullbody (you may remove later if using only grounded/vertical speed)
-        if (fullBodyNetSync != null)
-            fullBodyNetSync.NetSetTrigger(JumpHash);
-        else if (fullBodyAnimator != null)
-            fullBodyAnimator.SetTrigger(JumpHash);
     }
 
     public void Reload()
