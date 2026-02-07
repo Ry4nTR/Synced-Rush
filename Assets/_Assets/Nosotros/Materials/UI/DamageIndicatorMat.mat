@@ -44,8 +44,8 @@ Material:
     - _AlphaClip: 0.5
     - _ColorMask: 15
     - _HitDir: 0
-    - _OpacityMultiplier: 2
-    - _Spread: 0.15
+    - _OpacityMultiplier: 1.5
+    - _Spread: 0.2
     - _Stencil: 0
     - _StencilComp: 8
     - _StencilOp: 0
