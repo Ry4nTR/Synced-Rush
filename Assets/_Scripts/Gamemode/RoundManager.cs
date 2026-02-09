@@ -131,7 +131,10 @@ public class RoundManager : NetworkBehaviour
                 LoadingScreenManager.Instance.Hide();
             }
 
-            // Start the first round
+            // Spawn players ONCE for this match scene
+            spawnManager.SpawnAllPlayers();
+
+            // Start the first round (this will only RESET players)
             StartNextRound();
         }
     }
@@ -145,25 +148,13 @@ public class RoundManager : NetworkBehaviour
 
         Debug.Log("Preparing next round");
 
-        // Despawn all currently spawned players
-        spawnManager.DespawnAllPlayers();
+        spawnManager.ResetAllPlayersForRound();
 
-        // Spawn players using their assigned teams (set in the lobby)
-        spawnManager.SpawnAllPlayers();
-
-        // The first round uses a longer countdown to allow players time to pick a loadout.
         float countdownDuration = isFirstRound ? firstRoundCountdown : subsequentRoundCountdown;
 
-        // Instruct all clients to enter pre‑round UI state and display the
-        // loadout panel, then begin the countdown locally.
         StartPreRoundClientRpc(countdownDuration);
-
-        // Start a server‑side coroutine that waits for the countdown to
-        // expire and then switches the match state to InRound.
         StartCoroutine(BeginRoundAfterCountdown(countdownDuration));
 
-        // After scheduling the next round, mark that the first round has been
-        // completed so that subsequent rounds use the shorter countdown.
         isFirstRound = false;
     }
 
@@ -211,34 +202,38 @@ public class RoundManager : NetworkBehaviour
     // =========================
     private void CheckMatchEnd()
     {
-        // If overtime has not started yet, determine whether to enter overtime or simply continue playing.
+        if (!IsServer) return;
+
+        int target = gamemode.roundsToWin;
+
+        // If someone reached the target and it's not a tie -> match ends immediately.
+        bool someoneReachedTarget = (TeamAScore >= target) || (TeamBScore >= target);
+        if (someoneReachedTarget && TeamAScore != TeamBScore)
+        {
+            EndMatch(); // will compute winner from scores
+            return;
+        }
+
+        // If nobody reached target yet -> continue playing normally.
+        if (!someoneReachedTarget)
+        {
+            StartNextRound();
+            return;
+        }
+
+        // If we reach here: someoneReachedTarget AND tie -> overtime.
         if (!isOvertime)
         {
-            // Check if both teams have reached the threshold.
-            // If not, start another round without checking for match end.
-            if (TeamAScore < gamemode.roundsToWin || TeamBScore < gamemode.roundsToWin)
-            {
-                StartNextRound();
-                return;
-            }
-
-            // Both teams have met or exceeded the roundsToWin value → enter overtime.
             isOvertime = true;
-            // Reset the consecutive win tracker for overtime so that the team
-            // that wins two rounds in a row AFTER overtime starts wins the match.
             lastWinningTeamId = -1;
             consecutiveWins = 0;
         }
 
-        // Overtime logic: a team must win the required number of consecutive rounds.
+        // Overtime: need consecutive wins.
         if (consecutiveWins >= ConsecutiveWinsRequired)
-        {
             EndMatch();
-        }
         else
-        {
             StartNextRound();
-        }
     }
 
     private void EndMatch()
@@ -246,10 +241,13 @@ public class RoundManager : NetworkBehaviour
         if (!IsServer) return;
 
         CurrentState.Value = MatchState.MatchEnd;
-        int winningTeam = TeamAScore > TeamBScore ? 0 : 1;
-        Debug.Log($"Match ended. Winning team: {winningTeam}");
 
-        // Begin a coroutine to display the final results to all clients
+        int winningTeam;
+        if (TeamAScore > TeamBScore) winningTeam = 0;
+        else if (TeamBScore > TeamAScore) winningTeam = 1;
+        else winningTeam = lastWinningTeamId; // fallback (should not happen if match end is correct)
+
+        Debug.Log($"Match ended. Winning team: {winningTeam}");
         StartCoroutine(EndMatchSequence(winningTeam));
     }
 
@@ -277,13 +275,6 @@ public class RoundManager : NetworkBehaviour
         Debug.Log($"[CLIENT] Match over. Team {winningTeam} wins {teamAScore}–{teamBScore}");
     }
 
-    /// <summary>
-    /// Client RPC to display the round scoreboard.  This is invoked
-    /// whenever a round ends (but the match has not necessarily ended).
-    /// It shows the current scores and indicates that the match is still
-    /// ongoing.  The scoreboard is automatically hidden at the start of
-    /// the next countdown.
-    /// </summary>
     [ClientRpc]
     private void ShowRoundScoreClientRpc(int teamAScore, int teamBScore)
     {
@@ -338,39 +329,47 @@ public class RoundManager : NetworkBehaviour
         Debug.Log("Round started");
     }
 
-
     // =========================
     // SET INPUT STATE
     // =========================
     [ClientRpc]
     private void SetPreRoundInputStateClientRpc()
     {
-        // Attempt to get the local player's input switcher.  This may
-        // return null immediately after a scene load if the PlayerObject
-        // has not yet been assigned.  In that case, fall back to the
-        // statically cached switcher stored by ClientComponentSwitcher.
-        var switcher = GetLocalSwitcherSafe();
-        if (switcher == null)
-        {
-            Debug.LogWarning("[CLIENT] SetPreRoundInputStateClientRpc: switcher NULL");
-            return;
-        }
-
-        switcher.SetState_Loadout();
+        StartCoroutine(WaitAndSetInputStateCoroutine(preRound: true));
     }
 
     [ClientRpc]
     private void SetGameplayInputStateClientRpc()
     {
-        var switcher = GetLocalSwitcherSafe();
-        if (switcher == null)
+        StartCoroutine(WaitAndSetInputStateCoroutine(preRound: false));
+    }
+
+    private IEnumerator WaitAndSetInputStateCoroutine(bool preRound)
+    {
+        const float timeout = 3f;
+        float t = 0f;
+
+        ClientComponentSwitcher switcher = null;
+
+        while (switcher == null && t < timeout)
         {
-            Debug.LogWarning("[CLIENT] SetGameplayInputStateClientRpc: switcher NULL");
-            return;
+            switcher = GetLocalSwitcherSafe();
+            if (switcher != null) break;
+
+            t += Time.unscaledDeltaTime;
+            yield return null;
         }
 
-        switcher.SetState_Gameplay();
+        if (switcher == null)
+        {
+            Debug.LogWarning($"[CLIENT] WaitAndSetInputStateCoroutine timeout preRound={preRound}");
+            yield break;
+        }
+
+        if (preRound) switcher.SetState_Loadout();
+        else switcher.SetState_Gameplay();
     }
+
 
     /// <summary>
     /// Helper to obtain the ClientComponentSwitcher for the local player.

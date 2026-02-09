@@ -30,23 +30,57 @@ public class SpawnManager : MonoBehaviour
     // =========================
     // Public API
     // =========================
+    public void ResetAllPlayersForRound()
+    {
+        if (!NetworkManager.Singleton.IsServer) return;
+
+        var lobbyState = NetworkLobbyState.Instance;
+        if (lobbyState == null) return;
+
+        var players = lobbyState.Players;
+
+        for (int i = 0; i < players.Count; i++)
+        {
+            var p = players[i];
+            if (p.teamId < 0) p.teamId = 0;
+
+            Transform spawn = spawnPoints.GetRandomSpawn(p.teamId);
+            if (spawn == null) continue;
+
+            var client = NetworkManager.Singleton.ConnectedClients[p.clientId];
+            var playerObj = client.PlayerObject;
+            if (playerObj == null) continue;
+
+            // Reset network-visible state
+            p.isAlive = true;
+            players[i] = p;
+
+            // Reset gameplay state
+            var health = playerObj.GetComponent<HealthSystem>();
+            if (health != null) health.Respawn(); // server only
+
+            var move = playerObj.GetComponent<MovementController>();
+            if (move != null)
+            {
+                move.ServerResetForNewRound(spawn.position, spawn.rotation);
+            }
+
+            // If you have weapon reset, call it here too
+            // var weapon = playerObj.GetComponent<...>();
+            // weapon.ServerResetForNewRound();
+        }
+    }
 
     public void SpawnAllPlayers()
     {
+        if (!NetworkManager.Singleton.IsServer) return;
+
         if (spawnPoints == null)
         {
             Debug.LogError("SpawnManager not initialised: spawnPoints missing");
             return;
         }
 
-        // Validate player prefab assignment
-        if (playerPrefab == null)
-        {
-            Debug.LogError("Player prefab is not assigned on SpawnManager.");
-            return;
-        }
-
-        // Ensure we have a network lobby state to pull players from
         var lobbyState = NetworkLobbyState.Instance;
         if (lobbyState == null)
         {
@@ -55,74 +89,45 @@ public class SpawnManager : MonoBehaviour
         }
 
         var players = lobbyState.Players;
-        // Iterate by index so we can modify entries (e.g. mark alive)
+
         for (int i = 0; i < players.Count; i++)
         {
             var p = players[i];
-            // Safety: ensure teamId is assigned. If unassigned (-1), default to team 0
+
             if (p.teamId < 0)
-            {
                 p.teamId = 0;
-            }
+
             Transform spawn = spawnPoints.GetRandomSpawn(p.teamId);
-            // Instantiate and spawn the player prefab
+            if (spawn == null)
+            {
+                Debug.LogError($"No spawn point for team {p.teamId}");
+                continue;
+            }
+
             SpawnPlayer(ref p, spawn);
-            // Update the network list entry with potentially modified player state
             players[i] = p;
         }
     }
-
-    /// <summary>
-    /// Despawn all currently spawned player objects.
-    /// </summary>
-    public void DespawnAllPlayers()
-    {
-        if (!NetworkManager.Singleton.IsServer) return;
-
-        foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
-        {
-            var playerObject = client.PlayerObject;
-            if (playerObject == null) continue;
-
-            var netObj = playerObject.GetComponent<NetworkObject>();
-            if (netObj != null && netObj.IsSpawned)
-            {
-                // Pass 'true' so the underlying GameObject is destroyed on clients as well.
-                netObj.Despawn(true);
-            }
-        }
-    }
-
 
     // =========================
     // Internal
     // =========================
     private void SpawnPlayer(ref NetLobbyPlayer player, Transform spawnPoint)
     {
-        if (spawnPoint == null)
-        {
-            Debug.LogError("Invalid spawn point");
-            return;
-        }
-
-        // Instantiate the player prefab at the spawn location
         var instance = Instantiate(playerPrefab, spawnPoint.position, spawnPoint.rotation);
 
-        var networkObject = instance.GetComponent<NetworkObject>();
-        if (networkObject == null)
+        var netObj = instance.GetComponent<NetworkObject>();
+        if (netObj == null)
         {
             Debug.LogError("Player prefab does not have a NetworkObject component.");
             Destroy(instance);
             return;
         }
 
-        // Spawn the network object with ownership assigned to the appropriate client
-        networkObject.SpawnAsPlayerObject(player.clientId, true);
+        netObj.SpawnAsPlayerObject(player.clientId, true);
 
-        Debug.Log($"[SpawnManager] Spawned character netId={networkObject.NetworkObjectId} " +
-          $"owner={networkObject.OwnerClientId} isPlayerObject={networkObject.IsPlayerObject}");
-
-        // Mark the lobby player as alive
         player.isAlive = true;
+
+        Debug.Log($"[SpawnManager] Spawned player clientId={player.clientId} netId={netObj.NetworkObjectId}");
     }
 }

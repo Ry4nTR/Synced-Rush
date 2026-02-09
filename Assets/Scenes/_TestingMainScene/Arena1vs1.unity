@@ -3501,7 +3501,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e94bf643fd4c6143bec28bed820cf7e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponAudioService_Basic
-  poolRoot: {fileID: 281726696}
 --- !u!114 &811160273
 MonoBehaviour:
   m_ObjectHideFlags: 0
