@@ -32,23 +32,38 @@ public class NetworkPlayerInput : NetworkBehaviour
     private readonly SortedDictionary<int, SimulationTickData> _serverBufferedInputs = new();
     private int _serverNextExpectedSequence = 0;
 
-    // =========================
-    // Jitter tolerance
-    // =========================
+    // Last REAL input that was actually consumed in-order (used for HOLD)
+    private SimulationTickData _lastRealServerInput;
+    private bool _hasLastRealServerInput = false;
+
+    // Option A: stall a bit, then HOLD last real
     private int _stallTicks = 0;
-    private const int MaxStallTicks = 2; // ~40ms at 50Hz
+    [SerializeField] private int maxStallTicks = 2; // 1-3 is typical
+
+    private const int MaxBufferedInputs = 256;
 
     public int ServerBufferedCount => _serverBufferedInputs.Count;
     public int ServerNextExpected => _serverNextExpectedSequence;
 
-    private const int MaxBufferedInputs = 256;
-
     // =========================
-    // Grapple state
+    // Grapple state (unchanged)
     // =========================
-    // Grapple prediction + detach edge (owner-side)
     private GrappleNetState _localGrappleState;
     private bool _pendingDetachRequest;
+
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+
+        if (IsServer)
+        {
+            _serverBufferedInputs.Clear();
+            _serverNextExpectedSequence = 0;
+            _stallTicks = 0;
+            _hasLastRealServerInput = false;
+            _lastRealServerInput = default;
+        }
+    }
 
     private void Awake()
     {
@@ -62,7 +77,12 @@ public class NetworkPlayerInput : NetworkBehaviour
         if (!IsOwner || !IsClient)
             return;
 
+        // Wait until MovementController is aligned to server spawn
+        if (_character != null && !_character.HasInitialServerState)
+            return;
+
         var input = BuildOwnerTickInput();
+
         LocalPredictedInput = input;
 
         _pendingInputs.Add(input);
@@ -70,7 +90,7 @@ public class NetworkPlayerInput : NetworkBehaviour
             _pendingInputs.RemoveAt(0);
 
         if (IsServer)
-            ReceiveInputOnServer(input);
+            ReceiveInputOnServer(input, default);
         else
             SendInputServerRpc(input);
     }
@@ -117,16 +137,15 @@ public class NetworkPlayerInput : NetworkBehaviour
         _pendingDetachRequest = false;
         return v;
     }
+
     private void ComputeGrappleAim(out Vector3 aimPoint, out bool aimValid)
     {
-        // Use the same aim you already send in the tick
         float yaw = (_look != null) ? _look.SimYaw : 0f;
         float pitch = (_look != null) ? _look.SimPitch : 0f;
 
         Vector3 camPos = _character.CameraPosition;
         Vector3 camDir = Quaternion.Euler(pitch, yaw, 0f) * Vector3.forward;
 
-        // For now: re-use whatever mask you already have
         LayerMask mask = _character.LayerMask;
 
         aimValid = Physics.Raycast(
@@ -137,9 +156,7 @@ public class NetworkPlayerInput : NetworkBehaviour
             mask
         );
 
-        aimPoint = aimValid
-            ? hit.point
-            : camPos + camDir * _character.Stats.HookMaxDistance;
+        aimPoint = aimValid ? hit.point : camPos + camDir * _character.Stats.HookMaxDistance;
     }
 
     // =========================
@@ -157,28 +174,31 @@ public class NetworkPlayerInput : NetworkBehaviour
             _pendingInputs.RemoveRange(0, removeCount);
     }
 
+    public void ClearPendingInputs() => _pendingInputs.Clear();
+
+    public void ForceSequence(int nextSeq) => _sequenceNumber = nextSeq;
+
     // =========================
     // Server: receive
     // =========================
     [ServerRpc(Delivery = RpcDelivery.Reliable)]
-    private void SendInputServerRpc(SimulationTickData inputData)
+    private void SendInputServerRpc(SimulationTickData inputData, ServerRpcParams rpcParams = default)
     {
-        ReceiveInputOnServer(inputData);
+        ReceiveInputOnServer(inputData, rpcParams);
     }
 
-    private void ReceiveInputOnServer(SimulationTickData inputData)
+    private void ReceiveInputOnServer(SimulationTickData inputData, ServerRpcParams rpcParams)
     {
         // If first received input is ahead, sync expected forward
-        if (_serverBufferedInputs.Count == 0 && inputData.Sequence > _serverNextExpectedSequence)
+        if (_serverBufferedInputs.Count == 0 && !_hasLastRealServerInput && inputData.Sequence > _serverNextExpectedSequence)
             _serverNextExpectedSequence = inputData.Sequence;
 
-        // Drop inputs that are already processed
+        // Drop already-processed
         if (inputData.Sequence < _serverNextExpectedSequence)
             return;
 
         _serverBufferedInputs[inputData.Sequence] = inputData;
 
-        // Cap buffer size
         while (_serverBufferedInputs.Count > MaxBufferedInputs)
         {
             int firstKey = System.Linq.Enumerable.First(_serverBufferedInputs.Keys);
@@ -187,45 +207,65 @@ public class NetworkPlayerInput : NetworkBehaviour
     }
 
     // =========================
-    // Server: consume
+    // Server: consume (Option A)
     // =========================
     public void ServerSetCurrentInput(SimulationTickData data) => ServerInput = data;
 
-    public bool TryConsumeNextServerInput(out SimulationTickData data)
+    public bool TryConsumeNextServerInput(out SimulationTickData data, out bool usedReal)
     {
-        // Normal path: expected input present
+        // 1) REAL: expected input present
         if (_serverBufferedInputs.TryGetValue(_serverNextExpectedSequence, out data))
         {
             _serverBufferedInputs.Remove(_serverNextExpectedSequence);
             _serverNextExpectedSequence++;
+
+            _lastRealServerInput = data;
+            _hasLastRealServerInput = true;
+
             _stallTicks = 0;
+            usedReal = true;
+
             return true;
         }
 
-        // Expected input missing → possible jitter
-        _stallTicks++;
+        // 2) Missing expected
+        usedReal = false;
 
-        if (_stallTicks <= MaxStallTicks)
+        // If we never received any real input yet, we cannot simulate
+        if (!_hasLastRealServerInput)
         {
-            // Wait a bit; do not advance simulation this tick
             data = default;
             return false;
         }
 
-        // After grace expires, still don't simulate (we keep correctness)
-        data = default;
-        return false;
+        // 2a) Stall briefly
+        _stallTicks++;
+
+        if (_stallTicks <= maxStallTicks)
+        {
+            data = default;
+            return false;
+        }
+
+        // 2b) HOLD last REAL for one simulated tick.
+        // IMPORTANT: we advance expected so server time doesn't freeze forever.
+        data = _lastRealServerInput;
+        data.Sequence = _serverNextExpectedSequence;
+        _serverNextExpectedSequence++;
+        _stallTicks = 0;
+        usedReal = false;
+        return true;
     }
 
     // =========================
-    // Grapple state
+    // Grapple state (unchanged)
     // =========================
     public void UpdateGrappleState(GrappleNetState newState)
     {
         if (_character == null) return;
 
         if (_character.IsServer)
-            _character.SetServerGrappleState(newState); // we add this setter below
+            _character.SetServerGrappleState(newState);
         else
             _localGrappleState = newState;
     }
@@ -249,5 +289,4 @@ public class NetworkPlayerInput : NetworkBehaviour
         if (_character == null) return;
         _localGrappleState = _character.GetServerGrappleState();
     }
-
 }
