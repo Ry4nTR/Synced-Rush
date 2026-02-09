@@ -49,40 +49,32 @@ public class HealthSystem : NetworkBehaviour, IDamageable
 
     public void Die()
     {
-        if (!IsServer)
-            return;
+        if (!IsServer) return;
 
-        // Log the owner client ID instead of requiring a PlayerCombatIdentity component.  
         Debug.Log($"Player {OwnerClientId} died");
 
         if (deathTracker != null)
-        {
             deathTracker.NotifyPlayerDeath(OwnerClientId);
-        }
 
-        DisableGameplayClientRpc();
+        var actor = GetComponent<PlayerRoundActor>();
+        if (actor != null)
+            actor.ServerSetAliveState(false);
 
-        // Disable player for rest of round
-        gameObject.SetActive(false);
+        var move = GetComponent<MovementController>();
+        if (move != null) move.ServerSetGameplayEnabled(false);
     }
 
     public void Respawn()
     {
-        if (!IsServer)
-            return;
+        if (!IsServer) return;
 
         currentHealth.Value = maxHealth;
-        gameObject.SetActive(true);
-    }
 
-    [ClientRpc]
-    private void DisableGameplayClientRpc()
-    {
-        var switcher = GetComponent<ClientComponentSwitcher>();
-        if (switcher != null)
-        {
-            // When the player dies, disable gameplay inputs and allow UI interaction
-            switcher.SetState_Loadout();
-        }
+        var actor = GetComponent<PlayerRoundActor>();
+        if (actor != null)
+            actor.ServerSetAliveState(true);
+
+        var move = GetComponent<MovementController>();
+        if (move != null) move.ServerSetGameplayEnabled(true);
     }
 }

@@ -93,6 +93,11 @@ public class WeaponInventorySpawner : NetworkBehaviour
             var wc = currentWeapon.GetComponent<WeaponController>();
             wc?.Initialize(data);
 
+            var playerNetObj = GetComponent<NetworkObject>(); // this is the PLAYER
+            var anim = GetComponent<PlayerAnimationController>();
+
+            wc?.BindOwner(playerNetObj, anim);
+
             var ss = currentWeapon.GetComponent<ShootingSystem>();
 
             var wh = GetComponent<WeaponNetworkHandler>();
@@ -118,5 +123,16 @@ public class WeaponInventorySpawner : NetworkBehaviour
         if (weaponWorldModel) Destroy(weaponWorldModel);
         currentWeapon = null;
         weaponWorldModel = null;
+    }
+
+    public void SetWeaponVisualsAlive(bool alive)
+    {
+        // FPS model (owner only)
+        if (currentWeapon != null)
+            currentWeapon.SetActive(alive);
+
+        // TPS world model (remote only)
+        if (weaponWorldModel != null)
+            weaponWorldModel.SetActive(alive);
     }
 }

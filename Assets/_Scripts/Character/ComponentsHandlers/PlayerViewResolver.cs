@@ -4,43 +4,49 @@ using UnityEngine;
 public class PlayerViewResolver : NetworkBehaviour
 {
     [Header("Visual Roots (NO COLLIDERS INSIDE)")]
-    [SerializeField] private GameObject fullBodyVisual;
-    [SerializeField] private GameObject firstPersonArmsVisual;
+    [SerializeField] private GameObject fullBodyVisual;       // your "Fullbody"
+    [SerializeField] private GameObject firstPersonArmsVisual; // your "Arms"
+
+    // Local cached state so we can re-apply consistently
+    private bool _isAlive = true;
 
     public override void OnNetworkSpawn()
     {
-        ResolveView();
+        ApplyView();
     }
 
-    private void ResolveView()
+    /// <summary>
+    /// Called on clients to update alive/dead presentation.
+    /// This does NOT decide teams or gameplay; it is purely view/visibility.
+    /// </summary>
+    public void ClientSetAlive(bool alive)
     {
+        _isAlive = alive;
+        ApplyView();
+    }
+
+    private void ApplyView()
+    {
+        // If dead: hide EVERYTHING visual for everyone.
+        if (!_isAlive)
+        {
+            if (fullBodyVisual) fullBodyVisual.SetActive(false);
+            if (firstPersonArmsVisual) firstPersonArmsVisual.SetActive(false);
+            return;
+        }
+
+        // Alive: normal owner vs remote split
         if (IsOwner)
         {
-            // Local player (FPS view)
-            SetFullBodyVisible(false);
-            SetArmsVisible(true);
+            // Local FPS: arms only
+            if (fullBodyVisual) fullBodyVisual.SetActive(false);
+            if (firstPersonArmsVisual) firstPersonArmsVisual.SetActive(true);
         }
         else
         {
-            // Remote player (3P view)
-            SetFullBodyVisible(true);
-            SetArmsVisible(false);
+            // Remote 3P: full body only
+            if (fullBodyVisual) fullBodyVisual.SetActive(true);
+            if (firstPersonArmsVisual) firstPersonArmsVisual.SetActive(false);
         }
-    }
-
-    private void SetFullBodyVisible(bool value)
-    {
-        if (!fullBodyVisual)
-            return;
-
-        fullBodyVisual.SetActive(value);
-    }
-
-    private void SetArmsVisible(bool value)
-    {
-        if (!firstPersonArmsVisual)
-            return;
-
-        firstPersonArmsVisual.SetActive(value);
     }
 }

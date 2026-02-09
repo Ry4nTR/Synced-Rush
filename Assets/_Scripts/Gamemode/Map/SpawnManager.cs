@@ -65,9 +65,8 @@ public class SpawnManager : MonoBehaviour
                 move.ServerResetForNewRound(spawn.position, spawn.rotation);
             }
 
-            // If you have weapon reset, call it here too
-            // var weapon = playerObj.GetComponent<...>();
-            // weapon.ServerResetForNewRound();
+            var wc = playerObj.GetComponentInChildren<WeaponController>(true);
+            if (wc != null) wc.ResetForNewRound();
         }
     }
 

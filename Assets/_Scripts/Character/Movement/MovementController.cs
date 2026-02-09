@@ -213,6 +213,9 @@ public class MovementController : NetworkBehaviour
         }
     }
 
+    // Gameplay enable/disable
+    public bool ServerGameplayEnabled { get; private set; } = true;
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
     // Used by ServerGhostRuntimeDebug
     public Vector3 DebugGetServerPosition()
@@ -364,6 +367,12 @@ public class MovementController : NetworkBehaviour
     private void FixedUpdate()
     {
         if (!IsSpawned) return;
+
+        if (IsServer && !ServerGameplayEnabled)
+        {
+            PublishServerSnapshot(GetServerAckSequence());
+            return;
+        }
 
         // Owner prediction ONLY after initial server snapshot on client-owner
         if (IsOwner)
@@ -821,8 +830,8 @@ public class MovementController : NetworkBehaviour
         if (!IsServer) return;
 
         float yaw = rot.eulerAngles.y;
+        float pitch = 0f; // reset to straight
 
-        // Teleport on server first
         bool wasEnabled = _characterController.enabled;
         _characterController.enabled = false;
 
@@ -836,11 +845,9 @@ public class MovementController : NetworkBehaviour
         if (_visualRoot != null)
             _visualRoot.localPosition = Vector3.zero;
 
-        // Publish a snapshot immediately from the new baseline
         int ack = GetServerAckSequence();
         PublishServerSnapshot(ack);
 
-        // Target ONLY the owning client with a baseline reset
         var rpcParams = new ClientRpcParams
         {
             Send = new ClientRpcSendParams
@@ -849,34 +856,24 @@ public class MovementController : NetworkBehaviour
             }
         };
 
-        ApplyRespawnBaselineClientRpc(pos, yaw, ack, rpcParams);
-
-        // if you have server-side grapple/jetpack vars, reset them too
-        // Ability.StopJetpack(); Ability.JetpackCharge = ...
-        // SetServerGrappleState(new GrappleNetState());
+        ApplyRespawnBaselineClientRpc(pos, yaw, pitch, ack, rpcParams);
     }
 
     [ClientRpc]
-    private void ApplyRespawnBaselineClientRpc(Vector3 pos, float yaw, int ackSeq, ClientRpcParams rpcParams = default)
+    private void ApplyRespawnBaselineClientRpc(Vector3 pos, float yaw, float pitch, int ackSeq, ClientRpcParams rpcParams = default)
     {
-        // Only the owner should run prediction baseline changes
         if (!IsOwner) return;
 
-        // Mark that we have a baseline (unblocks prediction)
         _hasInitialSnapshot = true;
         _hasValidSnapshot = true;
 
-        // Teleport locally (avoid CC issues)
         bool wasEnabled = _characterController != null && _characterController.enabled;
         if (wasEnabled) _characterController.enabled = false;
 
         transform.position = pos;
-
-        // Reset velocities locally too (prediction state)
         HorizontalVelocity = Vector2.zero;
         VerticalVelocity = 0f;
 
-        // Apply yaw to orientation / movement space
         ApplyAimYaw(yaw);
 
         if (wasEnabled) _characterController.enabled = true;
@@ -884,20 +881,29 @@ public class MovementController : NetworkBehaviour
         if (_visualRoot != null)
             _visualRoot.localPosition = Vector3.zero;
 
-        // >>> Critical: flush prediction/input history so nothing replays across respawn <<<
         ClearHistory();
         _netInput?.ClearPendingInputs();
-
-        // Align sequence so the next predicted tick matches server expectations
         _netInput?.ForceSequence(ackSeq + 1);
 
-        // >>> Critical: align local look system so the *next input yaw* matches this yaw <<<
-        // If your look controller drives AimYaw/AimPitch, you MUST set it here,
-        // otherwise next tick will overwrite yaw and cause a snap again.
-        var look = GetComponent<LookController>();
+        // REBASE LOOK COMPLETELY (yaw + pitch)
+        var look = GetComponentInChildren<LookController>();
         if (look != null)
+            look.ForceAimYawPitch(yaw, pitch);
+
+        _inputHandler?.ClearAllInputs();
+    }
+
+    public void ServerSetGameplayEnabled(bool enabled)
+    {
+        if (!IsServer) return;
+
+        ServerGameplayEnabled = enabled;
+
+        // Optional: zero velocities so the dead doesn't keep sliding
+        if (!enabled)
         {
-            look.ForceAimYawPitch(yaw, 0f); // implement this method (see Step 2)
+            HorizontalVelocity = Vector2.zero;
+            VerticalVelocity = 0f;
         }
     }
 }

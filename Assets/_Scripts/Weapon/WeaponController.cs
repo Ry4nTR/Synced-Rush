@@ -42,8 +42,6 @@ public class WeaponController : MonoBehaviour
     {
         shootingSystem = GetComponent<ShootingSystem>();
         networkHandler = GetComponentInParent<WeaponNetworkHandler>();
-        playerAnimationController = GetComponentInParent<PlayerAnimationController>();
-        ownerNetBehaviour = GetComponentInParent<NetworkObject>();
         VfxSockets = GetComponent<WeaponVfxSockets>();
 
         AssignFireOrigin();
@@ -52,6 +50,10 @@ public class WeaponController : MonoBehaviour
     private void Update()
     {
         if (ownerNetBehaviour != null && !ownerNetBehaviour.IsOwner) return;
+
+
+        if (fireOrigin == null)
+            AssignFireOrigin();
 
         RecoverSpread(Time.deltaTime);
         CalculateAimWeight();
@@ -213,5 +215,32 @@ public class WeaponController : MonoBehaviour
     {
         this.fxService = fxService;
         this.audioService = audioService;
+    }
+
+    public void ResetForNewRound()
+    {
+        StopAllCoroutines();     // cancels reload
+        isReloading = false;
+
+        SetAiming(false);
+        aimWeight = 0f;
+        aimTarget = 0f;
+
+        // Optional: reset spread
+        currentSpread = weaponData != null ? weaponData.baseSpread : 0f;
+
+        currentAmmo = weaponData.magazineSize;
+        reserveAmmo = weaponData.ammoReserve;
+
+        playerAnimationController?.SetAimWeight(0f);
+    }
+
+    public void BindOwner(NetworkObject ownerPlayerNetObj, PlayerAnimationController anim)
+    {
+        ownerNetBehaviour = ownerPlayerNetObj;
+        playerAnimationController = anim;
+
+        // Fire origin may not exist immediately; we will retry in Update if null
+        AssignFireOrigin();
     }
 }

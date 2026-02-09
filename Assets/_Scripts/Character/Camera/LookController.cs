@@ -57,15 +57,16 @@ public class LookController : NetworkBehaviour
         confirmVisualUpdate = false;
 
         yaw = transform.eulerAngles.y;
-        simYaw = yaw;
-        localYaw = simYaw;
 
-        // Pitch is fine as local, because it's relative to the now-aligned YawPivot
         float rawPitch = cameraHolder.localEulerAngles.x;
         if (rawPitch > 180f) rawPitch -= 360f;
-        pitch = rawPitch;
+        pitch = Mathf.Clamp(rawPitch, minPitch, maxPitch);
+
+        // ✅ rebase everything
+        simYaw = yaw;
         simPitch = pitch;
-        localPitch = simPitch;
+        localYaw = yaw;
+        localPitch = pitch;
 
         inputHandler.SetCursorLocked(true);
     }
@@ -115,29 +116,25 @@ public class LookController : NetworkBehaviour
 
     public void ForceAimYawPitch(float newYaw, float newPitch)
     {
-        // Clamp pitch to your allowed range
+        // Clamp pitch
         newPitch = Mathf.Clamp(newPitch, minPitch, maxPitch);
 
-        // Rebase ALL state variables so they stay consistent:
-        localYaw = newYaw;
-        localPitch = newPitch;
+        // Rebase ALL internal state
+        yaw = newYaw;
+        pitch = newPitch;
 
         simYaw = newYaw;
         simPitch = newPitch;
 
-        yaw = newYaw;
-        pitch = newPitch;
+        localYaw = newYaw;
+        localPitch = newPitch;
 
-        // Apply immediately to transforms so visuals match this frame.
+        // Apply immediately (works even if component is disabled)
         transform.rotation = Quaternion.Euler(0f, newYaw, 0f);
         if (cameraHolder != null)
             cameraHolder.localRotation = Quaternion.Euler(newPitch, 0f, 0f);
 
-        // If you want arms to follow pitch (you have armsRoot), apply here too.
-        if (armsRoot != null)
-            armsRoot.localRotation = Quaternion.Euler(newPitch, 0f, 0f);
-
-        // Ensure LateUpdate will not re-apply stale values; we just applied.
-        confirmVisualUpdate = false;
+        confirmVisualUpdate = false; // we already applied this frame
     }
+
 }

@@ -312,6 +312,9 @@ public class RoundManager : NetworkBehaviour
                 ui.ShowHUD();
             });
         }
+
+        var sw = GetLocalSwitcherSafe();
+        if (sw != null) sw.OwnerResetWeaponForNewRound();
     }
 
     // Server coroutine that waits for the pre‑round countdown to finish before
