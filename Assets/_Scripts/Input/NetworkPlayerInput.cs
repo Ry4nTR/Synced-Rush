@@ -153,7 +153,8 @@ public class NetworkPlayerInput : NetworkBehaviour
             camDir,
             out RaycastHit hit,
             _character.Stats.HookMaxDistance,
-            mask
+            mask,
+            QueryTriggerInteraction.Ignore
         );
 
         aimPoint = aimValid ? hit.point : camPos + camDir * _character.Stats.HookMaxDistance;
