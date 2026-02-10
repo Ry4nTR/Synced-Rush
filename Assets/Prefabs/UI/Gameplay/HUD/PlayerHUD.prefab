@@ -320,6 +320,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHUD
   ammoText: {fileID: 5393233045880052140}
   healthText: {fileID: 1487386445642309570}
+  hpBar: {fileID: 8813375783156122897}
+  damageIndicatorController: {fileID: 4966195710619110739}
 --- !u!1 &2831761962056441133
 GameObject:
   m_ObjectHideFlags: 0

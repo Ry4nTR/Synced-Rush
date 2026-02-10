@@ -4,21 +4,23 @@ using UnityEngine.UI;
 
 public class DamageIndicatorController : MonoBehaviour
 {
-    private Image indicatorImage;
 
     [Header("Settings")]
     [SerializeField] private float fadeDuration = 2f;
 
-    private Material indicatorMat;
-    private Coroutine fadeCoroutine;
+    private Image _indicatorImage;
+    private Material _indicatorMat;
+    private Coroutine _fadeCoroutine;
+
+    private Vector3 _enemyPosOnHit = Vector3.zero;
 
     void Start()
     {
-        indicatorImage = GetComponent<Image>();
-        if (indicatorImage != null)
+        _indicatorImage = GetComponent<Image>();
+        if (_indicatorImage != null)
         {
             SetAlpha(0f);
-            indicatorMat = indicatorImage.material;
+            _indicatorMat = _indicatorImage.material;
         }
         else
             Debug.LogError("Indicator image null!");
@@ -27,28 +29,35 @@ public class DamageIndicatorController : MonoBehaviour
     // Public API
     public void OnTakeDamage(Vector3 playerPosition, Vector3 enemyPosition)
     {
+        _enemyPosOnHit = enemyPosition;
+
+        float shaderAngle = GetAngle(playerPosition, enemyPosition);
+
+        _indicatorMat.SetFloat("_HitAngle", shaderAngle);
+        SetAlpha(1f);
+
+        if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
+        _fadeCoroutine = StartCoroutine(FadeEffect());
+    }
+
+    private float GetAngle(Vector3 playerPosition, Vector3 enemyPosition)
+    {
         Vector3 directionToEnemy = enemyPosition - playerPosition;
         directionToEnemy.y = 0; // Non serve l'altezza
 
         float angle = Vector3.SignedAngle(playerPosition, directionToEnemy, Vector3.up);
 
         // Lo shader si aspetta 0.5 come "davanti", quindi aggiungiamo l'offset
-        float shaderAngle = 1.0f - Mathf.Repeat(angle / 360f + 0.5f, 1.0f);
-
-        indicatorMat.SetFloat("_HitAngle", shaderAngle);
-        SetAlpha(1f);
-
-        if (fadeCoroutine != null) StopCoroutine(fadeCoroutine);
-        fadeCoroutine = StartCoroutine(FadeEffect());
+        return 1.0f - Mathf.Repeat(angle / 360f + 0.5f, 1.0f);
     }
 
     private void SetAlpha(float alphaValue)
     {
-        Color tempColor = indicatorImage.color;
+        Color tempColor = _indicatorImage.color;
 
         tempColor.a = alphaValue;
 
-        indicatorImage.color = tempColor;
+        _indicatorImage.color = tempColor;
     }
 
     IEnumerator FadeEffect()

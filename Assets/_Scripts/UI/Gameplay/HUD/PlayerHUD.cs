@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using TMPro;
+using UnityEngine.UI;
 
 /// <summary>
 /// Owns and updates all HUD-related visuals for the local player.
@@ -10,6 +11,12 @@ public class PlayerHUD : MonoBehaviour
     [Header("Text References")]
     [SerializeField] private TMP_Text ammoText;
     [SerializeField] private TMP_Text healthText;
+
+    [Header("UI Elements")]
+    [SerializeField] private Image hpBar;
+
+    [Header("UI Elements Controllers")]
+    [SerializeField] private DamageIndicatorController damageIndicatorController;
 
     // Cached gameplay references (LOCAL PLAYER ONLY)
     private WeaponController weapon;
@@ -64,6 +71,13 @@ public class PlayerHUD : MonoBehaviour
         healthText.text = health != null
             ? $"HP {health.currentHealth.Value:F1}"
             : "HP --";
+
+        if (health.maxHealth != 0f)
+        {
+            hpBar.fillAmount = health.CurrentHealth / health.maxHealth;
+        }
+        else
+            hpBar.fillAmount = 0f;
     }
 
     private void OnHealthChanged(float oldValue, float newValue)
