@@ -215,8 +215,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Lobby name
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 05cea8363a6e29b4f92b17b56cb1b265, type: 2}
+  m_sharedMaterial: {fileID: 7392273772005895741, guid: 05cea8363a6e29b4f92b17b56cb1b265, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -455,8 +455,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Gamemode
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 05cea8363a6e29b4f92b17b56cb1b265, type: 2}
+  m_sharedMaterial: {fileID: 7392273772005895741, guid: 05cea8363a6e29b4f92b17b56cb1b265, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -480,7 +480,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 37.4
+  m_fontSize: 36.55
   m_fontSizeBase: 50
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -667,8 +667,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Map
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 05cea8363a6e29b4f92b17b56cb1b265, type: 2}
+  m_sharedMaterial: {fileID: 7392273772005895741, guid: 05cea8363a6e29b4f92b17b56cb1b265, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -692,7 +692,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 37.4
+  m_fontSize: 36.55
   m_fontSizeBase: 50
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -848,8 +848,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Your nickname
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 05cea8363a6e29b4f92b17b56cb1b265, type: 2}
+  m_sharedMaterial: {fileID: 7392273772005895741, guid: 05cea8363a6e29b4f92b17b56cb1b265, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -873,7 +873,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 35.5
+  m_fontSize: 40
   m_fontSizeBase: 50
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -1417,8 +1417,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: create lobby
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 05cea8363a6e29b4f92b17b56cb1b265, type: 2}
+  m_sharedMaterial: {fileID: 7392273772005895741, guid: 05cea8363a6e29b4f92b17b56cb1b265, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1442,7 +1442,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 49.2
+  m_fontSize: 60.15
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -1539,9 +1539,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CreateMatchPanelController
   playerNameInput: {fileID: 9131424398510828696}
+  lobbyNameInput: {fileID: 7047705458824249417}
   gamemodeDropdown: {fileID: 751880167597159032}
   mapDropdown: {fileID: 8474125339449339829}
-  lobbyNameInput: {fileID: 7047705458824249417}
   lobbyManager: {fileID: 0}
   uiManager: {fileID: 0}
   gamemodes:
@@ -1970,7 +1970,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 866558177463862538, guid: 67efabe656378b74d856d23a880b797f, type: 3}
       propertyPath: m_fontSize
-      value: 25.25
+      value: 26.3
       objectReference: {fileID: 0}
     - target: {fileID: 3120592761309829528, guid: 67efabe656378b74d856d23a880b797f, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.size
@@ -2225,7 +2225,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6326573231101076684, guid: 3381c10288e509943b7c30081f96b782, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -0.4999981
+      value: -0.5
       objectReference: {fileID: 0}
     - target: {fileID: 6452808160510148675, guid: 3381c10288e509943b7c30081f96b782, type: 3}
       propertyPath: m_Pivot.x

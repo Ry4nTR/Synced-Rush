@@ -67,8 +67,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Text
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 05cea8363a6e29b4f92b17b56cb1b265, type: 2}
+  m_sharedMaterial: {fileID: 7392273772005895741, guid: 05cea8363a6e29b4f92b17b56cb1b265, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -271,6 +271,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: acc1f12a4ce08ef4bbd424fab8068cf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonShaderController
+  fadeSpeed: 8
 --- !u!1 &7639023092803893243
 GameObject:
   m_ObjectHideFlags: 0
