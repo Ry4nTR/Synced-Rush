@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 public class DamageIndicatorController : MonoBehaviour
 {
-    private readonly Image indicatorImage;
+    private Image indicatorImage;
 
     [Header("Settings")]
     [SerializeField] private float fadeDuration = 2f;
@@ -14,11 +14,14 @@ public class DamageIndicatorController : MonoBehaviour
 
     void Start()
     {
+        indicatorImage = GetComponent<Image>();
         if (indicatorImage != null)
         {
+            SetAlpha(0f);
             indicatorMat = indicatorImage.material;
-            indicatorMat.SetFloat("_Intensity", 0);
         }
+        else
+            Debug.LogError("Indicator image null!");
     }
 
     // Public API
@@ -33,9 +36,19 @@ public class DamageIndicatorController : MonoBehaviour
         float shaderAngle = 1.0f - Mathf.Repeat(angle / 360f + 0.5f, 1.0f);
 
         indicatorMat.SetFloat("_HitAngle", shaderAngle);
+        SetAlpha(1f);
 
         if (fadeCoroutine != null) StopCoroutine(fadeCoroutine);
         fadeCoroutine = StartCoroutine(FadeEffect());
+    }
+
+    private void SetAlpha(float alphaValue)
+    {
+        Color tempColor = indicatorImage.color;
+
+        tempColor.a = alphaValue;
+
+        indicatorImage.color = tempColor;
     }
 
     IEnumerator FadeEffect()
@@ -47,11 +60,11 @@ public class DamageIndicatorController : MonoBehaviour
             elapsed += Time.deltaTime;
 
             float intensity = Mathf.Lerp(1, 0, elapsed / fadeDuration);
-            indicatorMat.SetFloat("_Intensity", intensity);
+            SetAlpha(intensity);
 
             yield return null;
         }
 
-        indicatorMat.SetFloat("_Intensity", 0f);
+        SetAlpha(0f);
     }
 }
