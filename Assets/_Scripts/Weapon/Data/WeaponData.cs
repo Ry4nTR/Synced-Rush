@@ -126,24 +126,39 @@ public class WeaponData : ScriptableObject
     }
 
     // Applies spread to a given direction vector.
-    public Vector3 ApplySpread(Vector3 direction, float spread)
+    public Vector3 ApplySpread(Vector3 direction, float spreadDeg)
     {
-        if (spread <= 0f)
+        direction = direction.normalized;
+        if (spreadDeg <= 0f)
             return direction;
 
-        // Calculate spread in radians for more intuitive control
-        float spreadRad = spread * Mathf.Deg2Rad;
+        // Build an orthonormal basis around the direction
+        Vector3 right = Vector3.Cross(Vector3.up, direction);
+        if (right.sqrMagnitude < 0.0001f)
+            right = Vector3.Cross(Vector3.forward, direction);
+        right.Normalize();
 
-        // Generate random angles with normal distribution for better "center-heavy" spread
-        float angle = Random.Range(0f, 2f * Mathf.PI); // Random direction around circle
-        float distance = Mathf.Sqrt(Random.Range(0f, 1f)) * spreadRad; // Square root for uniform disk distribution
+        Vector3 up = Vector3.Cross(direction, right).normalized;
 
-        // Calculate offsets
-        float x = Mathf.Sin(angle) * distance;
-        float y = Mathf.Cos(angle) * distance;
+        // Convert cone half-angle to radians
+        float maxAngleRad = Mathf.Deg2Rad * Mathf.Clamp(spreadDeg, 0f, 89.9f);
 
-        // Apply spread as rotation
-        Quaternion spreadRotation = Quaternion.Euler(x * Mathf.Rad2Deg, y * Mathf.Rad2Deg, 0f);
-        return spreadRotation * direction;
+        // Center-heavy distribution:
+        // r in [0..1] with sqrt makes points denser near center (common shooter feel)
+        float phi = Random.Range(0f, 2f * Mathf.PI);
+        float r = Mathf.Sqrt(Random.value);
+
+        // Turn r into an angle inside the cone
+        float theta = r * maxAngleRad;               // 0..maxAngleRad
+        float sinTheta = Mathf.Sin(theta);
+        float cosTheta = Mathf.Cos(theta);
+
+        // Offset direction inside cone
+        Vector3 lateral = (right * Mathf.Cos(phi) + up * Mathf.Sin(phi)) * sinTheta;
+
+        // Final direction
+        Vector3 result = direction * cosTheta + lateral;
+        return result.normalized;
     }
+
 }

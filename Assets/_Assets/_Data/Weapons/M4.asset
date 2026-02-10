@@ -29,13 +29,13 @@ MonoBehaviour:
   magazineSize: 30
   ammoReserve: 120
   reloadTime: 2
-  baseSpread: 0
-  jumpSpread: 0
+  baseSpread: 0.6
+  jumpSpread: 2.5
   crouchSpreadMultiplier: 0.7
-  aimSpreadMultiplier: 0.5
-  spreadRecoveryRate: 0
-  spreadIncreasePerShot: 0
-  maxSpread: 0
+  aimSpreadMultiplier: 0.4
+  spreadRecoveryRate: 6
+  spreadIncreasePerShot: 0.35
+  maxSpread: 3
   weaponPrefab: {fileID: 1283181734671400031, guid: 0df6a6bea0eca044e8bffd822fa4a3ce, type: 3}
   shootSound: {fileID: 0}
   reloadSound: {fileID: 0}
@@ -48,7 +48,7 @@ MonoBehaviour:
   fullBodyAnimatorOverride: {fileID: 22100000, guid: 35552480ce2b2fc4b99a9c99b75697fd, type: 2}
   weaponAnimatorOverride: {fileID: 22100000, guid: ea79277893eade1479beaa65f57073ae, type: 2}
   worldWeaponAnimatorOverride: {fileID: 22100000, guid: d01ed3b20607bc140a7fdd608636de75, type: 2}
-  recoilWeight: 0.28
+  recoilWeight: 1
   aimedRecoilMultiplier: 0
   aimBlendSpeed: 10
   worldModelPrefab: {fileID: 657980967507240148, guid: 6adb613ec7a60a348be2e32ebc3d65fd, type: 3}

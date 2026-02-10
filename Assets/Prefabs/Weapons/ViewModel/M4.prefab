@@ -201,6 +201,7 @@ GameObject:
   - component: {fileID: -3211098864592928759}
   - component: {fileID: 7408024820039390554}
   - component: {fileID: -1219730231403702949}
+  - component: {fileID: 4702633934317338795}
   m_Layer: 7
   m_Name: M4
   m_TagString: Untagged
@@ -296,6 +297,33 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &4702633934317338795
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1283181734671400031}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4ded80946e88d842aafbdc20337afec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponSpreadDebugger
+  origin: {fileID: 0}
+  aim: {fileID: 0}
+  currentSpreadDeg: 0
+  coneLength: 25
+  coneSegments: 24
+  drawBaseRay: 1
+  drawShotRay: 1
+  shotRayLength: 50
+  drawSamples: 1
+  sampleCount: 12
+  stableSeed: 12345
+  baseRayColor: {r: 0, g: 1, b: 0, a: 1}
+  shotRayColor: {r: 1, g: 0, b: 0, a: 1}
+  coneColor: {r: 1, g: 1, b: 0, a: 0.75}
+  sampleColor: {r: 1, g: 1, b: 1, a: 0.5}
 --- !u!1 &1931226748211671394
 GameObject:
   m_ObjectHideFlags: 0

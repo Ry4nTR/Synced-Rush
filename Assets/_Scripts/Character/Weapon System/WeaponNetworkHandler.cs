@@ -24,19 +24,41 @@ public class WeaponNetworkHandler : NetworkBehaviour
     {
         if (!IsOwner) return;
 
-        // 1. Get Data
         WeaponData data = GetCurrentWeaponData();
         if (data == null) return;
 
-        // 2. Raycast
-        if (Physics.Raycast(origin, direction, out RaycastHit hit, data.range, data.layerMask))
-        {
-            HandleHit(hit, origin, direction);
-        }
-        else
+        // Piccolo push in avanti per evitare hit immediati se l’origine è molto vicina ai collider
+        origin += direction * 0.05f;
+
+        // RaycastAll per saltare eventuali self-colliders e prendere il primo hit valido
+        var hits = Physics.RaycastAll(origin, direction, data.range, data.layerMask, QueryTriggerInteraction.Collide);
+        if (hits == null || hits.Length == 0)
         {
             HandleMiss(origin, direction, data.range);
+            return;
         }
+
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        foreach (var h in hits)
+        {
+            if (IsSelfCollider(h.collider))
+                continue;
+
+            HandleHit(h, origin, direction);
+            return;
+        }
+
+        // Se abbiamo hittato solo noi stessi, consideriamo "miss"
+        HandleMiss(origin, direction, data.range);
+    }
+
+    private bool IsSelfCollider(Collider col)
+    {
+        if (col == null) return false;
+
+        // WeaponNetworkHandler è sul player: tutto ciò che è child di questo transform è "self"
+        return col.transform.IsChildOf(transform);
     }
 
     private void HandleHit(RaycastHit hit, Vector3 origin, Vector3 direction)
@@ -68,20 +90,19 @@ public class WeaponNetworkHandler : NetworkBehaviour
     [ServerRpc]
     private void ReportHitServerRpc(ulong targetNetId, Vector3 hitPoint, Vector3 origin, Vector3 direction)
     {
+        // Se target è il network object che possiede questo handler, è self-hit → ignora
+        if (targetNetId == NetworkObjectId)
+            return;
+
         WeaponData data = GetCurrentWeaponData();
 
-        // 1. Validate Target
         if (!GetTarget(targetNetId, out HealthSystem targetHealth)) return;
-
-        // 2. Run Anti-Cheat Checks
         if (!IsValidHit(origin, hitPoint, direction, data)) return;
 
-        // 3. Apply Damage (Server Authority)
         float distance = Vector3.Distance(origin, hitPoint);
         float damage = data.CalculateDamageByDistance(distance);
         targetHealth.TakeDamage(damage, OwnerClientId);
 
-        // 4. Broadcast Visuals
         NotifyHitClientRpc(hitPoint, Vector3.up, OwnerClientId);
     }
 

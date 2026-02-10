@@ -18,6 +18,8 @@ public class WeaponController : MonoBehaviour
     private NetworkObject ownerNetBehaviour;
     private WeaponFxService fxService;
     private IWeaponAudioService audioService;
+    private WeaponSpreadDebugger spreadDebugger;
+    private CameraRecoil cameraRecoil;
 
     private int currentAmmo;
     private int reserveAmmo;
@@ -27,6 +29,7 @@ public class WeaponController : MonoBehaviour
     private float nextFireTime;
     private float aimWeight;
     private float aimTarget;
+    private float bloom;
 
     // Helper properties
     public float CurrentSpread => CalculateCurrentSpread();
@@ -43,6 +46,8 @@ public class WeaponController : MonoBehaviour
         shootingSystem = GetComponent<ShootingSystem>();
         networkHandler = GetComponentInParent<WeaponNetworkHandler>();
         VfxSockets = GetComponent<WeaponVfxSockets>();
+        spreadDebugger = GetComponent<WeaponSpreadDebugger>();
+        cameraRecoil = GetComponentInParent<CameraRecoil>();
 
         AssignFireOrigin();
     }
@@ -79,6 +84,16 @@ public class WeaponController : MonoBehaviour
     {
         if (!CanShoot) return;
 
+        // Visual recoil (owner only)
+        if (ownerNetBehaviour != null && ownerNetBehaviour.IsOwner)
+        {
+            cameraRecoil?.AddKick(
+                isAiming,
+                weaponData.recoilWeight,
+                weaponData.aimedRecoilMultiplier
+            );
+        }
+
         nextFireTime = Time.time + (1f / weaponData.fireRate);
 
         Vector3 origin = fireOrigin.position;
@@ -87,6 +102,9 @@ public class WeaponController : MonoBehaviour
         // 1. Calculate the FINAL direction with spread here on the Client
         float currentSpread = CurrentSpread;
         Vector3 finalDirection = weaponData.ApplySpread(baseDirection, currentSpread);
+
+        // ---- SPREAD DEBUG ----
+        spreadDebugger?.NotifyShot(origin, baseDirection, finalDirection, currentSpread);
 
         // 2. Perform visual shoot (Tracer/Muzzle) using this EXACT direction
         shootingSystem?.PerformShoot(origin, finalDirection, weaponData.range);
@@ -156,27 +174,28 @@ public class WeaponController : MonoBehaviour
     // Calculates the current spread including aiming modifiers.
     private float CalculateCurrentSpread()
     {
-        float spread = currentSpread;
+        float spread = weaponData.baseSpread;
+
+        // TODO later: crouch / movement / jump
+        // if (!IsGrounded) spread += weaponData.jumpSpread;
+        // if (IsCrouching) spread *= weaponData.crouchSpreadMultiplier;
 
         if (isAiming)
-        {
             spread *= weaponData.aimSpreadMultiplier;
-        }
 
-        // Ensure spread stays within bounds
-        return Mathf.Clamp(spread, weaponData.baseSpread, weaponData.maxSpread);
+        spread += bloom;
+
+        return Mathf.Clamp(spread, 0f, weaponData.maxSpread);
     }
 
-    // Increases spread after firing a shot.
     private void IncreaseSpread()
     {
-        currentSpread = Mathf.Min(currentSpread + weaponData.spreadIncreasePerShot, weaponData.maxSpread);
+        bloom = Mathf.Min(bloom + weaponData.spreadIncreasePerShot, weaponData.maxSpread);
     }
 
-    // Gradually recovers spread back to the base spread over time.
-    private void RecoverSpread(float deltaTime)
+    private void RecoverSpread(float dt)
     {
-        currentSpread = Mathf.Max(weaponData.baseSpread, currentSpread - weaponData.spreadRecoveryRate * deltaTime);
+        bloom = Mathf.Max(0f, bloom - weaponData.spreadRecoveryRate * dt);
     }
 
 
@@ -192,8 +211,7 @@ public class WeaponController : MonoBehaviour
         {
             Reload();
         }
-    }
-    
+    } 
 
     // =========================
     // OTHER METHODS

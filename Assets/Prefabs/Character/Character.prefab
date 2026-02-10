@@ -33,7 +33,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5208723101291922215}
+  m_Father: {fileID: 8938135912895051146}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!20 &4697262685522540234
 Camera:
@@ -752,7 +752,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5770881224741166688}
-  m_Father: {fileID: 5208723101291922215}
+  m_Father: {fileID: 8938135912895051146}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!20 &2403002803719941364
 Camera:
@@ -849,6 +849,53 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!1 &3903282329581935508
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8938135912895051146}
+  - component: {fileID: 5240306417755818482}
+  m_Layer: 0
+  m_Name: RecoilPivot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8938135912895051146
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3903282329581935508}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 6586182560886131289}
+  - {fileID: 8468174742791689619}
+  - {fileID: 3428661119864486910}
+  m_Father: {fileID: 5208723101291922215}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5240306417755818482
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3903282329581935508}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0590d039020a3747bd3c478ee440de4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CameraRecoil
 --- !u!1 &3997861946042139516
 GameObject:
   m_ObjectHideFlags: 0
@@ -975,9 +1022,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 6586182560886131289}
-  - {fileID: 8468174742791689619}
-  - {fileID: 3428661119864486910}
+  - {fileID: 8938135912895051146}
   m_Father: {fileID: 2509165071762156698}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5896975867533730799
@@ -1126,7 +1171,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5208723101291922215}
+  m_Father: {fileID: 8938135912895051146}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1191002731392592227
 MonoBehaviour:

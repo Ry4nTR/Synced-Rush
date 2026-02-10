@@ -709,6 +709,7 @@ GameObject:
   - component: {fileID: 857686796746115081}
   - component: {fileID: 4121458159257687793}
   - component: {fileID: 4274906210735815090}
+  - component: {fileID: 3005437698306894161}
   m_Layer: 0
   m_Name: UZI
   m_TagString: Untagged
@@ -799,6 +800,31 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &3005437698306894161
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4289611308825992193}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4ded80946e88d842aafbdc20337afec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponSpreadDebugger
+  coneLength: 25
+  coneSegments: 24
+  conePersistTime: 0.35
+  drawBaseRay: 1
+  drawShotRay: 1
+  shotRayLength: 50
+  drawSamples: 1
+  sampleCount: 12
+  stableSeed: 12345
+  baseRayColor: {r: 0, g: 1, b: 0, a: 1}
+  shotRayColor: {r: 1, g: 0, b: 0, a: 1}
+  coneColor: {r: 1, g: 1, b: 0, a: 0.75}
+  sampleColor: {r: 1, g: 1, b: 1, a: 0.5}
 --- !u!1 &4314264544282287689
 GameObject:
   m_ObjectHideFlags: 0

@@ -8932,6 +8932,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1912484247405732985, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
+      propertyPath: m_Name
+      value: Button (M4)
+      objectReference: {fileID: 0}
     - target: {fileID: 2388457615134497208, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
       propertyPath: m_Name
       value: GamePlayCanva
@@ -9031,6 +9035,10 @@ PrefabInstance:
     - target: {fileID: 3761552388010608383, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4876137680547146688, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
+      propertyPath: m_Enabled
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
