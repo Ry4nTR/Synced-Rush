@@ -39,14 +39,15 @@ public class ShootingSystem : MonoBehaviour
         // Audio
         audioService?.Play(data, WeaponSfxEvent.Fire, transform.position, isOwner: true);
 
-        // Raycast for end point (visual only)
+        Transform selfRoot = transform.root; // or the player root you want
+
         RaycastHit hit;
         Vector3 endPoint;
-        if (Physics.Raycast(origin, finalDirection, out hit, range, data.layerMask))
+
+        if (TryGetFirstValidHit(origin, finalDirection, range, data.layerMask, selfRoot, out hit))
         {
             endPoint = hit.point;
-            if (fxService != null)
-                fxService.PlayImpact(data.impactEffectPrefab, hit.point, hit.normal);
+            fxService?.PlayImpact(data.impactEffectPrefab, hit.point, hit.normal);
         }
         else
         {
@@ -78,6 +79,40 @@ public class ShootingSystem : MonoBehaviour
 
         // 2. Trigger the animation
         playerAnimationController.Fire();
+    }
+
+    private bool TryGetFirstValidHit(Vector3 origin, Vector3 dir, float range, int mask, Transform selfRoot, out RaycastHit bestHit)
+    {
+        bestHit = default;
+
+        var hits = Physics.RaycastAll(origin, dir, range, mask, QueryTriggerInteraction.Collide);
+        if (hits == null || hits.Length == 0) return false;
+
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        foreach (var h in hits)
+        {
+            var col = h.collider;
+            if (col == null) continue;
+
+            // Skip self hitboxes
+            if (col.TryGetComponent(out Hitbox hb))
+            {
+                // If Hitbox stores NetworkObjectId, this works:
+                var myNet = selfRoot.GetComponentInParent<Unity.Netcode.NetworkObject>();
+                if (myNet != null && hb.OwnerNetworkId == myNet.NetworkObjectId)
+                    continue;
+            }
+
+            // Fallback: hierarchy self-skip
+            if (col.transform.IsChildOf(selfRoot))
+                continue;
+
+            bestHit = h;
+            return true;
+        }
+
+        return false;
     }
 
     // TEMPORARY: Draws the last raycast in the editor for debugging

@@ -896,6 +896,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0590d039020a3747bd3c478ee440de4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraRecoil
+  kickPitch: 1.2
+  kickYaw: 0.4
+  kickRoll: 0.15
+  adsKickMultiplier: 0.65
+  returnSpeed: 18
+  snappiness: 35
+  maxPitch: 12
+  maxYaw: 8
+  maxRoll: 6
 --- !u!1 &3997861946042139516
 GameObject:
   m_ObjectHideFlags: 0

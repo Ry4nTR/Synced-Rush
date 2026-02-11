@@ -19,8 +19,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 1792
   damage: 10
-  fireRate: 25
-  range: 77
+  fireRate: 20
+  range: 50
   falloffStartDistance: 10
   falloffEndDistance: 77
   falloffDistancePerStep: 0
@@ -29,7 +29,7 @@ MonoBehaviour:
   magazineSize: 30
   ammoReserve: 120
   reloadTime: 1.6
-  baseSpread: 1.8
+  baseSpread: 1.2
   jumpSpread: 4
   crouchSpreadMultiplier: 0.75
   aimSpreadMultiplier: 0.65
