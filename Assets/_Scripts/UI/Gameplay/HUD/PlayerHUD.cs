@@ -84,4 +84,17 @@ public class PlayerHUD : MonoBehaviour
     {
         UpdateHealth();
     }
+
+    // =========================
+    // DAMAGE INDICATOR
+    // =========================
+    public void ShowDamageIndicator(Vector3 attackerPosition, Transform localPlayerTransform)
+    {
+        if (damageIndicatorController == null || localPlayerTransform == null) return;
+
+        Vector3 playerPos = localPlayerTransform.position;
+        Vector3 playerForward = localPlayerTransform.forward;
+
+        damageIndicatorController.OnTakeDamage(playerPos, playerForward, attackerPosition);
+    }
 }

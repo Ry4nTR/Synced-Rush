@@ -42,10 +42,38 @@ public class HealthSystem : NetworkBehaviour, IDamageable
 
         currentHealth.Value = Mathf.Max(0f, currentHealth.Value - amount);
 
+        // === NEW: send attacker position to victim owner client ===
+        Vector3 attackerPos = ResolveAttackerPosition(instigatorClientId);
+
+        var targetParams = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = new[] { OwnerClientId } // victim owner client only
+            }
+        };
+        DamageIndicatorClientRpc(attackerPos, targetParams);
+
         if (currentHealth.Value <= 0f)
             Die();
     }
 
+
+    [ClientRpc]
+    private void DamageIndicatorClientRpc(Vector3 attackerPosition, ClientRpcParams rpcParams = default)
+    {
+        // This runs on the victim client only (targeted).
+        // Find local HUD and call the indicator.
+        var hud = FindAnyObjectByType<PlayerHUD>();
+        if (hud == null) return;
+
+        // This HealthSystem belongs to the local player only if OwnerClientId == LocalClientId,
+        // but since we target only the owner client, that's true in practice.
+        var localPlayer = NetworkManager.Singleton.LocalClient?.PlayerObject;
+        if (localPlayer == null) return;
+
+        hud.ShowDamageIndicator(attackerPosition, localPlayer.transform);
+    }
 
     public void Die()
     {
@@ -77,4 +105,21 @@ public class HealthSystem : NetworkBehaviour, IDamageable
         var move = GetComponent<MovementController>();
         if (move != null) move.ServerSetGameplayEnabled(true);
     }
+
+    // =========================
+    // Helper methods
+    // =========================
+    private Vector3 ResolveAttackerPosition(ulong instigatorClientId)
+    {
+        // Best-case: get the instigator's player object on server
+        var nm = NetworkManager.Singleton;
+        if (nm != null && nm.ConnectedClients.TryGetValue(instigatorClientId, out var client)
+            && client.PlayerObject != null)
+        {
+            return client.PlayerObject.transform.position;
+        }
+
+        return Vector3.zero; // fallback
+    }
+
 }

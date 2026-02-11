@@ -27,28 +27,34 @@ public class DamageIndicatorController : MonoBehaviour
     }
 
     // Public API
-    public void OnTakeDamage(Vector3 playerPosition, Vector3 enemyPosition)
+    public void OnTakeDamage(Vector3 playerPosition, Vector3 playerForward, Vector3 enemyPosition)
     {
-        _enemyPosOnHit = enemyPosition;
+        Vector3 dirToAttacker = enemyPosition - playerPosition;
+        float hitDir = GetAngle(playerForward, dirToAttacker);
 
-        float shaderAngle = GetAngle(playerPosition, enemyPosition);
-
-        _indicatorMat.SetFloat("_HitAngle", shaderAngle);
+        _indicatorMat.SetFloat("_HitDir", hitDir);
         SetAlpha(1f);
 
         if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
         _fadeCoroutine = StartCoroutine(FadeEffect());
     }
 
-    private float GetAngle(Vector3 playerPosition, Vector3 enemyPosition)
+    private float GetAngle(Vector3 playerForward, Vector3 attackerDir)
     {
-        Vector3 directionToEnemy = enemyPosition - playerPosition;
-        directionToEnemy.y = 0; // Non serve l'altezza
+        playerForward.y = 0f;
+        attackerDir.y = 0f;
 
-        float angle = Vector3.SignedAngle(playerPosition, directionToEnemy, Vector3.up);
+        if (playerForward.sqrMagnitude < 0.0001f || attackerDir.sqrMagnitude < 0.0001f)
+            return 0.5f;
 
-        // Lo shader si aspetta 0.5 come "davanti", quindi aggiungiamo l'offset
-        return 1.0f - Mathf.Repeat(angle / 360f + 0.5f, 1.0f);
+        playerForward.Normalize();
+        attackerDir.Normalize();
+
+        float signed = Vector3.SignedAngle(playerForward, attackerDir, Vector3.up);
+
+        float hitDir = Mathf.Repeat((signed / 360f) + 0.5f, 1f);
+
+        return hitDir;
     }
 
     private void SetAlpha(float alphaValue)
