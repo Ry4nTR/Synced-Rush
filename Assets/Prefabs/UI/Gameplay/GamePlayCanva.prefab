@@ -1801,6 +1801,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2280920573844938236, guid: a618459348a300c4a9b5966670713ec2, type: 3}
+      propertyPath: m_Name
+      value: Button (M4)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5081874598239572549, guid: a618459348a300c4a9b5966670713ec2, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8200093933242418671, guid: a618459348a300c4a9b5966670713ec2, type: 3}
       propertyPath: m_Name
       value: LoadoutSelectionPanel

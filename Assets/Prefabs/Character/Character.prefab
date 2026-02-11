@@ -199,6 +199,7 @@ GameObject:
   - component: {fileID: 3812799252896454869}
   - component: {fileID: 4314794800417626439}
   - component: {fileID: 251872087119929475}
+  - component: {fileID: 795803253866662824}
   m_Layer: 6
   m_Name: Character
   m_TagString: Untagged
@@ -235,7 +236,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3354322385
+  GlobalObjectIdHash: 2877608786
   InScenePlacedSourceGlobalObjectIdHash: 1514268395
   DeferredDespawnTick: 0
   Ownership: 1
@@ -293,6 +294,7 @@ MonoBehaviour:
   weaponNetworkHandler: {fileID: 7510125466554032796}
   uiManager: {fileID: 0}
   services: {fileID: 0}
+  clientSystems: {fileID: 0}
 --- !u!114 &5363198753706274393
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -688,6 +690,19 @@ MonoBehaviour:
   - {fileID: 6756419067320951904}
   - {fileID: 6507363890811537848}
   - {fileID: 7604624970311982330}
+--- !u!114 &795803253866662824
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2338101018676570622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 91838c36ee7ed424d80a1b0047443cdc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalClientSystemsBinder
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!1 &3021046638070524493
 GameObject:
   m_ObjectHideFlags: 0

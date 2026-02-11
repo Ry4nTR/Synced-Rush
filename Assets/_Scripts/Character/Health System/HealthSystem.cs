@@ -16,7 +16,10 @@ public class HealthSystem : NetworkBehaviour, IDamageable
         NetworkVariableWritePermission.Server
     );
 
-    private RoundDeathTracker deathTracker;
+    private ulong _lastInstigatorClientId = ulong.MaxValue;
+
+    private RoundDeathTracker _deathTracker;
+    private RoundManager _roundManager;
 
     public float CurrentHealth => currentHealth.Value;
 
@@ -24,7 +27,8 @@ public class HealthSystem : NetworkBehaviour, IDamageable
     {
         base.OnNetworkSpawn();
 
-        deathTracker = FindAnyObjectByType<RoundDeathTracker>();
+        _deathTracker = FindAnyObjectByType<RoundDeathTracker>();
+        _roundManager = FindFirstObjectByType<RoundManager>();
 
         if (IsServer && currentHealth.Value <= 0f)
         {
@@ -39,6 +43,10 @@ public class HealthSystem : NetworkBehaviour, IDamageable
 
         if (!allowDamageFromOwner && instigatorClientId == OwnerClientId)
             return;
+
+        if (currentHealth.Value <= 0f) return;
+
+        _lastInstigatorClientId = instigatorClientId;
 
         currentHealth.Value = Mathf.Max(0f, currentHealth.Value - amount);
 
@@ -81,8 +89,10 @@ public class HealthSystem : NetworkBehaviour, IDamageable
 
         Debug.Log($"Player {OwnerClientId} died");
 
-        if (deathTracker != null)
-            deathTracker.NotifyPlayerDeath(OwnerClientId);
+        if (_deathTracker != null)
+            _deathTracker.NotifyPlayerDeath(OwnerClientId, _lastInstigatorClientId);
+
+        _roundManager?.ServerNotifyVictimDeathForKillCam(OwnerClientId, _lastInstigatorClientId);
 
         var actor = GetComponent<PlayerRoundActor>();
         if (actor != null)

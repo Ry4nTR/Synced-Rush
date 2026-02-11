@@ -5,34 +5,34 @@ using Unity.Netcode;
 public class LobbyPlayerListUI : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI listText;
+    [SerializeField] private NetworkLobbyState lobbyState;
+
+    private void Awake()
+    {
+        if (lobbyState == null) lobbyState = FindFirstObjectByType<NetworkLobbyState>();
+    }
 
     private void OnEnable()
     {
         Refresh();
-
-        if (NetworkLobbyState.Instance != null)
-            NetworkLobbyState.Instance.Players.OnListChanged += OnPlayersChanged;
+        if (lobbyState != null)
+            lobbyState.Players.OnListChanged += OnPlayersChanged;
     }
 
     private void OnDisable()
     {
-        if (NetworkLobbyState.Instance != null)
-            NetworkLobbyState.Instance.Players.OnListChanged -= OnPlayersChanged;
+        if (lobbyState != null)
+            lobbyState.Players.OnListChanged -= OnPlayersChanged;
     }
 
-    private void OnPlayersChanged(NetworkListEvent<NetLobbyPlayer> _)
-    {
-        Refresh();
-    }
+    private void OnPlayersChanged(NetworkListEvent<NetLobbyPlayer> _) => Refresh();
 
     private void Refresh()
     {
-        if (NetworkLobbyState.Instance == null)
-            return;
+        if (lobbyState == null) return;
 
         listText.text = "";
-
-        foreach (var p in NetworkLobbyState.Instance.Players)
+        foreach (var p in lobbyState.Players)
         {
             // Display the player's name along with their host/client role
             string role = p.isHost ? " (HOST)" : " (CLIENT)";

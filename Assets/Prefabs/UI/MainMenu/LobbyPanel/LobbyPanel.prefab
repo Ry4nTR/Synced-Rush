@@ -1692,6 +1692,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2463588829105418547}
+  - component: {fileID: 4248574178260817598}
   - component: {fileID: 2086724801285871673}
   m_Layer: 0
   m_Name: LobbyPanel
@@ -1726,6 +1727,18 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!225 &4248574178260817598
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7466462522818823008}
+  m_Enabled: 1
+  m_Alpha: 0
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!114 &2086724801285871673
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1742,6 +1755,10 @@ MonoBehaviour:
   hostIpText: {fileID: 824759108674225637}
   startMatchButton: {fileID: 3615310807700793059}
   uiManager: {fileID: 0}
+  lobbyState: {fileID: 0}
+  lobbyManager: {fileID: 0}
+  matchmakingManager: {fileID: 0}
+  roundManager: {fileID: 0}
 --- !u!1 &7856065088110614028
 GameObject:
   m_ObjectHideFlags: 0

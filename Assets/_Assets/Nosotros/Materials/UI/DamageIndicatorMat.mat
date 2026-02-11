@@ -43,7 +43,7 @@ Material:
     m_Floats:
     - _AlphaClip: 0.5
     - _ColorMask: 15
-    - _HitDir: 0
+    - _HitDir: 0.48857224
     - _OpacityMultiplier: 1.5
     - _Spread: 0.2
     - _Stencil: 0

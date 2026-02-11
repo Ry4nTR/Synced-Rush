@@ -7,10 +7,19 @@ public class JoinMatchPanelController : MonoBehaviour
     [SerializeField] private TMP_InputField playerNameInput;
     [SerializeField] private TMP_InputField ipInput;
 
-    [SerializeField] private LobbyManager lobbyManager;
     [SerializeField] private PanelManager uiManager;
 
+    [Header("Services")]
+    [SerializeField] private MatchmakingManager matchmakingManager;
+    [SerializeField] private NetworkLobbyState lobbyState;
+
     [SerializeField] private CanvasGroup ipJoinWindow;
+
+    private void Awake()
+    {
+        if (matchmakingManager == null) matchmakingManager = FindFirstObjectByType<MatchmakingManager>();
+        if (lobbyState == null) lobbyState = FindFirstObjectByType<NetworkLobbyState>();
+    }
 
     private void Start()
     {
@@ -39,12 +48,10 @@ public class JoinMatchPanelController : MonoBehaviour
         if (string.IsNullOrEmpty(ip))
             return;
 
-        // Wait for actual network connection
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
 
-        // Start client connection
-        MatchmakingManager.Instance.SetLocalPlayerName(playerName);
-        MatchmakingManager.Instance.Join(ip);
+        matchmakingManager.SetLocalPlayerName(playerName);
+        matchmakingManager.Join(ip);
     }
 
     private void OnClientConnected(ulong clientId)
@@ -54,9 +61,7 @@ public class JoinMatchPanelController : MonoBehaviour
 
         NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
 
-        // Tell server our chosen name
-        NetworkLobbyState.Instance.SetPlayerNameServerRpc(MatchmakingManager.Instance.LocalPlayerName);
-
+        lobbyState.SetPlayerNameServerRpc(matchmakingManager.LocalPlayerName);
         uiManager.ShowLobby();
     }
 

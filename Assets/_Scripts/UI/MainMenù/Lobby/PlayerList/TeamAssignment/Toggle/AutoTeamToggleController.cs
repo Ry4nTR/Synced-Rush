@@ -14,6 +14,10 @@ public class AutoTeamToggleController : MonoBehaviour
     [Header("Behavior")]
     [SerializeField] private bool hideForClients = true;
 
+    [Header("Services")]
+    [SerializeField] private LobbyManager lobbyManager;
+    [SerializeField] private NetworkLobbyState lobbyState;
+
     private bool isWired;
 
     private void Awake()
@@ -23,6 +27,9 @@ public class AutoTeamToggleController : MonoBehaviour
 
         if (visualRoot == null)
             visualRoot = gameObject; // default to this object
+
+        if (lobbyManager == null) lobbyManager = FindFirstObjectByType<LobbyManager>();
+        if (lobbyState == null) lobbyState = FindFirstObjectByType<NetworkLobbyState>();
     }
 
     private void OnEnable()
@@ -71,22 +78,19 @@ public class AutoTeamToggleController : MonoBehaviour
 
     private void OnToggleChanged(bool enabled)
     {
-        // Only host can control team assignment
         if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsHost)
             return;
 
-        if (LobbyManager.Instance == null || NetworkLobbyState.Instance == null)
+        if (lobbyManager == null || lobbyState == null)
             return;
 
         if (enabled)
         {
-            // Assign teams using your lobby manager logic (random assignment).
-            LobbyManager.Instance.AssignTeamsAutomatically();
+            lobbyManager.AssignTeamsAutomatically();
         }
         else
         {
-            // Return everyone to unassigned
-            var players = NetworkLobbyState.Instance.Players;
+            var players = lobbyState.Players;
             for (int i = 0; i < players.Count; i++)
             {
                 var p = players[i];

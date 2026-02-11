@@ -14,34 +14,41 @@ public class LobbyTeamAssignmentUI : MonoBehaviour
     [Header("Team Drop Zones (Team A/B only)")]
     [SerializeField] private List<TeamDropZone> teamDropZones = new();
 
-    private NetworkLobbyState lobbyState;
+    [Header("Services")]
+    [SerializeField] private NetworkLobbyState lobbyState;
+
+    private void Awake()
+    {
+        if (lobbyState == null)
+            lobbyState = FindFirstObjectByType<NetworkLobbyState>();
+    }
 
     private void OnEnable()
     {
-        // Start a safe init that waits until NetworkLobbyState exists
         StartCoroutine(InitWhenReady());
+    }
+
+    private IEnumerator InitWhenReady()
+    {
+        while (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening)
+            yield return null;
+
+        while (lobbyState == null)
+        {
+            lobbyState = FindFirstObjectByType<NetworkLobbyState>();
+            yield return null;
+        }
+
+        lobbyState.Players.OnListChanged -= OnPlayersChanged;
+        lobbyState.Players.OnListChanged += OnPlayersChanged;
+
+        RebuildUI();
     }
 
     private void OnDisable()
     {
         if (lobbyState != null && lobbyState.Players != null)
             lobbyState.Players.OnListChanged -= OnPlayersChanged;
-    }
-
-    private IEnumerator InitWhenReady()
-    {
-        // Wait for NetworkManager and NetworkLobbyState to exist
-        while (NetworkManager.Singleton == null || NetworkLobbyState.Instance == null)
-            yield return null;
-
-        lobbyState = NetworkLobbyState.Instance;
-
-        // Subscribe once
-        lobbyState.Players.OnListChanged -= OnPlayersChanged;
-        lobbyState.Players.OnListChanged += OnPlayersChanged;
-
-        // Build immediately
-        RebuildUI();
     }
 
     private void OnPlayersChanged(Unity.Netcode.NetworkListEvent<NetLobbyPlayer> _)
