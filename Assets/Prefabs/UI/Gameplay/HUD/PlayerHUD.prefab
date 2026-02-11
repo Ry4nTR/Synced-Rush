@@ -321,6 +321,9 @@ MonoBehaviour:
   ammoText: {fileID: 5393233045880052140}
   healthText: {fileID: 1487386445642309570}
   hpBar: {fileID: 8813375783156122897}
+  jetpackBar: {fileID: 8314254839127731550}
+  dashBar: {fileID: 4832434619333796935}
+  jetpackAbilityElements: {fileID: 3225260139364327223}
   damageIndicatorController: {fileID: 4966195710619110739}
 --- !u!1 &2831761962056441133
 GameObject:
@@ -412,7 +415,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &8522274722015889439
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1331,6 +1334,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 49106c96466259b4abafdc0d64699893, type: 3}
+--- !u!114 &4832434619333796935 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5919794391478688150, guid: 49106c96466259b4abafdc0d64699893, type: 3}
+  m_PrefabInstance: {fileID: 1240482266868563409}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
 --- !u!224 &8676773821838423042 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7592228796246870483, guid: 49106c96466259b4abafdc0d64699893, type: 3}
@@ -1347,6 +1361,10 @@ PrefabInstance:
     - target: {fileID: 1889109624106254284, guid: 25ceab0d5fb731f439e00b6c16e20203, type: 3}
       propertyPath: m_Name
       value: Jetpack
+      objectReference: {fileID: 0}
+    - target: {fileID: 5919794391478688150, guid: 25ceab0d5fb731f439e00b6c16e20203, type: 3}
+      propertyPath: m_FillAmount
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7592228796246870483, guid: 25ceab0d5fb731f439e00b6c16e20203, type: 3}
       propertyPath: m_Pivot.x
@@ -1438,3 +1456,14 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 7592228796246870483, guid: 25ceab0d5fb731f439e00b6c16e20203, type: 3}
   m_PrefabInstance: {fileID: 2397462133893248200}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &8314254839127731550 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5919794391478688150, guid: 25ceab0d5fb731f439e00b6c16e20203, type: 3}
+  m_PrefabInstance: {fileID: 2397462133893248200}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image

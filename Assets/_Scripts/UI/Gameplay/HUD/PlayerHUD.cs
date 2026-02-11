@@ -14,6 +14,11 @@ public class PlayerHUD : MonoBehaviour
 
     [Header("UI Elements")]
     [SerializeField] private Image hpBar;
+    [SerializeField] private Image jetpackBar;
+    [SerializeField] private Image dashBar;
+
+    [Header("Ability Elements")]
+    [SerializeField] private GameObject jetpackAbilityElements;
 
     [Header("UI Elements Controllers")]
     [SerializeField] private DamageIndicatorController damageIndicatorController;
@@ -55,6 +60,43 @@ public class PlayerHUD : MonoBehaviour
         UpdateAmmo();
     }
 
+    public void SetJetpackUIVisibility(bool value)
+    {
+        jetpackAbilityElements.SetActive(value);
+    }
+
+    public void UpdateDashCharge(float currentCharge, float maxCharge)
+    {
+        if (maxCharge != 0f)
+        {
+            dashBar.fillAmount = currentCharge / maxCharge;
+        }
+        else
+            dashBar.fillAmount = 0f;
+    }
+
+    public void UpdateJetpackCharge(float currentCharge, float maxCharge)
+    {
+        if (maxCharge != 0f)
+        {
+            jetpackBar.fillAmount = currentCharge / maxCharge;
+        }
+        else
+            jetpackBar.fillAmount = 0f;
+    }
+    // =========================
+    // DAMAGE INDICATOR
+    // =========================
+    public void ShowDamageIndicator(Vector3 attackerPosition, Transform localPlayerTransform)
+    {
+        if (damageIndicatorController == null || localPlayerTransform == null) return;
+
+        Vector3 playerPos = localPlayerTransform.position;
+        Vector3 playerForward = localPlayerTransform.forward;
+
+        damageIndicatorController.OnTakeDamage(playerPos, playerForward, attackerPosition);
+    }
+
     // =========================
     // HUD UPDATES
     // =========================
@@ -85,16 +127,4 @@ public class PlayerHUD : MonoBehaviour
         UpdateHealth();
     }
 
-    // =========================
-    // DAMAGE INDICATOR
-    // =========================
-    public void ShowDamageIndicator(Vector3 attackerPosition, Transform localPlayerTransform)
-    {
-        if (damageIndicatorController == null || localPlayerTransform == null) return;
-
-        Vector3 playerPos = localPlayerTransform.position;
-        Vector3 playerForward = localPlayerTransform.forward;
-
-        damageIndicatorController.OnTakeDamage(playerPos, playerForward, attackerPosition);
-    }
 }
