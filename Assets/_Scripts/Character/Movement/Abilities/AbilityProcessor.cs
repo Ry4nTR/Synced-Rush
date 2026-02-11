@@ -218,5 +218,22 @@ namespace SyncedRush.Character.Movement
             }
         }
 
+        public void ServerResetRuntimeStateForNewRound()
+        {
+            // Keep the selected ability type.
+            // Reset only runtime state.
+
+            UsingJetpack = false;
+            JetpackCharge = _character.Stats.JetpackMaxCharge;
+
+            DashCharge = _character.Stats.DashMaxCharge;
+
+            _dashSim.ResetRuntime();
+            _jetpackSim.ResetRuntime();
+            _grappleSim.ResetRuntime();
+
+            // Ensure grapple is fully cleared so next round starts clean.
+            DeactivateGrappleHook();
+        }
     }
 }

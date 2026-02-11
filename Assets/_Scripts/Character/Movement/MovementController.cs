@@ -845,6 +845,10 @@ public class MovementController : NetworkBehaviour
         if (_visualRoot != null)
             _visualRoot.localPosition = Vector3.zero;
 
+        // RESET ABILITY RUNTIME (KEEP SELECTED ABILITY)
+        if (Ability != null)
+            Ability.ServerResetRuntimeStateForNewRound();
+
         int ack = GetServerAckSequence();
         PublishServerSnapshot(ack);
 

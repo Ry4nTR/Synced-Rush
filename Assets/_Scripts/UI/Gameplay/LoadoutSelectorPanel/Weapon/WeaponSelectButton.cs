@@ -17,19 +17,6 @@ public class WeaponSelectButton : MonoBehaviour
     // Track the currently selected weapon button so we can unhighlight the previous one
     private static WeaponSelectButton currentlySelected;
 
-    /// <summary>
-    /// Clears the current weapon selection highlight.  Call this when starting a new round
-    /// to ensure no button appears selected until the player makes a choice.
-    /// </summary>
-    public static void ClearSelection()
-    {
-        if (currentlySelected != null)
-        {
-            currentlySelected.SetSelected(false);
-            currentlySelected = null;
-        }
-    }
-
     private Button button;
 
     private void Awake()

@@ -42,5 +42,12 @@ namespace SyncedRush.Character.Movement
             // “Enter grapple state” is derived from hook state after toggle is applied.
             // We set it after executing shoot/retreat in MovementController.
         }
+
+        public void ResetRuntime()
+        {
+            _lastAbilityCount = -1;
+            WantsToggleThisTick = false;
+            WantsEnterGrappleStateThisTick = false;
+        }
     }
 }

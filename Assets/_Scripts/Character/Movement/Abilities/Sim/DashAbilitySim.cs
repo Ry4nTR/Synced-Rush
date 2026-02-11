@@ -40,4 +40,10 @@ public sealed class DashAbilitySim
         if (ability.UseDash())
             WantsDashThisTick = true;
     }
+
+    public void ResetRuntime()
+    {
+        _lastAbilityCount = -1;
+        WantsDashThisTick = false;
+    }
 }

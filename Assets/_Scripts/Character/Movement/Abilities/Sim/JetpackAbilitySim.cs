@@ -108,4 +108,16 @@ public sealed class JetpackAbilitySim
             && !ctx.IsOnGround
             && ability.UsingJetpack;
     }
+
+    public void ResetRuntime()
+    {
+        _lastState = MovementState.Move;
+        _lastJumpCount = 0;
+        _jumpedSinceGround = false;
+
+        _eligible = false;
+        _blockUntilRelease = false;
+        _active = false;
+        _lastPressCount = 0;
+    }
 }

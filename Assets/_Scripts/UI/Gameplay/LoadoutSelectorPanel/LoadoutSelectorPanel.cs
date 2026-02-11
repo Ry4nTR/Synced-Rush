@@ -59,21 +59,17 @@ public class LoadoutSelectorPanel : MonoBehaviour
         // allow the player to close the panel early and return to gameplay.
         if (inPreRound)
         {
-            if (isOpen)
-            {
-                uiManager.HideLoadoutPanel();
-                uiManager.ShowHUD();
-                // Switch back to gameplay mode on toggle close
-                componentSwitcher?.SetState_Gameplay();
-                isOpen = false;
-                // Exit pre‑round early so further toggles behave normally
-                inPreRound = false;
-            }
-            else
-            {
-                // If the panel is closed during pre‑round, we treat this as a no‑op
-                return;
-            }
+            if (!isOpen) return;
+
+            uiManager.HideLoadoutPanel();
+            uiManager.ShowHUD();
+
+            // Keep loadout input state during pre-round
+            componentSwitcher?.SetState_Loadout();
+
+            isOpen = false;
+
+            // IMPORTANT: do NOT set inPreRound=false here
             return;
         }
 
@@ -99,22 +95,22 @@ public class LoadoutSelectorPanel : MonoBehaviour
     // Called by GameplayUIManager when the pre‑round countdown starts.
     public void OpenPreRound()
     {
-        // Reset any previous selection before starting a new pre‑round.
-        LocalWeaponSelection.SelectedWeaponId = -1;
-        // Clear button highlights so no button appears selected
-        WeaponSelectButton.ClearSelection();
+        // Persist selection across rounds.
+        // Only assign defaults if player never selected anything yet.
 
-        // Reset ability selection at the start of each pre‑round
-        LocalAbilitySelection.SelectedAbility = CharacterAbility.None;
-        AbilitySelectButton.ClearSelection();
+        if (LocalWeaponSelection.SelectedWeaponId < 0)
+            LocalWeaponSelection.SelectedWeaponId = defaultWeaponId;
 
-        // Show the loadout panel and hide the HUD during pre‑round selection.
+        if (LocalAbilitySelection.SelectedAbility == CharacterAbility.None)
+            LocalAbilitySelection.SelectedAbility = defaultAbility;
+
         uiManager.ShowLoadoutPanel();
         uiManager.HideHUD();
 
-        // Mark that we are in pre‑round so toggle hotkeys are disabled
         inPreRound = true;
         isOpen = true;
+
+        componentSwitcher?.SetState_Loadout();
     }
 
     // Called when the player clicks a weapon
@@ -154,34 +150,19 @@ public class LoadoutSelectorPanel : MonoBehaviour
     // Called when the countdown finishes
     public void OnCountdownFinished()
     {
-        // When the countdown finishes the RoundManager will switch inputs.
-        if (LocalWeaponSelection.SelectedWeaponId < 0)
+        // Ensure networked equip + ability are applied (owner)
+        var player = NetworkManager.Singleton.LocalClient?.PlayerObject;
+        if (player != null)
         {
-            // Equip default weapon and close the panel
-            LocalWeaponSelection.SelectedWeaponId = defaultWeaponId;
-            var player = NetworkManager.Singleton.LocalClient?.PlayerObject;
-            if (player != null)
-            {
-                var loadout = player.GetComponent<WeaponLoadoutState>();
-                loadout?.RequestEquip(defaultWeaponId);
-            }
+            var loadout = player.GetComponent<WeaponLoadoutState>();
+            if (loadout != null && LocalWeaponSelection.SelectedWeaponId >= 0)
+                loadout.RequestEquip(LocalWeaponSelection.SelectedWeaponId);
+
+            var move = player.GetComponent<MovementController>();
+            if (move != null && LocalAbilitySelection.SelectedAbility != CharacterAbility.None)
+                move.ChangeAbility(LocalAbilitySelection.SelectedAbility);
         }
 
-        // If no ability was chosen, assign the default ability
-        if (LocalAbilitySelection.SelectedAbility == CharacterAbility.None)
-        {
-            LocalAbilitySelection.SelectedAbility = defaultAbility;
-            var player = NetworkManager.Singleton.LocalClient?.PlayerObject;
-            if (player != null)
-            {
-                var move = player.GetComponent<MovementController>();
-                if (move != null && move.Ability != null)
-                {
-                    move.ChangeAbility(defaultAbility);
-                }
-            }
-        }
-        // Hide UI and reset pre‑round flag
         uiManager.HideLoadoutPanel();
         uiManager.ShowHUD();
         inPreRound = false;

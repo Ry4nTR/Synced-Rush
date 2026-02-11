@@ -40,26 +40,6 @@ public class WeaponNetworkHandler : NetworkBehaviour
 
         System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 
-#if UNITY_EDITOR
-        Debug.DrawRay(origin, direction * data.range, Color.cyan, 1f);
-        for (int i = 0; i < hits.Length; i++)
-        {
-            var h = hits[i];
-            var col = h.collider;
-
-            bool isChild = col != null && col.transform.IsChildOf(transform);
-
-            Hitbox hbRef = null;
-            bool hasHitbox = col != null && col.TryGetComponent(out hbRef);
-            ulong hbOwner = hasHitbox ? hbRef.OwnerNetworkId : 0;
-            bool selfByNetId = hasHitbox && hbOwner == NetworkObjectId;
-
-            Debug.Log($"[SHOT TRACE] #{i} dist={h.distance:F3} col={col?.name} " +
-                      $"layer={LayerMask.LayerToName(col.gameObject.layer)} " +
-                      $"isChild={isChild} hasHitbox={hasHitbox} hbOwner={hbOwner} selfByNetId={selfByNetId}");
-        }
-#endif
-
         foreach (var h in hits)
         {
             var col = h.collider;
@@ -76,10 +56,6 @@ public class WeaponNetworkHandler : NetworkBehaviour
                 if (col.transform.IsChildOf(transform))
                     continue;
             }
-
-#if UNITY_EDITOR
-            Debug.Log($"[SHOT ACCEPT] using hit: col={col.name} dist={h.distance:F3}");
-#endif
 
             HandleHit(h, origin, direction);
             return;

@@ -29,13 +29,13 @@ MonoBehaviour:
   magazineSize: 30
   ammoReserve: 120
   reloadTime: 1.6
-  baseSpread: 1.2
+  baseSpread: 1
   jumpSpread: 4
   crouchSpreadMultiplier: 0.75
   aimSpreadMultiplier: 0.65
   spreadRecoveryRate: 9
-  spreadIncreasePerShot: 0.9
-  maxSpread: 6.5
+  spreadIncreasePerShot: 0.5
+  maxSpread: 6
   weaponPrefab: {fileID: 4289611308825992193, guid: 20284463889722d4fb255c3f2aa304c8, type: 3}
   shootSound: {fileID: 0}
   reloadSound: {fileID: 0}

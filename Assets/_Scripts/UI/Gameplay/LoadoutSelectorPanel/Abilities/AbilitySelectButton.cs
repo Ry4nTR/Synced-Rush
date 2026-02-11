@@ -25,19 +25,6 @@ public class AbilitySelectButton : MonoBehaviour
     // Track the currently selected ability button so we can unhighlight the previous one
     private static AbilitySelectButton currentlySelected;
 
-    /// <summary>
-    /// Clears the current ability selection highlight.  Call this when starting a new round
-    /// to ensure no ability button appears selected until the player makes a choice.
-    /// </summary>
-    public static void ClearSelection()
-    {
-        if (currentlySelected != null)
-        {
-            currentlySelected.SetSelected(false);
-            currentlySelected = null;
-        }
-    }
-
     private Button button;
 
     private void Awake()
