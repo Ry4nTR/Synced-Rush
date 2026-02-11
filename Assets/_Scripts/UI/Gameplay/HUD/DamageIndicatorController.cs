@@ -13,6 +13,7 @@ public class DamageIndicatorController : MonoBehaviour
     private Coroutine _fadeCoroutine;
 
     private Vector3 _enemyPosOnHit = Vector3.zero;
+    private GameObject playerObj;
 
     void Start()
     {
@@ -26,9 +27,16 @@ public class DamageIndicatorController : MonoBehaviour
             Debug.LogError("Indicator image null!");
     }
 
+    public void SetPlayerObj(GameObject playerObj)
+    {
+        this.playerObj = playerObj;
+    }
+
     // Public API
     public void OnTakeDamage(Vector3 playerPosition, Vector3 playerForward, Vector3 enemyPosition)
     {
+        _enemyPosOnHit = enemyPosition;
+
         Vector3 dirToAttacker = enemyPosition - playerPosition;
         float hitDir = GetAngle(playerForward, dirToAttacker);
 
@@ -73,6 +81,11 @@ public class DamageIndicatorController : MonoBehaviour
         while (elapsed < fadeDuration)
         {
             elapsed += Time.deltaTime;
+
+            Vector3 dirToAttacker = _enemyPosOnHit - playerObj.transform.position;
+            float hitDir = GetAngle(playerObj.transform.forward, dirToAttacker);
+
+            _indicatorMat.SetFloat("_HitDir", hitDir);
 
             float intensity = Mathf.Lerp(1, 0, elapsed / fadeDuration);
             SetAlpha(intensity);

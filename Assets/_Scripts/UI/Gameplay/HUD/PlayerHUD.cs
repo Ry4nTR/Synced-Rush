@@ -51,6 +51,9 @@ public class PlayerHUD : MonoBehaviour
         if (health != null)
             health.currentHealth.OnValueChanged += OnHealthChanged;
 
+        if (damageIndicatorController != null)
+            damageIndicatorController.SetPlayerObj(player);
+
         UpdateHealth();
     }
 
