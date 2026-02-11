@@ -982,7 +982,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07b7d3aa68c3d064182d990a96d04c52, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageIndicatorController
-  fadeDuration: 2
+  fadeDuration: 20
 --- !u!1 &7657464914133912956
 GameObject:
   m_ObjectHideFlags: 0

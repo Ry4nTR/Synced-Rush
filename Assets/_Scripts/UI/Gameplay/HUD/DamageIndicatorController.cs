@@ -13,7 +13,7 @@ public class DamageIndicatorController : MonoBehaviour
     private Coroutine _fadeCoroutine;
 
     private Vector3 _enemyPosOnHit = Vector3.zero;
-    private GameObject playerObj;
+    private Transform _playerTransform;
 
     void Start()
     {
@@ -27,15 +27,16 @@ public class DamageIndicatorController : MonoBehaviour
             Debug.LogError("Indicator image null!");
     }
 
-    public void SetPlayerObj(GameObject playerObj)
-    {
-        this.playerObj = playerObj;
-    }
 
     // Public API
-    public void OnTakeDamage(Vector3 playerPosition, Vector3 playerForward, Vector3 enemyPosition)
+    //public void OnTakeDamage(Vector3 playerPosition, Vector3 playerForward, Vector3 enemyPosition)
+    public void OnTakeDamage(Transform playerTransform, Vector3 enemyPosition)
     {
+        _playerTransform = playerTransform;
         _enemyPosOnHit = enemyPosition;
+
+        Vector3 playerPosition = playerTransform.position;
+        Vector3 playerForward = playerTransform.forward;
 
         Vector3 dirToAttacker = enemyPosition - playerPosition;
         float hitDir = GetAngle(playerForward, dirToAttacker);
@@ -78,14 +79,19 @@ public class DamageIndicatorController : MonoBehaviour
     {
         float elapsed = 0;
 
-        while (elapsed < fadeDuration)
+        while (elapsed < fadeDuration && _playerTransform != null)
         {
             elapsed += Time.deltaTime;
 
-            Vector3 dirToAttacker = _enemyPosOnHit - playerObj.transform.position;
-            float hitDir = GetAngle(playerObj.transform.forward, dirToAttacker);
+
+            Vector3 dirToAttacker = _enemyPosOnHit - _playerTransform.position;
+            float hitDir = GetAngle(_playerTransform.forward, dirToAttacker);
 
             _indicatorMat.SetFloat("_HitDir", hitDir);
+            //_indicatorImage.materialForRendering.SetFloat("_HitDir", hitDir);
+
+            Debug.Log("Forward attuale: " + _playerTransform.forward);
+            //Debug.Log($"Rotazione UI: {hitDir} | Alpha: {1 - (elapsed / fadeDuration)}");
 
             float intensity = Mathf.Lerp(1, 0, elapsed / fadeDuration);
             SetAlpha(intensity);

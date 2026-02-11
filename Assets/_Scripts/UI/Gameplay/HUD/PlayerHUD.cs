@@ -51,9 +51,6 @@ public class PlayerHUD : MonoBehaviour
         if (health != null)
             health.currentHealth.OnValueChanged += OnHealthChanged;
 
-        if (damageIndicatorController != null)
-            damageIndicatorController.SetPlayerObj(player);
-
         UpdateHealth();
     }
 
@@ -94,10 +91,7 @@ public class PlayerHUD : MonoBehaviour
     {
         if (damageIndicatorController == null || localPlayerTransform == null) return;
 
-        Vector3 playerPos = localPlayerTransform.position;
-        Vector3 playerForward = localPlayerTransform.forward;
-
-        damageIndicatorController.OnTakeDamage(playerPos, playerForward, attackerPosition);
+        damageIndicatorController.OnTakeDamage(localPlayerTransform, attackerPosition);
     }
 
     // =========================
