@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4814600317038989325}
   - component: {fileID: 3424017818108923117}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: SMG_M_Mag
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -108,7 +108,7 @@ GameObject:
   - component: {fileID: 1715636281720109987}
   - component: {fileID: 7474672009591063690}
   - component: {fileID: 6835373566583862003}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: SMG_M_Barrel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -196,7 +196,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8571986898292448196}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Bolt
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -227,7 +227,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5138523421857046910}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: CDx
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -258,7 +258,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6336203750785114164}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Magazine
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -290,7 +290,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4700973342202330847}
   - component: {fileID: 7754577203468660}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: SMG_M_CDx
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -388,7 +388,7 @@ GameObject:
   - component: {fileID: 1170156910794240967}
   - component: {fileID: 7713651079970727690}
   - component: {fileID: 9200816047606989884}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: SMG_M_Rail
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -476,7 +476,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1958200405541346969}
   - component: {fileID: 4612615991494994843}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: SMG_M_Trigger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -572,7 +572,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1317938011229989714}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Grip
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -609,7 +609,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5257650368717283389}
   - component: {fileID: 8992682628648425026}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: SMG_M_CSx
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -710,7 +710,7 @@ GameObject:
   - component: {fileID: 4121458159257687793}
   - component: {fileID: 4274906210735815090}
   - component: {fileID: 3005437698306894161}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: UZI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -725,10 +725,10 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4289611308825992193}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 5511499106168198693}
   - {fileID: 1850999017730601506}
@@ -739,7 +739,7 @@ Transform:
   - {fileID: 1958200405541346969}
   - {fileID: 9055177441818670040}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!114 &3059755982219547318
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -812,19 +812,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b4ded80946e88d842aafbdc20337afec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponSpreadDebugger
-  coneLength: 25
-  coneSegments: 24
-  conePersistTime: 0.35
+  enabledDebug: 1
   drawBaseRay: 1
   drawShotRay: 1
-  shotRayLength: 50
-  drawSamples: 1
-  sampleCount: 12
-  stableSeed: 12345
+  drawCone: 1
+  rayLength: 30
+  coneLength: 25
+  persistTime: 0.35
   baseRayColor: {r: 0, g: 1, b: 0, a: 1}
   shotRayColor: {r: 1, g: 0, b: 0, a: 1}
   coneColor: {r: 1, g: 1, b: 0, a: 0.75}
-  sampleColor: {r: 1, g: 1, b: 1, a: 0.5}
 --- !u!1 &4314264544282287689
 GameObject:
   m_ObjectHideFlags: 0
@@ -836,7 +833,7 @@ GameObject:
   - component: {fileID: 149416903030281878}
   - component: {fileID: 6702739046003233919}
   - component: {fileID: 2889689391268323032}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: SMG_M_BarrelGuard_Rail
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -924,7 +921,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2733682751723915410}
   - component: {fileID: 2304108498631641526}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: SMG_M_Receiver
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1020,7 +1017,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5511499106168198693}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Armature
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1056,7 +1053,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5749224864194206887}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: CSx
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1087,7 +1084,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4190120848198733325}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Trigger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1118,7 +1115,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9011304361531722688}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Muzzle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1150,7 +1147,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1850999017730601506}
   - component: {fileID: 6670630458251497279}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: SMG_M_Bolt
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1248,7 +1245,7 @@ GameObject:
   - component: {fileID: 3224113802538809858}
   - component: {fileID: 6124932973957802265}
   - component: {fileID: 6727767637867905999}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: SMG_M_Stock
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1338,6 +1335,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Reflex
       objectReference: {fileID: 0}
+    - target: {fileID: 3964100711448997721, guid: 57b6129e0fd20ea47a0351d635c1cf9d, type: 3}
+      propertyPath: m_Layer
+      value: 7
+      objectReference: {fileID: 0}
     - target: {fileID: 4343862804604401123, guid: 57b6129e0fd20ea47a0351d635c1cf9d, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -1377,6 +1378,10 @@ PrefabInstance:
     - target: {fileID: 4343862804604401123, guid: 57b6129e0fd20ea47a0351d635c1cf9d, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5074440639452726429, guid: 57b6129e0fd20ea47a0351d635c1cf9d, type: 3}
+      propertyPath: m_Layer
+      value: 7
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
