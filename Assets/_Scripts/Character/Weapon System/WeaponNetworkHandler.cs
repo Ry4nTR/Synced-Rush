@@ -7,18 +7,18 @@ public class WeaponNetworkHandler : NetworkBehaviour
     [SerializeField] private WeaponDatabase weaponDatabase;
     [SerializeField] private WeaponLoadoutState loadoutState;
 
-    private ShootingSystem currentShootingSystem;
+    private ClientSystems _clientSystems;
 
-    // ========================================================================
-    // 1. INITIALIZATION
-    // ========================================================================
-    public void UpdateWeaponReferences(ShootingSystem newShootingSystem)
+    public override void OnNetworkSpawn()
     {
-        currentShootingSystem = newShootingSystem;
+        base.OnNetworkSpawn();
+
+        if (IsOwner)
+            _clientSystems = FindFirstObjectByType<ClientSystems>();
     }
 
     // ========================================================================
-    // 2. CLIENT: SHOOTING LOGIC
+    // CLIENT: SHOOTING LOGIC
     // ========================================================================
     public void NotifyShot(Vector3 origin, Vector3 direction)
     {
@@ -27,10 +27,8 @@ public class WeaponNetworkHandler : NetworkBehaviour
         WeaponData data = GetCurrentWeaponData();
         if (data == null) return;
 
-        // Piccolo push in avanti per evitare hit immediati se l’origine è molto vicina ai collider
         origin += direction * 0.05f;
 
-        // RaycastAll per saltare eventuali self-colliders e prendere il primo hit valido
         var hits = Physics.RaycastAll(origin, direction, data.range, data.layerMask, QueryTriggerInteraction.Collide);
         if (hits == null || hits.Length == 0)
         {
@@ -45,7 +43,7 @@ public class WeaponNetworkHandler : NetworkBehaviour
             var col = h.collider;
             if (col == null) continue;
 
-            // Self filtering
+            // self filter
             if (col.TryGetComponent(out Hitbox hb))
             {
                 if (hb.OwnerNetworkId == NetworkObjectId)
@@ -61,61 +59,112 @@ public class WeaponNetworkHandler : NetworkBehaviour
             return;
         }
 
-        // Only self hits -> miss
         HandleMiss(origin, direction, data.range);
-    }
-
-    private bool IsSelfCollider(Collider col)
-    {
-        if (col == null) return false;
-
-        // WeaponNetworkHandler è sul player: tutto ciò che è child di questo transform è "self"
-        return col.transform.IsChildOf(transform);
     }
 
     private void HandleHit(RaycastHit hit, Vector3 origin, Vector3 direction)
     {
-        // Did we hit a Player Hitbox?
         if (hit.collider.TryGetComponent(out Hitbox hitbox))
         {
-            // Valid Target: Request Damage
-            ReportHitServerRpc(hitbox.OwnerNetworkId, hit.point, origin, direction);
+            ReportHitServerRpc(hitbox.OwnerNetworkId, origin, direction);
         }
         else
         {
-            // Wall/Environment: Just show effects
             NotifyMissServerRpc(hit.point, origin);
         }
     }
 
     private void HandleMiss(Vector3 origin, Vector3 direction, float range)
     {
-        // Sky/Nothing: Show tracer to max range
         Vector3 endPoint = origin + (direction * range);
         NotifyMissServerRpc(endPoint, origin);
     }
 
-
     // ========================================================================
-    // 3. SERVER: VALIDATION & DAMAGE
+    // SERVER: VALIDATION & DAMAGE (authoritative headshot + kill)
     // ========================================================================
     [ServerRpc]
-    private void ReportHitServerRpc(ulong targetNetId, Vector3 hitPoint, Vector3 origin, Vector3 direction)
+    private void ReportHitServerRpc(ulong targetNetId, Vector3 origin, Vector3 direction)
     {
-        // Se target è il network object che possiede questo handler, è self-hit → ignora
         if (targetNetId == NetworkObjectId)
             return;
 
         WeaponData data = GetCurrentWeaponData();
+        if (data == null) return;
 
         if (!GetTarget(targetNetId, out HealthSystem targetHealth)) return;
-        if (!IsValidHit(origin, hitPoint, direction, data)) return;
 
-        float distance = Vector3.Distance(origin, hitPoint);
+        // Server performs the authoritative raycast to see what was ACTUALLY hit
+        if (!TryResolveAuthoritativeHit(origin, direction, data, out RaycastHit hit, out Hitbox hitbox))
+            return;
+
+        // Ensure the hitbox belongs to the claimed target
+        if (hitbox.OwnerNetworkId != targetNetId)
+            return;
+
+        // Basic anti-cheat validation (range + wall)
+        if (!IsValidHit(origin, hit.point, direction, data))
+            return;
+
+        bool isHeadshot = hitbox.bodyPart == BodyPartType.Head;
+
+        float distance = Vector3.Distance(origin, hit.point);
         float damage = data.CalculateDamageByDistance(distance);
+
+        // Apply per-hitbox multiplier (this is why hitbox exists)
+        damage *= Mathf.Max(0f, hitbox.damageMultiplier);
+
+        // Determine kill BEFORE applying damage (clean & deterministic)
+        float preHealth = targetHealth.currentHealth.Value;
+        bool willKill = preHealth > 0f && (preHealth - damage) <= 0f;
+
         targetHealth.TakeDamage(damage, OwnerClientId);
 
-        NotifyHitClientRpc(hitPoint, Vector3.up, OwnerClientId);
+        // Shooter-only hitmarker
+        var shooterOnly = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams { TargetClientIds = new[] { OwnerClientId } }
+        };
+        HitmarkerClientRpc(willKill, isHeadshot, shooterOnly);
+
+        // Optional: replicate world VFX for others
+        // NotifyHitClientRpc(hit.point, hit.normal, OwnerClientId);
+    }
+
+    private bool TryResolveAuthoritativeHit(
+        Vector3 origin,
+        Vector3 direction,
+        WeaponData data,
+        out RaycastHit bestHit,
+        out Hitbox bestHitbox)
+    {
+        bestHit = default;
+        bestHitbox = null;
+
+        var hits = Physics.RaycastAll(origin, direction, data.range, data.layerMask, QueryTriggerInteraction.Collide);
+        if (hits == null || hits.Length == 0)
+            return false;
+
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        for (int i = 0; i < hits.Length; i++)
+        {
+            var h = hits[i];
+            if (h.collider == null) continue;
+
+            if (!h.collider.TryGetComponent(out Hitbox hb))
+                continue; // for hitmarker we only accept hitboxes as "valid player hits"
+
+            // ignore self
+            if (hb.OwnerNetworkId == NetworkObjectId)
+                continue;
+
+            bestHit = h;
+            bestHitbox = hb;
+            return true;
+        }
+
+        return false;
     }
 
     [ServerRpc]
@@ -124,52 +173,41 @@ public class WeaponNetworkHandler : NetworkBehaviour
         NotifyMissClientRpc(endPoint, origin, OwnerClientId);
     }
 
-    // --- Validation Helper ---
     private bool IsValidHit(Vector3 origin, Vector3 hitPoint, Vector3 direction, WeaponData data)
     {
         float distance = Vector3.Distance(origin, hitPoint);
 
-        // A. Range Check (+ buffer for lag)
         if (distance > data.range + 2.0f)
-        {
-            Debug.LogWarning($"[Anti-Cheat] Range violation: {OwnerClientId}");
             return false;
-        }
 
-        // B. Wall Check (Obstruction)
         int obstructionMask = LayerMask.GetMask("Default", "Ground", "Walls");
         if (Physics.Raycast(origin, direction, out RaycastHit wallHit, distance - 0.5f, obstructionMask))
-        {
-            Debug.LogWarning($"[Anti-Cheat] Wall violation: {OwnerClientId}");
             return false;
-        }
 
         return true;
     }
 
-
     // ========================================================================
-    // 4. CLIENTS: VISUAL REPLICATION
+    // CLIENT: shooter-only UI
     // ========================================================================
     [ClientRpc]
-    private void NotifyHitClientRpc(Vector3 hitPoint, Vector3 normal, ulong shooterId)
+    private void HitmarkerClientRpc(bool isKill, bool isHeadshot, ClientRpcParams rpcParams = default)
     {
-        // Don't play effects for the shooter (they already saw them instantly)
-        if (NetworkManager.Singleton.LocalClientId == shooterId) return;
+        if (!IsOwner) return;
+        if (_clientSystems == null || _clientSystems.UI == null) return;
 
-        //currentShootingSystem?.ShowImpactEffect(hitPoint, normal);
+        _clientSystems.UI.PlayHitmarker(isKill, isHeadshot);
     }
 
     [ClientRpc]
     private void NotifyMissClientRpc(Vector3 endPoint, Vector3 origin, ulong shooterId)
     {
         if (NetworkManager.Singleton.LocalClientId == shooterId) return;
-
-        //currentShootingSystem?.ShowBulletTracer(origin, endPoint);
+        // tracer for others...
     }
 
     // ========================================================================
-    // 5. HELPERS
+    // HELPERS
     // ========================================================================
     private WeaponData GetCurrentWeaponData()
     {
@@ -181,9 +219,7 @@ public class WeaponNetworkHandler : NetworkBehaviour
     {
         health = null;
         if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(netId, out var obj))
-        {
             return obj.TryGetComponent(out health);
-        }
         return false;
     }
 }

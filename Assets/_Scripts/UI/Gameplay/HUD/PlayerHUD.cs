@@ -1,11 +1,8 @@
 ﻿using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
+using System.Collections;
 
-/// <summary>
-/// Owns and updates all HUD-related visuals for the local player.
-/// This includes ammo, health, and any future HUD values.
-/// </summary>
 public class PlayerHUD : MonoBehaviour
 {
     [Header("Text References")]
@@ -23,14 +20,47 @@ public class PlayerHUD : MonoBehaviour
     [Header("UI Elements Controllers")]
     [SerializeField] private DamageIndicatorController damageIndicatorController;
 
+    // =====================================================
+    // HITMARKER
+    // =====================================================
+    [Header("Hitmarker - Refs")]
+    [SerializeField] private Image hitmarkerImage;
+    [SerializeField] private CanvasGroup hitmarkerGroup;
+
+    [Header("Hitmarker - Timing")]
+    [SerializeField] private float hitmarkerHold = 0.08f;
+    [SerializeField] private float hitmarkerFade = 0.10f;
+
+    [Header("Hitmarker - Punch")]
+    [SerializeField, Range(0f, 0.25f)] private float hitmarkerScalePunch = 0.06f;
+
+    [Header("Hitmarker - Colors (for settings later)")]
+    [SerializeField] private Color hitmarkerNormalColor = Color.white;
+    [SerializeField] private Color hitmarkerHeadshotColor = Color.red;
+    [SerializeField] private Color hitmarkerKillColor = Color.cyan;
+
+    private Coroutine _hitmarkerRoutine;
+    private Vector3 _hitmarkerBaseScale;
+
     // Cached gameplay references (LOCAL PLAYER ONLY)
     private WeaponController weapon;
     private HealthSystem health;
 
-    private void Update()
+    private void Awake()
     {
-        UpdateAmmo();
+        if (hitmarkerImage != null)
+            _hitmarkerBaseScale = hitmarkerImage.rectTransform.localScale;
+
+        if (hitmarkerGroup != null)
+        {
+            hitmarkerGroup.alpha = 0f;
+            hitmarkerGroup.interactable = false;
+            hitmarkerGroup.blocksRaycasts = false;
+        }
     }
+
+    private void Update() => UpdateAmmo();
+
     private void OnDestroy()
     {
         if (health != null)
@@ -40,7 +70,6 @@ public class PlayerHUD : MonoBehaviour
     // =========================
     // BINDING PLAYER AND WEAPON
     // =========================
-
     public void BindPlayer(GameObject player)
     {
         if (health != null)
@@ -60,44 +89,89 @@ public class PlayerHUD : MonoBehaviour
         UpdateAmmo();
     }
 
-    public void SetJetpackUIVisibility(bool value)
-    {
-        jetpackAbilityElements.SetActive(value);
-    }
+    public void SetJetpackUIVisibility(bool value) => jetpackAbilityElements.SetActive(value);
 
     public void UpdateDashCharge(float currentCharge, float maxCharge)
-    {
-        if (maxCharge != 0f)
-        {
-            dashBar.fillAmount = currentCharge / maxCharge;
-        }
-        else
-            dashBar.fillAmount = 0f;
-    }
+        => dashBar.fillAmount = (maxCharge > 0f) ? (currentCharge / maxCharge) : 0f;
 
     public void UpdateJetpackCharge(float currentCharge, float maxCharge)
-    {
-        if (maxCharge != 0f)
-        {
-            jetpackBar.fillAmount = currentCharge / maxCharge;
-        }
-        else
-            jetpackBar.fillAmount = 0f;
-    }
+        => jetpackBar.fillAmount = (maxCharge > 0f) ? (currentCharge / maxCharge) : 0f;
+
     // =========================
     // DAMAGE INDICATOR
     // =========================
     public void ShowDamageIndicator(Vector3 attackerPosition, Transform localPlayerTransform)
     {
         if (damageIndicatorController == null || localPlayerTransform == null) return;
-
         damageIndicatorController.OnTakeDamage(localPlayerTransform, attackerPosition);
+    }
+
+    // =========================
+    // HITMARKER
+    // =========================
+    public void PlayHitmarker(bool isKill, bool isHeadshot)
+    {
+        if (hitmarkerImage == null || hitmarkerGroup == null) return;
+
+        if (_hitmarkerRoutine != null)
+            StopCoroutine(_hitmarkerRoutine);
+
+        _hitmarkerRoutine = StartCoroutine(HitmarkerRoutine(isKill, isHeadshot));
+    }
+
+    private IEnumerator HitmarkerRoutine(bool isKill, bool isHeadshot)
+    {
+        // Priority: KILL > HEADSHOT > NORMAL
+        Color col = isKill ? hitmarkerKillColor : (isHeadshot ? hitmarkerHeadshotColor : hitmarkerNormalColor);
+
+        hitmarkerImage.color = col;
+        hitmarkerGroup.alpha = 1f;
+
+        // Punch-in (COD-like)
+        if (hitmarkerScalePunch > 0f && hitmarkerImage != null)
+            hitmarkerImage.rectTransform.localScale = _hitmarkerBaseScale * (1f + hitmarkerScalePunch);
+
+        // snap back quickly
+        float snapBackTime = 0.05f;
+        float t = 0f;
+        while (t < snapBackTime)
+        {
+            t += Time.deltaTime;
+            if (hitmarkerImage != null)
+                hitmarkerImage.rectTransform.localScale = Vector3.Lerp(
+                    hitmarkerImage.rectTransform.localScale,
+                    _hitmarkerBaseScale,
+                    t / snapBackTime
+                );
+            yield return null;
+        }
+
+        // Hold
+        if (hitmarkerHold > 0f)
+            yield return new WaitForSeconds(hitmarkerHold);
+
+        // Fade
+        float f = 0f;
+        float fadeTime = Mathf.Max(0.001f, hitmarkerFade);
+        while (f < fadeTime)
+        {
+            f += Time.deltaTime;
+            hitmarkerGroup.alpha = Mathf.Lerp(1f, 0f, f / fadeTime);
+            yield return null;
+        }
+
+        hitmarkerGroup.alpha = 0f;
+
+        // restore scale
+        if (hitmarkerImage != null)
+            hitmarkerImage.rectTransform.localScale = _hitmarkerBaseScale;
+
+        _hitmarkerRoutine = null;
     }
 
     // =========================
     // HUD UPDATES
     // =========================
-
     private void UpdateAmmo()
     {
         ammoText.text = weapon != null
@@ -111,17 +185,10 @@ public class PlayerHUD : MonoBehaviour
             ? $"HP {health.currentHealth.Value:F1}"
             : "HP --";
 
-        if (health.maxHealth != 0f)
-        {
-            hpBar.fillAmount = health.CurrentHealth / health.maxHealth;
-        }
-        else
-            hpBar.fillAmount = 0f;
+        hpBar.fillAmount = (health != null && health.maxHealth > 0f)
+            ? (health.CurrentHealth / health.maxHealth)
+            : 0f;
     }
 
-    private void OnHealthChanged(float oldValue, float newValue)
-    {
-        UpdateHealth();
-    }
-
+    private void OnHealthChanged(float oldValue, float newValue) => UpdateHealth();
 }

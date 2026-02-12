@@ -19,9 +19,6 @@ public class DeathCamController : MonoBehaviour
     [SerializeField] private Vector3 teamSpectateOffset = new Vector3(0f, 2.2f, -4f);
     [SerializeField] private float teamFollowSmooth = 10f;
 
-    [Header("Debug")]
-    [SerializeField] private bool debugLogs = true;
-
     // =====================================================
     // Runtime
     // =====================================================
@@ -48,12 +45,6 @@ public class DeathCamController : MonoBehaviour
         spectatorVcam.Priority = _spectatorBasePriority;
     }
 
-    private void DLog(string msg)
-    {
-        if (!debugLogs) return;
-        Debug.Log($"[DeathCam][local={NetworkManager.Singleton?.LocalClientId}] {msg}", this);
-    }
-
     // =====================================================
     // Public API
     // =====================================================
@@ -64,15 +55,11 @@ public class DeathCamController : MonoBehaviour
         _deathPos = sourceCam.transform.position;
         _deathRot = sourceCam.transform.rotation;
         _hasDeathPose = true;
-
-        DLog($"CaptureDeathPose: pos={_deathPos} rotY={_deathRot.eulerAngles.y:F1}");
     }
 
     public void PlayKillcamByKiller(ulong killerClientId, float seconds)
     {
         if (spectatorVcam == null) return;
-
-        DLog($"PlayKillcamByKiller REQUEST: killer={killerClientId} seconds={seconds}");
 
         // avoid multiple routines fighting each other
         if (_followRoutine != null)
@@ -89,8 +76,6 @@ public class DeathCamController : MonoBehaviour
         _deathPos = pos;
         _deathRot = rot;
         _hasDeathPose = true;
-
-        DLog($"PlayKillcamByKillerAtPose: pos={pos} rotY={rot.eulerAngles.y:F1}");
 
         PlayKillcamByKiller(killerClientId, seconds);
     }
@@ -120,8 +105,6 @@ public class DeathCamController : MonoBehaviour
             SetHardCut(false);
 
         _hasDeathPose = false;
-
-        DLog($"StopKillcam(keepHardCutUntilRespawn={keepHardCutUntilRespawn})");
     }
 
     // =====================================================
@@ -130,8 +113,6 @@ public class DeathCamController : MonoBehaviour
     private IEnumerator PlayKillcamWhenReady(ulong killerClientId, float seconds)
     {
         CacheLocalPlayerVcamIfNeeded();
-
-        DLog($"PlayKillcamWhenReady START: hasPose={_hasDeathPose} spectatorPos={spectatorVcam.transform.position}");
 
         // -----------------------------------------------------
         // 1) Wait briefly for death pose (or fallback)
@@ -144,8 +125,6 @@ public class DeathCamController : MonoBehaviour
             t += Time.unscaledDeltaTime;
             yield return null;
         }
-
-        DLog($"After wait: hasPose={_hasDeathPose} waited={t:F3}s");
 
         // Fallback: try to take any enabled camera pose
         if (!_hasDeathPose)
@@ -168,7 +147,6 @@ public class DeathCamController : MonoBehaviour
                 _deathPos = best.transform.position;
                 _deathRot = best.transform.rotation;
                 _hasDeathPose = true;
-                DLog($"FallbackPose used: pos={_deathPos} rotY={_deathRot.eulerAngles.y:F1}");
             }
         }
 
@@ -176,7 +154,6 @@ public class DeathCamController : MonoBehaviour
         // 2) Resolve killer POV root
         // -----------------------------------------------------
         Transform killerRoot = ResolveKillerCameraRoot(killerClientId);
-        DLog($"ResolveKillerCameraRoot: {(killerRoot ? killerRoot.name : "NULL")}");
 
         if (killerRoot == null)
         {
@@ -184,8 +161,6 @@ public class DeathCamController : MonoBehaviour
             _followRoutine = null;
             yield break;
         }
-
-        DLog($"KillerRoot pos={killerRoot.position} rotY={killerRoot.eulerAngles.y:F1}");
 
         // -----------------------------------------------------
         // 3) Activate spectator cam (snap to death pose first)
@@ -201,15 +176,12 @@ public class DeathCamController : MonoBehaviour
         if (_hasDeathPose)
         {
             spectatorVcam.transform.SetPositionAndRotation(_deathPos, _deathRot);
-            DLog($"ApplyDeathPose: pos={spectatorVcam.transform.position} rotY={spectatorVcam.transform.eulerAngles.y:F1}");
         }
 
         if (forceHardCut) SetHardCut(true);
 
         int playerPri = _localPlayerVcam != null ? _localPlayerVcam.Priority : 0;
         spectatorVcam.Priority = playerPri + boostAbovePlayer;
-
-        DLog($"Spectator LIVE: pri={spectatorVcam.Priority} base={_spectatorBasePriority}");
 
         // -----------------------------------------------------
         // 4) Stationary killcam: keep victim position, rotate toward killer
@@ -250,8 +222,6 @@ public class DeathCamController : MonoBehaviour
             _isTeamSpectating = true;
             _teamSpectateTarget = teammateCam;
 
-            DLog($"TeamSpectate START (ThirdPerson): target={teammateCam.name}");
-
             Vector3 velocity = Vector3.zero;
 
             while (_isTeamSpectating && _teamSpectateTarget != null && spectatorVcam != null)
@@ -278,7 +248,6 @@ public class DeathCamController : MonoBehaviour
                 yield return null;
             }
 
-            DLog("TeamSpectate END");
             _followRoutine = null;
             yield break;
         }
@@ -301,8 +270,6 @@ public class DeathCamController : MonoBehaviour
         if (localPlayer == null) return;
 
         _localPlayerVcam = localPlayer.GetComponentInChildren<CinemachineCamera>(true);
-        if (_localPlayerVcam != null)
-            DLog($"Cached local vcam: {_localPlayerVcam.name} pri={_localPlayerVcam.Priority}");
     }
 
     private Transform ResolveKillerCameraRoot(ulong killerClientId)
@@ -390,6 +357,5 @@ public class DeathCamController : MonoBehaviour
     public void RestoreBlendAfterKillcam()
     {
         if (forceHardCut) SetHardCut(false);
-        DLog("RestoreBlendAfterKillcam()");
     }
 }

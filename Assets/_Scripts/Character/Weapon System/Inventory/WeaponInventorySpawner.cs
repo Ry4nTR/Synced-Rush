@@ -101,7 +101,6 @@ public class WeaponInventorySpawner : NetworkBehaviour
             var ss = currentWeapon.GetComponent<ShootingSystem>();
 
             var wh = GetComponent<WeaponNetworkHandler>();
-            wh?.UpdateWeaponReferences(ss);
 
             componentSwitcher?.RegisterWeapon(wc, ss, wh);
 

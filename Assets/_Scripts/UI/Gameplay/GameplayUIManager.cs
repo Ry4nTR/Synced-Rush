@@ -283,4 +283,10 @@ public class GameplayUIManager : MonoBehaviour
         if (playerHUD == null) return;
         playerHUD.UpdateJetpackCharge(currentCharge, maxCharge);
     }
+
+    public void PlayHitmarker(bool isKill, bool isHeadshot)
+    {
+        if (playerHUD == null) return;
+        playerHUD.PlayHitmarker(isKill, isHeadshot);
+    }
 }

@@ -1916,13 +1916,17 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3761552388010608383}
     m_Modifications:
+    - target: {fileID: 2455837474618143938, guid: 81dae5452a6632941953e95fbff97651, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 2455837474618143938, guid: 81dae5452a6632941953e95fbff97651, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 50
+      objectReference: {fileID: 0}
     - target: {fileID: 2715842605986927767, guid: 81dae5452a6632941953e95fbff97651, type: 3}
       propertyPath: m_Name
       value: PlayerHUD
-      objectReference: {fileID: 0}
-    - target: {fileID: 2715842605986927767, guid: 81dae5452a6632941953e95fbff97651, type: 3}
-      propertyPath: m_IsActive
-      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6585135344376155785, guid: 81dae5452a6632941953e95fbff97651, type: 3}
       propertyPath: m_Pivot.x
