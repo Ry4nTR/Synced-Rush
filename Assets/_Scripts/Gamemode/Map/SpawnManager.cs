@@ -58,16 +58,17 @@ public class SpawnManager : MonoBehaviour
 
             // Reset gameplay state
             var health = playerObj.GetComponent<HealthSystem>();
-            if (health != null) health.Respawn(); // server only
+            if (health != null) health.Respawn();
+
+            var actor = playerObj.GetComponent<PlayerRoundActor>();
+            if (actor != null) actor.ServerSetAliveState(true);
 
             var move = playerObj.GetComponent<MovementController>();
-            if (move != null)
-            {
-                move.ServerResetForNewRound(spawn.position, spawn.rotation);
-            }
+            if (move != null) move.ServerResetForNewRound(spawn.position, spawn.rotation);
 
             var wc = playerObj.GetComponentInChildren<WeaponController>(true);
             if (wc != null) wc.ResetForNewRound();
+
         }
     }
 

@@ -406,5 +406,4 @@ public class RoundManager : NetworkBehaviour
             sw.SetWeaponGameplayEnabled(true);
         }
     }
-
 }
