@@ -2,8 +2,13 @@
 using UnityEngine.UI;
 using TMPro;
 
+/// <summary>
+/// Provides a simple, scene‑agnostic loading screen that can be shown when changing scenes.
+/// </summary>
 public class LoadingScreenManager : MonoBehaviour
 {
+    public static LoadingScreenManager Instance { get; private set; }
+
     [Header("Loading UI")]
     [SerializeField] private CanvasGroup loadingPanel;
     [SerializeField] private Slider progressBar;
@@ -11,26 +16,23 @@ public class LoadingScreenManager : MonoBehaviour
 
     private void Awake()
     {
+        // Singleton enforcement
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
         DontDestroyOnLoad(gameObject);
+
+        // Hide on boot so it doesn't obstruct the main menu
         Hide();
     }
 
-    private void OnEnable()
-    {
-        RoundManager.OnLoadingScreen += HandleLoading;
-    }
-
-    private void OnDisable()
-    {
-        RoundManager.OnLoadingScreen -= HandleLoading;
-    }
-
-    private void HandleLoading(bool show)
-    {
-        if (show) Show();
-        else Hide();
-    }
-
+    /// <summary>
+    /// Show the loading overlay.  Progress bar starts at zero unless
+    /// explicitly set via SetProgress().
+    /// </summary>
     public void Show()
     {
         if (loadingPanel != null)
@@ -39,10 +41,15 @@ public class LoadingScreenManager : MonoBehaviour
             loadingPanel.interactable = true;
             loadingPanel.blocksRaycasts = true;
         }
-        if (progressBar != null) progressBar.value = 0f;
-        if (statusLabel != null) statusLabel.text = string.Empty;
+        if (progressBar != null)
+            progressBar.value = 0f;
+        if (statusLabel != null)
+            statusLabel.text = string.Empty;
     }
 
+    /// <summary>
+    /// Hide the loading overlay.
+    /// </summary>
     public void Hide()
     {
         if (loadingPanel != null)
@@ -53,9 +60,15 @@ public class LoadingScreenManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Update the progress bar and optional status text.  Progress should be
+    /// normalized between 0 and 1.
+    /// </summary>
     public void SetProgress(float progress, string status = null)
     {
-        if (progressBar != null) progressBar.value = Mathf.Clamp01(progress);
-        if (!string.IsNullOrEmpty(status) && statusLabel != null) statusLabel.text = status;
+        if (progressBar != null)
+            progressBar.value = Mathf.Clamp01(progress);
+        if (!string.IsNullOrEmpty(status) && statusLabel != null)
+            statusLabel.text = status;
     }
 }

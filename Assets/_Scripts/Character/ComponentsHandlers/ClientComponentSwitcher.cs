@@ -46,11 +46,6 @@ public class ClientComponentSwitcher : NetworkBehaviour
     [Header("Services")]
     [SerializeField] private GameplayServicesRef services;
 
-    [Header("Client Systems")]
-    [SerializeField] private ClientSystems clientSystems;
-
-    public void SetClientSystems(ClientSystems systems) => clientSystems = systems;
-
     private void Awake()
     {
         // INPUT components
@@ -115,9 +110,12 @@ public class ClientComponentSwitcher : NetworkBehaviour
             ClientComponentSwitcherLocal.Local = this;
 
             // Prefer the new GameplayUIManager if present; fallback to the legacy UIManager.
-            clientSystems?.UI?.RegisterPlayer(gameObject);
-
-            if (uiManager != null)
+            var gameplayUI = GameplayUIManager.Instance;
+            if (gameplayUI != null)
+            {
+                gameplayUI.RegisterPlayer(gameObject);
+            }
+            else if (uiManager != null)
             {
                 uiManager.UIRegisterPlayer(gameObject);
             }
@@ -166,8 +164,12 @@ public class ClientComponentSwitcher : NetworkBehaviour
         if (IsOwner)
         {
             // When owned, register the weapon with whichever UI manager is available.
-            clientSystems?.UI?.RegisterWeapon(wc);
-            if (uiManager != null)
+            var gameplayUI = GameplayUIManager.Instance;
+            if (gameplayUI != null)
+            {
+                gameplayUI.RegisterWeapon(wc);
+            }
+            else if (uiManager != null)
             {
                 // Fallback: register with the old UIManager so ammo displays update
                 uiManager.UIRegisterWeapon(wc);

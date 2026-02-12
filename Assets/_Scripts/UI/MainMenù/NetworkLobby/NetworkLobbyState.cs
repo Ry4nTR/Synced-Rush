@@ -4,43 +4,34 @@ using UnityEngine;
 
 public class NetworkLobbyState : NetworkBehaviour
 {
-    [SerializeField] private MatchmakingManager matchmaking;
+    public static NetworkLobbyState Instance;
 
     public NetworkVariable<FixedString64Bytes> LobbyName =
         new("", NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
-    public NetworkList<NetLobbyPlayer> Players = new NetworkList<NetLobbyPlayer>();
+    public NetworkList<NetLobbyPlayer> Players;
 
     private void Awake()
     {
-        Players ??= new NetworkList<NetLobbyPlayer>();
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+        Players = new NetworkList<NetLobbyPlayer>();
 
         DontDestroyOnLoad(gameObject);
-
-        if (matchmaking == null)
-            matchmaking = FindFirstObjectByType<MatchmakingManager>();
     }
 
     public override void OnNetworkSpawn()
     {
-        if (Players == null)
-            Players = new NetworkList<NetLobbyPlayer>();
-
         if (IsServer)
         {
             Players.Clear();
 
             NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
             NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
-        }
-    }
-
-    public override void OnNetworkDespawn()
-    {
-        if (NetworkManager.Singleton != null)
-        {
-            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
-            NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
         }
     }
 
@@ -58,7 +49,7 @@ public class NetworkLobbyState : NetworkBehaviour
 
         // If this is the host (server client), we already know the local name on this machine
         if (clientId == NetworkManager.ServerClientId && IsHost)
-            initialName = (matchmaking != null) ? matchmaking.LocalPlayerName : "Host";
+            initialName = MatchmakingManager.Instance.LocalPlayerName;
 
         Players.Add(new NetLobbyPlayer
         {

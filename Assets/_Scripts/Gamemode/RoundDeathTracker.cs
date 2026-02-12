@@ -1,78 +1,90 @@
-using Unity.Services.Lobbies.Models;
 using UnityEngine;
+using Unity.Netcode;
 
 public class RoundDeathTracker : MonoBehaviour
 {
-    [SerializeField] private NetworkLobbyState lobbyState;
-
+    private LobbyManager lobbyManager;
     private RoundManager roundManager;
 
-    public void Initialize(RoundManager round, NetworkLobbyState state)
+    // =========================
+    // Initialization
+    // =========================
+
+    public void Initialize(LobbyManager lobby, RoundManager round)
     {
+        lobbyManager = lobby;
         roundManager = round;
-        lobbyState = state;
     }
 
-    private void Awake()
+    // =========================
+    // Public API
+    // =========================
+    public void NotifyPlayerDeath(ulong clientId)
     {
-        if (lobbyState == null) lobbyState = FindFirstObjectByType<NetworkLobbyState>();
-    }
-
-    public void NotifyPlayerDeath(ulong victimClientId, ulong killerClientId)
-    {
+        var lobbyState = NetworkLobbyState.Instance;
         if (lobbyState == null)
         {
-            Debug.LogError("NetworkLobbyState not found.");
+            Debug.LogError("NetworkLobbyState instance not found. Cannot process death notification.");
             return;
         }
 
         var players = lobbyState.Players;
-
         int foundIndex = -1;
         NetLobbyPlayer deadPlayer = default;
-
+        // Find the player in the network list
         for (int i = 0; i < players.Count; i++)
         {
-            if (players[i].clientId == victimClientId)
+            if (players[i].clientId == clientId)
             {
                 foundIndex = i;
                 deadPlayer = players[i];
                 break;
             }
         }
-
+        // Player not found
         if (foundIndex < 0)
         {
-            Debug.LogWarning($"Player with clientId {victimClientId} not found in lobby state.");
+            Debug.LogWarning($"Player with clientId {clientId} not found in lobby state.");
+            return;
+        }
+        // Ignore duplicate death notifications
+        if (!deadPlayer.isAlive)
+        {
             return;
         }
 
-        if (!deadPlayer.isAlive)
-            return;
-
+        // Mark player as dead and update the network list
         deadPlayer.isAlive = false;
         players[foundIndex] = deadPlayer;
 
-        Debug.Log($"Player {deadPlayer.name} (client {victimClientId}) died. Killer={killerClientId}");
+        Debug.Log($"Player {deadPlayer.name} (client {clientId}) died");
 
-        CheckTeamElimination(deadPlayer.teamId, killerClientId);
+        // Check if the player's team has been eliminated
+        CheckTeamElimination(deadPlayer.teamId);
     }
 
-    private void CheckTeamElimination(int teamId, ulong killerClientId)
+    // =========================
+    // Internal
+    // =========================
+    private void CheckTeamElimination(int teamId)
     {
+        var lobbyState = NetworkLobbyState.Instance;
         if (lobbyState == null)
         {
-            Debug.LogError("NetworkLobbyState not found.");
+            Debug.LogError("NetworkLobbyState instance not found. Cannot check team elimination.");
             return;
         }
 
-        foreach (var p in lobbyState.Players)
+        var players = lobbyState.Players;
+        // If any player on the specified team is alive, the team is not eliminated
+        foreach (var p in players)
         {
             if (p.teamId == teamId && p.isAlive)
                 return;
         }
 
+        // If we reach here, all players on the team are dead. Determine the opposing team id.
         int winningTeamId = teamId == 0 ? 1 : 0;
-        roundManager.EndRound(winningTeamId, killerClientId);
+        roundManager.EndRound(winningTeamId);
     }
 }

@@ -6,10 +6,13 @@ using UnityEngine;
 
 public class MatchmakingManager : MonoBehaviour
 {
+    public static MatchmakingManager Instance;
+
     public string LocalPlayerName { get; private set; } = "";
 
     private void Awake()
     {
+        Instance = this;
         DontDestroyOnLoad(gameObject);
     }
 

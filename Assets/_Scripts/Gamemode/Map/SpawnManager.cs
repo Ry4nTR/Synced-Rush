@@ -1,19 +1,17 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 using Unity.Netcode;
 
 public class SpawnManager : MonoBehaviour
 {
     private MapSpawnPoints spawnPoints;
-
     [Header("Prefabs")]
     [Tooltip("Networked player prefab to spawn for each lobby member")]
     public GameObject playerPrefab;
 
-    [SerializeField] private NetworkLobbyState lobbyState;
-    private void Awake()
-    {
-        if (lobbyState == null) lobbyState = FindFirstObjectByType<NetworkLobbyState>();
-    }
+    // =========================
+    // Initialization
+    // =========================
 
     public void Initialize(LobbyManager lobby)
     {
@@ -36,7 +34,8 @@ public class SpawnManager : MonoBehaviour
     {
         if (!NetworkManager.Singleton.IsServer) return;
 
-        if (lobbyState == null) { Debug.LogError("NetworkLobbyState missing"); return; }
+        var lobbyState = NetworkLobbyState.Instance;
+        if (lobbyState == null) return;
 
         var players = lobbyState.Players;
 
@@ -81,6 +80,7 @@ public class SpawnManager : MonoBehaviour
             return;
         }
 
+        var lobbyState = NetworkLobbyState.Instance;
         if (lobbyState == null)
         {
             Debug.LogError("NetworkLobbyState instance not found. Cannot spawn players.");

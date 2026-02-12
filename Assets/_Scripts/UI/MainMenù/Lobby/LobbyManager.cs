@@ -17,6 +17,7 @@ public enum LobbyState
 public class LobbyManager : MonoBehaviour
 {
     [Header("Lobby Info")]
+    public static LobbyManager Instance { get; private set; }
     public string LobbyName { get; private set; }
 
     [Header("State")]
@@ -29,16 +30,18 @@ public class LobbyManager : MonoBehaviour
     [Header("Team Assignment")]
     [SerializeField] private TeamAssignmentMode teamAssignmentMode = TeamAssignmentMode.Random;
 
-    [SerializeField] private NetworkLobbyState lobbyState;
-
     public TeamAssignmentMode TeamAssignmentMode => teamAssignmentMode;
 
     private void Awake()
     {
-        DontDestroyOnLoad(gameObject);
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
 
-        if (lobbyState == null)
-            lobbyState = FindFirstObjectByType<NetworkLobbyState>();
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
     }
 
     // =========================
@@ -47,6 +50,7 @@ public class LobbyManager : MonoBehaviour
     // Randomly assigns players to two teams based on the selected gamemode's playersPerTeam.
     public void AssignTeamsAutomatically()
     {
+        var lobbyState = NetworkLobbyState.Instance;
         if (lobbyState == null || selectedGamemode == null)
             return;
 
@@ -87,10 +91,10 @@ public class LobbyManager : MonoBehaviour
     // Assigns a player to a team.
     public void SetPlayerTeam(ulong clientId, int teamId)
     {
-        if (lobbyState == null)
+        if (NetworkLobbyState.Instance == null)
             return;
         // Forward the call to the network state. Only the host can invoke
-        lobbyState.SetPlayerTeamServerRpc(clientId, teamId);
+        NetworkLobbyState.Instance.SetPlayerTeamServerRpc(clientId, teamId);
     }
 
     // =========================
@@ -141,6 +145,7 @@ public class LobbyManager : MonoBehaviour
     // Resets lobby state after a match ends.
     public void ResetLobbyAfterMatch()
     {
+        var lobbyState = NetworkLobbyState.Instance;
         if (lobbyState != null)
         {
             var players = lobbyState.Players;

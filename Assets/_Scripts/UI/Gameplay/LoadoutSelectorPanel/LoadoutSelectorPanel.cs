@@ -5,7 +5,6 @@ using SyncedRush.Character.Movement;
 
 public class LoadoutSelectorPanel : MonoBehaviour
 {
-    [SerializeField] private ClientSystems clientSystems;
     [SerializeField] private int defaultWeaponId = 0;
     [SerializeField] private CharacterAbility defaultAbility = CharacterAbility.None;
 
@@ -18,11 +17,7 @@ public class LoadoutSelectorPanel : MonoBehaviour
 
     private void Start()
     {
-        if (clientSystems == null)
-            clientSystems = FindFirstObjectByType<ClientSystems>();
-
-        uiManager = clientSystems != null ? clientSystems.UI : null;
-
+        uiManager = GameplayUIManager.Instance;
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
     }
 

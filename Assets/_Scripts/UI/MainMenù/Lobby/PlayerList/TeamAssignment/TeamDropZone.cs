@@ -4,27 +4,15 @@ using UnityEngine.EventSystems;
 
 public class TeamDropZone : MonoBehaviour, IDropHandler
 {
-    [Header("Drop Zone")]
     [SerializeField] private int teamId = 0;
     [SerializeField] private Transform container;
 
     public int TeamId => teamId;
     public Transform Container => container;
 
-    [Header("Services (assign in Inspector)")]
-    [SerializeField] private LobbyManager lobbyManager;
-    [SerializeField] private NetworkLobbyState lobbyState;
-
-    private void Awake()
-    {
-        // Optional fallbacks (remove if you want strict inspector-only)
-        if (lobbyManager == null) lobbyManager = FindFirstObjectByType<LobbyManager>();
-        if (lobbyState == null) lobbyState = FindFirstObjectByType<NetworkLobbyState>();
-    }
-
     public void OnDrop(PointerEventData eventData)
     {
-        if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsHost)
+        if (!NetworkManager.Singleton || !NetworkManager.Singleton.IsHost)
             return;
 
         var item = eventData.pointerDrag
@@ -32,11 +20,12 @@ public class TeamDropZone : MonoBehaviour, IDropHandler
             : null;
 
         if (item == null) return;
-        if (lobbyManager == null || lobbyState == null) return;
+        if (LobbyManager.Instance == null) return;
+        if (NetworkLobbyState.Instance == null) return;
 
-        // Find current team
+        // Find current team of the dragged player
         int currentTeam = -999;
-        var players = lobbyState.Players;
+        var players = NetworkLobbyState.Instance.Players;
         for (int i = 0; i < players.Count; i++)
         {
             if (players[i].clientId == item.ClientId)
@@ -46,14 +35,17 @@ public class TeamDropZone : MonoBehaviour, IDropHandler
             }
         }
 
-        // Dropped into same team -> do nothing
+        // If you dropped into the same team, do nothing (and DON'T destroy)
         if (currentTeam == teamId)
+        {
+            // Return to original parent (EndDrag handles this)
             return;
+        }
 
-        // Assign on server
-        lobbyManager.SetPlayerTeam(item.ClientId, teamId);
+        // Assign team on server
+        LobbyManager.Instance.SetPlayerTeam(item.ClientId, teamId);
 
-        // Remove dragged visual (UI will rebuild from NetworkList)
+        // Destroy dragged visual so we don't see duplicates while UI rebuilds
         Destroy(item.gameObject);
     }
 }
