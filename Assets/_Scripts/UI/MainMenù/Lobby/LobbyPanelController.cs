@@ -19,6 +19,7 @@ public class LobbyPanelController : MonoBehaviour
     [SerializeField] private LobbyManager lobbyManager;
     [SerializeField] private MatchmakingManager matchmakingManager;
     [SerializeField] private RoundManager roundManager;
+    [SerializeField] private AutoTeamToggleController autoTeamToggle;
 
     private Coroutine _bindRoutine;
 
@@ -124,8 +125,9 @@ public class LobbyPanelController : MonoBehaviour
 
             NetworkManager.Singleton.Shutdown();
         }
-
         uiManager.ShowMainMenu();
+
+        RefreshUI();
     }
 
     // =========================
@@ -223,5 +225,8 @@ public class LobbyPanelController : MonoBehaviour
             if (isHost)
                 hostIpText.text = matchmakingManager != null ? $"Host IP: {matchmakingManager.GetLocalIP()}" : "Host IP: (missing)";
         }
+
+        if (autoTeamToggle != null)
+            autoTeamToggle.RefreshUI();
     }
 }

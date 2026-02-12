@@ -45,6 +45,22 @@ public class AutoTeamToggleController : MonoBehaviour
         isWired = false;
     }
 
+    public void RefreshUI()
+    {
+        bool isHost = NetworkManager.Singleton.IsHost;
+
+        // Hide for clients (but DON'T disable the whole GO permanently by mistake)
+        if (hideForClients && !isHost)
+        {
+            if (visualRoot != null) visualRoot.SetActive(false);
+            return;
+        }
+
+        // Ensure visible for host
+        if (visualRoot != null) visualRoot.SetActive(true);
+
+    }
+
     private IEnumerator InitWhenNetworkReady()
     {
         // Wait for NetworkManager to exist

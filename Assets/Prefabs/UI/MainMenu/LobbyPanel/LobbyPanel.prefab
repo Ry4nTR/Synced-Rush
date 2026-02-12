@@ -61,6 +61,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TeamDropZone
   teamId: 0
   container: {fileID: 7439878538966530569}
+  lobbyManager: {fileID: 0}
+  lobbyState: {fileID: 0}
 --- !u!114 &6033482827143052837
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -345,6 +347,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TeamDropZone
   teamId: 1
   container: {fileID: 2600287827161037452}
+  lobbyManager: {fileID: 0}
+  lobbyState: {fileID: 0}
 --- !u!114 &8824523247200478791
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1156,6 +1160,7 @@ MonoBehaviour:
   teamDropZones:
   - {fileID: 2238127286855478194}
   - {fileID: 256045353087995331}
+  lobbyState: {fileID: 0}
 --- !u!1 &5585685109987385122
 GameObject:
   m_ObjectHideFlags: 0
@@ -1759,6 +1764,7 @@ MonoBehaviour:
   lobbyManager: {fileID: 0}
   matchmakingManager: {fileID: 0}
   roundManager: {fileID: 0}
+  autoTeamToggle: {fileID: 1446843260846378495}
 --- !u!1 &7856065088110614028
 GameObject:
   m_ObjectHideFlags: 0
@@ -2174,6 +2180,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 082fb3e9f719b294aa5c6880d20327cb, type: 3}
+--- !u!114 &1446843260846378495 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1203334024070853213, guid: 082fb3e9f719b294aa5c6880d20327cb, type: 3}
+  m_PrefabInstance: {fileID: 335273723815329698}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32c530235579c5e4ea6b8560e4f57b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AutoTeamToggleController
 --- !u!224 &8684899919967882720 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 8944667668469379650, guid: 082fb3e9f719b294aa5c6880d20327cb, type: 3}
