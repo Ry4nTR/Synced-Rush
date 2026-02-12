@@ -7,6 +7,7 @@ public class LobbyPanelController : MonoBehaviour
 {
     [Header("UI")]
     [SerializeField] private TextMeshProUGUI lobbyNameText;
+    [SerializeField] private GameObject hostIpPanel;
     [SerializeField] private TextMeshProUGUI hostIpText;
     [SerializeField] private GameObject startMatchButton;
 
@@ -224,6 +225,14 @@ public class LobbyPanelController : MonoBehaviour
             hostIpText.gameObject.SetActive(isHost);
             if (isHost)
                 hostIpText.text = matchmakingManager != null ? $"Host IP: {matchmakingManager.GetLocalIP()}" : "Host IP: (missing)";
+        }
+
+        if (hostIpPanel != null)
+        {
+            if (isHost)
+                hostIpPanel.SetActive(true);
+            else
+                hostIpPanel.SetActive(false);
         }
 
         if (autoTeamToggle != null)

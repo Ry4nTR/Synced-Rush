@@ -47,6 +47,8 @@ public class AutoTeamToggleController : MonoBehaviour
 
     public void RefreshUI()
     {
+        if (NetworkManager.Singleton == null) return;
+
         bool isHost = NetworkManager.Singleton.IsHost;
 
         // Hide for clients (but DON'T disable the whole GO permanently by mistake)
@@ -59,6 +61,14 @@ public class AutoTeamToggleController : MonoBehaviour
         // Ensure visible for host
         if (visualRoot != null) visualRoot.SetActive(true);
 
+
+        // Wire the callback once
+        if (!isWired && toggle != null)
+        {
+            toggle.onValueChanged.RemoveListener(OnToggleChanged);
+            toggle.onValueChanged.AddListener(OnToggleChanged);
+            isWired = true;
+        }
     }
 
     private IEnumerator InitWhenNetworkReady()

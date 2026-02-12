@@ -541,6 +541,55 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!1 &2949451482297730743
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8243360705432120287}
+  - component: {fileID: 3922667712677550919}
+  m_Layer: 0
+  m_Name: AutoTeamPanelController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8243360705432120287
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2949451482297730743}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2463588829105418547}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3922667712677550919
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2949451482297730743}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32c530235579c5e4ea6b8560e4f57b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AutoTeamToggleController
+  toggle: {fileID: 7114496828294056436}
+  visualRoot: {fileID: 5585685109987385122}
+  hideForClients: 1
+  lobbyManager: {fileID: 0}
+  lobbyState: {fileID: 0}
 --- !u!1 &3090548997586625261
 GameObject:
   m_ObjectHideFlags: 0
@@ -1172,6 +1221,7 @@ GameObject:
   - component: {fileID: 4541654568551454462}
   - component: {fileID: 2078811257516847845}
   - component: {fileID: 1821832324444469993}
+  - component: {fileID: 7114496828294056436}
   m_Layer: 0
   m_Name: AutoTeamPanel
   m_TagString: Untagged
@@ -1238,6 +1288,54 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &7114496828294056436
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5585685109987385122}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9085046f02f69544eb97fd06b6048fe2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Toggle
+  m_Navigation:
+    m_Mode: 3
+    m_WrapAround: 0
+    m_SelectOnUp: {fileID: 0}
+    m_SelectOnDown: {fileID: 0}
+    m_SelectOnLeft: {fileID: 0}
+    m_SelectOnRight: {fileID: 0}
+  m_Transition: 1
+  m_Colors:
+    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
+    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
+    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
+    m_ColorMultiplier: 1
+    m_FadeDuration: 0.1
+  m_SpriteState:
+    m_HighlightedSprite: {fileID: 0}
+    m_PressedSprite: {fileID: 0}
+    m_SelectedSprite: {fileID: 0}
+    m_DisabledSprite: {fileID: 0}
+  m_AnimationTriggers:
+    m_NormalTrigger: Normal
+    m_HighlightedTrigger: Highlighted
+    m_PressedTrigger: Pressed
+    m_SelectedTrigger: Selected
+    m_DisabledTrigger: Disabled
+  m_Interactable: 1
+  m_TargetGraphic: {fileID: 655987255965702625}
+  toggleTransition: 1
+  graphic: {fileID: 5227294737814639685}
+  m_Group: {fileID: 0}
+  onValueChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_IsOn: 0
 --- !u!1 &5790446278886035227
 GameObject:
   m_ObjectHideFlags: 0
@@ -1720,6 +1818,7 @@ RectTransform:
   m_Children:
   - {fileID: 2674462034885949745}
   - {fileID: 4541654568551454462}
+  - {fileID: 8243360705432120287}
   - {fileID: 435785793406167065}
   - {fileID: 2504514356770178385}
   - {fileID: 8694369679147371297}
@@ -1757,6 +1856,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LobbyPanelController
   lobbyNameText: {fileID: 8069964452060626523}
+  hostIpPanel: {fileID: 5790446278886035227}
   hostIpText: {fileID: 824759108674225637}
   startMatchButton: {fileID: 3615310807700793059}
   uiManager: {fileID: 0}
@@ -1764,7 +1864,7 @@ MonoBehaviour:
   lobbyManager: {fileID: 0}
   matchmakingManager: {fileID: 0}
   roundManager: {fileID: 0}
-  autoTeamToggle: {fileID: 1446843260846378495}
+  autoTeamToggle: {fileID: 3922667712677550919}
 --- !u!1 &7856065088110614028
 GameObject:
   m_ObjectHideFlags: 0
@@ -2175,22 +2275,35 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 1203334024070853213, guid: 082fb3e9f719b294aa5c6880d20327cb, type: 3}
+    - {fileID: 6527762596162870653, guid: 082fb3e9f719b294aa5c6880d20327cb, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 082fb3e9f719b294aa5c6880d20327cb, type: 3}
---- !u!114 &1446843260846378495 stripped
+--- !u!114 &655987255965702625 stripped
 MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1203334024070853213, guid: 082fb3e9f719b294aa5c6880d20327cb, type: 3}
+  m_CorrespondingSourceObject: {fileID: 990133602136892995, guid: 082fb3e9f719b294aa5c6880d20327cb, type: 3}
   m_PrefabInstance: {fileID: 335273723815329698}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 32c530235579c5e4ea6b8560e4f57b14, type: 3}
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AutoTeamToggleController
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+--- !u!114 &5227294737814639685 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5488820812641020903, guid: 082fb3e9f719b294aa5c6880d20327cb, type: 3}
+  m_PrefabInstance: {fileID: 335273723815329698}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
 --- !u!224 &8684899919967882720 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 8944667668469379650, guid: 082fb3e9f719b294aa5c6880d20327cb, type: 3}
