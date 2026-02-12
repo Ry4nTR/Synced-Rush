@@ -13,15 +13,18 @@ public class PlayerRoundActor : NetworkBehaviour
     private PlayerViewResolver _view;
     private ClientSystems _clientSystems;
 
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+
+        if (IsOwner && _clientSystems == null)
+            _clientSystems = Object.FindFirstObjectByType<ClientSystems>(FindObjectsInactive.Include);
+    }
+
     private void Awake()
     {
         _switcher = GetComponent<ClientComponentSwitcher>();
         _view = GetComponent<PlayerViewResolver>();
-    }
-
-    public void SetClientSystems(ClientSystems systems)
-    {
-        _clientSystems = systems;
     }
 
     public void ServerSetAliveState(bool alive)
@@ -29,8 +32,8 @@ public class PlayerRoundActor : NetworkBehaviour
         if (!IsServer) return;
 
         // Physical presence
-        if (characterController != null && !characterController.enabled)
-            characterController.enabled = true;
+        if (characterController != null)
+            characterController.enabled = alive;
 
         if (hitColliders != null)
         {

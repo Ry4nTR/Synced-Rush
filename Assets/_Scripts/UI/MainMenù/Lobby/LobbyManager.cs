@@ -115,21 +115,18 @@ public class LobbyManager : MonoBehaviour
     // =========================
     public bool CanStartMatch(int playerCount, bool allReady)
     {
-        if (CurrentState != LobbyState.Open)
-            return false;
+        Debug.Log(
+            $"[LobbyManager] CanStartMatch? state={CurrentState} " +
+            $"players={playerCount} allReady={allReady} " +
+            $"gm={(selectedGamemode ? selectedGamemode.name : "NULL")} " +
+            $"map={(selectedMap ? selectedMap.name : "NULL")}"
+        );
 
-        if (selectedGamemode == null)
-            return false;
-
-        if (!selectedGamemode.IsPlayerCountValid(playerCount))
-            return false;
-
-        if (!allReady)
-            return false;
-
-        if (selectedMap == null)
-            return false;
-
+        if (CurrentState != LobbyState.Open) return false;
+        if (selectedGamemode == null) return false;
+        if (!selectedGamemode.IsPlayerCountValid(playerCount)) return false;
+        if (!allReady) return false;
+        if (selectedMap == null) return false;
         return true;
     }
 

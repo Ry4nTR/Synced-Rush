@@ -13,12 +13,11 @@ public class RoundManager : NetworkBehaviour
             NetworkVariableWritePermission.Server
         );
 
-    public static event Action<ulong, float> OnKillcamRequested;
     public static event Action<bool> OnLoadingScreen;
     public static event Action<int, int, bool, float> OnRoundEndPresentation;
     public static event Action<float> OnPreRoundStarted;
     public static event Action<int, int, int> OnMatchEnded;
-
+    public static event Action<ulong, float> OnKillcamRequested;
 
     [Header("Score")]
     public int TeamAScore { get; private set; }
@@ -46,6 +45,7 @@ public class RoundManager : NetworkBehaviour
     private SpawnManager spawnManager;
     private RoundDeathTracker deathTracker;
     private MapDefinition currentMap;
+    private NetworkLobbyState lobbyState;
 
     // =========================
     // Initialization
@@ -110,7 +110,7 @@ public class RoundManager : NetworkBehaviour
             if (deathTracker == null)
                 throw new Exception("[RoundManager] RoundDeathTracker not found in loaded scene.");
 
-            var lobbyState = FindAnyObjectByType<NetworkLobbyState>();
+            lobbyState = FindAnyObjectByType<NetworkLobbyState>();
             deathTracker.Initialize(this, lobbyState);
 
             TeamAScore = 0;
@@ -186,20 +186,14 @@ public class RoundManager : NetworkBehaviour
     public void ServerNotifyVictimDeathForKillCam(ulong victimClientId, ulong killerClientId)
     {
         if (!IsServer) return;
-
         if (killerClientId == ulong.MaxValue) return;
 
-        // Target ONLY the victim client
-        StartKillCamForClients(killerClientId, deathCamSeconds, new[] { victimClientId });
-    }
-
-    private void StartKillCamForClients(ulong killerClientId, float seconds, ulong[] targetClientIds)
-    {
         var rpcParams = new ClientRpcParams
         {
-            Send = new ClientRpcSendParams { TargetClientIds = targetClientIds }
+            Send = new ClientRpcSendParams { TargetClientIds = new[] { victimClientId } }
         };
-        StartKillCamClientRpc(killerClientId, seconds, rpcParams);
+
+        StartKillCamClientRpc(killerClientId, deathCamSeconds, rpcParams);
     }
 
     [ClientRpc]
@@ -207,7 +201,6 @@ public class RoundManager : NetworkBehaviour
     {
         OnKillcamRequested?.Invoke(killerClientId, seconds);
     }
-
 
     // =========================
     // Match Management

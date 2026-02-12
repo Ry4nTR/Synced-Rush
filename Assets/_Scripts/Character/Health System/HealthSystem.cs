@@ -75,12 +75,16 @@ public class HealthSystem : NetworkBehaviour, IDamageable
         var hud = FindAnyObjectByType<PlayerHUD>();
         if (hud == null) return;
 
-        // This HealthSystem belongs to the local player only if OwnerClientId == LocalClientId,
-        // but since we target only the owner client, that's true in practice.
         var localPlayer = NetworkManager.Singleton.LocalClient?.PlayerObject;
         if (localPlayer == null) return;
 
-        hud.ShowDamageIndicator(attackerPosition, localPlayer.transform);
+        var move = localPlayer.GetComponent<MovementController>();
+        Transform forwardRef = move != null ? move.transform.GetComponentInChildren<LookController>()?.CameraTransform : null;
+
+        if (forwardRef == null)
+            forwardRef = localPlayer.transform;
+
+        hud.ShowDamageIndicator(attackerPosition, forwardRef);
     }
 
     public void Die()

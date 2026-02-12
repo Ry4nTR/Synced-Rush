@@ -51,6 +51,7 @@ public class MovementController : NetworkBehaviour
     private NetworkPlayerInput _netInput;
     private PlayerInputHandler _inputHandler;
     private PlayerAnimationController _animController;
+    private GameplayUIManager _ui;
 
     // =========================
     // Netcode State
@@ -259,6 +260,9 @@ public class MovementController : NetworkBehaviour
         {
             if (_ability != null)
                 _ability.CurrentAbility = newVal;
+
+            if (IsOwner)
+                UpdateAbilityUIVisibility();
         };
 
         // Server publishes initial snapshot ASAP
@@ -304,6 +308,16 @@ public class MovementController : NetworkBehaviour
         {
             if (_ability != null)
                 _ability.CurrentAbility = _syncedAbility.Value;
+        }
+
+        if (IsOwner)
+        {
+            var clientSystems = FindFirstObjectByType<ClientSystems>();
+            if (clientSystems != null)
+                _ui = clientSystems.UI;
+
+            UpdateAbilityUIVisibility();
+            UpdateAbilityChargesUI();
         }
     }
 
@@ -482,6 +496,8 @@ public class MovementController : NetworkBehaviour
         }
 
         StorePredictedFrame(CurrentInput.Sequence);
+
+        UpdateAbilityChargesUI();
     }
 
     private void SimulateServerRemoteTick()
@@ -895,6 +911,9 @@ public class MovementController : NetworkBehaviour
             look.ForceAimYawPitch(yaw, pitch);
 
         _inputHandler?.ClearAllInputs();
+
+        UpdateAbilityUIVisibility();
+        UpdateAbilityChargesUI();
     }
 
     public void ServerSetGameplayEnabled(bool enabled)
@@ -909,6 +928,25 @@ public class MovementController : NetworkBehaviour
             HorizontalVelocity = Vector2.zero;
             VerticalVelocity = 0f;
         }
+    }
+
+    private void UpdateAbilityUIVisibility()
+    {
+        if (!IsOwner || _ui == null) return;
+
+        bool jetpackActive = Ability.CurrentAbility == CharacterAbility.Jetpack;
+        _ui.SetJetpackUIVisible(jetpackActive);
+    }
+
+    private void UpdateAbilityChargesUI()
+    {
+        if (!IsOwner || _ui == null) return;
+
+        float jetpackMax = Stats.JetpackMaxCharge;
+        float dashMax = Stats.DashMaxCharge;
+
+        _ui.SetJetpackCharge(Ability.JetpackCharge, jetpackMax);
+        _ui.SetDashCharge(Ability.DashCharge, dashMax);
     }
 }
 

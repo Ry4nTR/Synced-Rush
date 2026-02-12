@@ -15,4 +15,5 @@ MonoBehaviour:
   gamemodeType: 0
   requiredPlayers: 2
   playersPerTeam: 1
-  roundsToWin: 3
+  roundsToWin: 5
+  preRoundCountdown: 10

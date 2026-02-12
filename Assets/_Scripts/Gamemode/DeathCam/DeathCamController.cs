@@ -5,10 +5,26 @@ using UnityEngine;
 
 public class DeathCamController : MonoBehaviour
 {
+    // =====================================================
+    // Inspector
+    // =====================================================
+    [Header("Refs")]
     [SerializeField] private CinemachineCamera spectatorVcam;
+
+    [Header("Tuning")]
     [SerializeField] private int boostAbovePlayer = 100;
     [SerializeField] private bool forceHardCut = true;
 
+    [Header("Team Spectate - Third Person")]
+    [SerializeField] private Vector3 teamSpectateOffset = new Vector3(0f, 2.2f, -4f);
+    [SerializeField] private float teamFollowSmooth = 10f;
+
+    [Header("Debug")]
+    [SerializeField] private bool debugLogs = true;
+
+    // =====================================================
+    // Runtime
+    // =====================================================
     private CinemachineCamera _localPlayerVcam;
     private int _spectatorBasePriority;
     private Coroutine _followRoutine;
@@ -17,49 +33,69 @@ public class DeathCamController : MonoBehaviour
     private Quaternion _deathRot;
     private bool _hasDeathPose;
 
+    // Team spectate (used later)
+    private bool _isTeamSpectating;
+    private Transform _teamSpectateTarget;
+
     private float _savedBlendTime = -1f;
 
     private void Awake()
     {
-        if (spectatorVcam != null)
-            _spectatorBasePriority = spectatorVcam.Priority;
+        if (spectatorVcam == null) return;
+
+        // Force spectator to be "loser" unless killcam is active.
+        _spectatorBasePriority = -1000;
+        spectatorVcam.Priority = _spectatorBasePriority;
     }
 
+    private void DLog(string msg)
+    {
+        if (!debugLogs) return;
+        Debug.Log($"[DeathCam][local={NetworkManager.Singleton?.LocalClientId}] {msg}", this);
+    }
+
+    // =====================================================
+    // Public API
+    // =====================================================
     public void CaptureDeathPose(Camera sourceCam)
     {
         if (sourceCam == null) return;
+
         _deathPos = sourceCam.transform.position;
         _deathRot = sourceCam.transform.rotation;
         _hasDeathPose = true;
+
+        DLog($"CaptureDeathPose: pos={_deathPos} rotY={_deathRot.eulerAngles.y:F1}");
     }
 
     public void PlayKillcamByKiller(ulong killerClientId, float seconds)
     {
         if (spectatorVcam == null) return;
 
-        CacheLocalPlayerVcamIfNeeded();
+        DLog($"PlayKillcamByKiller REQUEST: killer={killerClientId} seconds={seconds}");
 
-        Transform killerRoot = ResolveKillerCameraRoot(killerClientId);
-        if (killerRoot == null) return;
+        // avoid multiple routines fighting each other
+        if (_followRoutine != null)
+        {
+            StopCoroutine(_followRoutine);
+            _followRoutine = null;
+        }
 
-        StopKillcam();
-
-        spectatorVcam.Follow = null;
-        spectatorVcam.LookAt = null;
-
-        // set transform BEFORE priority change (prevents slide)
-        if (_hasDeathPose)
-            spectatorVcam.transform.SetPositionAndRotation(_deathPos, _deathRot);
-
-        if (forceHardCut) SetHardCut(true);
-
-        int playerPri = _localPlayerVcam != null ? _localPlayerVcam.Priority : 0;
-        spectatorVcam.Priority = playerPri + boostAbovePlayer;
-
-        _followRoutine = StartCoroutine(FollowRoutine(killerRoot, seconds));
+        _followRoutine = StartCoroutine(PlayKillcamWhenReady(killerClientId, seconds));
     }
 
-    public void StopKillcam()
+    public void PlayKillcamByKillerAtPose(ulong killerClientId, float seconds, Vector3 pos, Quaternion rot)
+    {
+        _deathPos = pos;
+        _deathRot = rot;
+        _hasDeathPose = true;
+
+        DLog($"PlayKillcamByKillerAtPose: pos={pos} rotY={rot.eulerAngles.y:F1}");
+
+        PlayKillcamByKiller(killerClientId, seconds);
+    }
+
+    public void StopKillcam(bool keepHardCutUntilRespawn = true)
     {
         if (_followRoutine != null)
         {
@@ -67,30 +103,196 @@ public class DeathCamController : MonoBehaviour
             _followRoutine = null;
         }
 
+        _isTeamSpectating = false;
+        _teamSpectateTarget = null;
+
         if (spectatorVcam != null)
         {
-            spectatorVcam.Priority = _spectatorBasePriority;
+            spectatorVcam.Priority = _spectatorBasePriority; // -1000
             spectatorVcam.Follow = null;
             spectatorVcam.LookAt = null;
         }
 
-        if (forceHardCut) SetHardCut(false);
+        // IMPORTANT:
+        // If we restore blend immediately, you may see a smooth “reset”/blend.
+        // Keep hard cut ON, and restore it later when respawn/pre-round happens.
+        if (!keepHardCutUntilRespawn && forceHardCut)
+            SetHardCut(false);
 
         _hasDeathPose = false;
+
+        DLog($"StopKillcam(keepHardCutUntilRespawn={keepHardCutUntilRespawn})");
     }
 
-    private IEnumerator FollowRoutine(Transform target, float seconds)
+    // =====================================================
+    // Killcam Flow
+    // =====================================================
+    private IEnumerator PlayKillcamWhenReady(ulong killerClientId, float seconds)
     {
+        CacheLocalPlayerVcamIfNeeded();
+
+        DLog($"PlayKillcamWhenReady START: hasPose={_hasDeathPose} spectatorPos={spectatorVcam.transform.position}");
+
+        // -----------------------------------------------------
+        // 1) Wait briefly for death pose (or fallback)
+        // -----------------------------------------------------
+        const float poseTimeout = 0.25f;
         float t = 0f;
-        while (t < seconds && target != null && spectatorVcam != null)
+
+        while (!_hasDeathPose && t < poseTimeout)
         {
-            spectatorVcam.transform.SetPositionAndRotation(target.position, target.rotation);
-            t += Time.deltaTime;
+            t += Time.unscaledDeltaTime;
             yield return null;
         }
+
+        DLog($"After wait: hasPose={_hasDeathPose} waited={t:F3}s");
+
+        // Fallback: try to take any enabled camera pose
+        if (!_hasDeathPose)
+        {
+            // Prefer an enabled camera if possible
+            var cams = Object.FindObjectsByType<Camera>(FindObjectsSortMode.None);
+            Camera best = null;
+            for (int i = 0; i < cams.Length; i++)
+            {
+                if (cams[i] != null && cams[i].enabled && cams[i].gameObject.activeInHierarchy)
+                {
+                    best = cams[i];
+                    break;
+                }
+            }
+            if (best == null && cams.Length > 0) best = cams[0];
+
+            if (best != null)
+            {
+                _deathPos = best.transform.position;
+                _deathRot = best.transform.rotation;
+                _hasDeathPose = true;
+                DLog($"FallbackPose used: pos={_deathPos} rotY={_deathRot.eulerAngles.y:F1}");
+            }
+        }
+
+        // -----------------------------------------------------
+        // 2) Resolve killer POV root
+        // -----------------------------------------------------
+        Transform killerRoot = ResolveKillerCameraRoot(killerClientId);
+        DLog($"ResolveKillerCameraRoot: {(killerRoot ? killerRoot.name : "NULL")}");
+
+        if (killerRoot == null)
+        {
+            Debug.LogWarning($"[DeathCam] Killer root not found for {killerClientId}", this);
+            _followRoutine = null;
+            yield break;
+        }
+
+        DLog($"KillerRoot pos={killerRoot.position} rotY={killerRoot.eulerAngles.y:F1}");
+
+        // -----------------------------------------------------
+        // 3) Activate spectator cam (snap to death pose first)
+        // -----------------------------------------------------
+        // Important: don't call StopKillcam() here because it would clear _hasDeathPose.
+        // We already stopped previous routine before starting this one.
+        _isTeamSpectating = false;
+        _teamSpectateTarget = null;
+
+        spectatorVcam.Follow = null;
+        spectatorVcam.LookAt = null; // we drive transform manually (POV copy)
+
+        if (_hasDeathPose)
+        {
+            spectatorVcam.transform.SetPositionAndRotation(_deathPos, _deathRot);
+            DLog($"ApplyDeathPose: pos={spectatorVcam.transform.position} rotY={spectatorVcam.transform.eulerAngles.y:F1}");
+        }
+
+        if (forceHardCut) SetHardCut(true);
+
+        int playerPri = _localPlayerVcam != null ? _localPlayerVcam.Priority : 0;
+        spectatorVcam.Priority = playerPri + boostAbovePlayer;
+
+        DLog($"Spectator LIVE: pri={spectatorVcam.Priority} base={_spectatorBasePriority}");
+
+        // -----------------------------------------------------
+        // 4) Stationary killcam: keep victim position, rotate toward killer
+        // -----------------------------------------------------
+        float killT = 0f;
+
+        // Ensure we start exactly at death pose
+        if (_hasDeathPose)
+            spectatorVcam.transform.position = _deathPos;
+
+        while (killT < seconds && killerRoot != null && spectatorVcam != null)
+        {
+            Vector3 dir = killerRoot.position - spectatorVcam.transform.position;
+
+            // Avoid NaNs if positions match (rare but possible)
+            if (dir.sqrMagnitude > 0.0001f)
+            {
+                Quaternion lookRot = Quaternion.LookRotation(dir.normalized, Vector3.up);
+
+                // Optional: keep roll at 0 (avoids Dutch/tilt)
+                Vector3 e = lookRot.eulerAngles;
+                lookRot = Quaternion.Euler(e.x, e.y, 0f);
+
+                spectatorVcam.transform.rotation = lookRot;
+            }
+
+            killT += Time.deltaTime;
+            yield return null;
+        }
+
+        // -----------------------------------------------------
+        // 5) If teammate alive (2v2), stay spectating teammate POV
+        //    until StopKillcam() is called by RoundEnd/MatchEnd.
+        // -----------------------------------------------------
+        var teammateCam = ResolveAliveTeammateCameraRoot();
+        if (teammateCam != null && spectatorVcam != null)
+        {
+            _isTeamSpectating = true;
+            _teamSpectateTarget = teammateCam;
+
+            DLog($"TeamSpectate START (ThirdPerson): target={teammateCam.name}");
+
+            Vector3 velocity = Vector3.zero;
+
+            while (_isTeamSpectating && _teamSpectateTarget != null && spectatorVcam != null)
+            {
+                Transform target = _teamSpectateTarget;
+
+                // Desired third-person position
+                Vector3 desiredPos =
+                    target.position +
+                    target.rotation * teamSpectateOffset;
+
+                // Smooth movement
+                spectatorVcam.transform.position =
+                    Vector3.Lerp(
+                        spectatorVcam.transform.position,
+                        desiredPos,
+                        Time.deltaTime * teamFollowSmooth);
+
+                // Always look at upper body
+                Vector3 lookPoint = target.position + Vector3.up * 1.6f;
+                spectatorVcam.transform.rotation =
+                    Quaternion.LookRotation(lookPoint - spectatorVcam.transform.position);
+
+                yield return null;
+            }
+
+            DLog("TeamSpectate END");
+            _followRoutine = null;
+            yield break;
+        }
+
+        // -----------------------------------------------------
+        // 6) Otherwise end killcam normally
+        // -----------------------------------------------------
+        StopKillcam();
         _followRoutine = null;
     }
 
+    // =====================================================
+    // Helpers
+    // =====================================================
     private void CacheLocalPlayerVcamIfNeeded()
     {
         if (_localPlayerVcam != null) return;
@@ -99,6 +301,8 @@ public class DeathCamController : MonoBehaviour
         if (localPlayer == null) return;
 
         _localPlayerVcam = localPlayer.GetComponentInChildren<CinemachineCamera>(true);
+        if (_localPlayerVcam != null)
+            DLog($"Cached local vcam: {_localPlayerVcam.name} pri={_localPlayerVcam.Priority}");
     }
 
     private Transform ResolveKillerCameraRoot(ulong killerClientId)
@@ -111,6 +315,44 @@ public class DeathCamController : MonoBehaviour
             var look = client.PlayerObject.GetComponentInChildren<LookController>(true);
             return look != null ? look.CameraTransform : null;
         }
+
+        return null;
+    }
+
+    private Transform ResolveAliveTeammateCameraRoot()
+    {
+        var lobby = Object.FindFirstObjectByType<NetworkLobbyState>();
+        if (lobby == null) return null;
+
+        ulong localId = NetworkManager.Singleton.LocalClientId;
+
+        int myTeam = -1;
+        for (int i = 0; i < lobby.Players.Count; i++)
+        {
+            if (lobby.Players[i].clientId == localId)
+            {
+                myTeam = lobby.Players[i].teamId;
+                break;
+            }
+        }
+
+        if (myTeam < 0) return null;
+
+        for (int i = 0; i < lobby.Players.Count; i++)
+        {
+            var p = lobby.Players[i];
+            if (p.teamId != myTeam) continue;
+            if (p.clientId == localId) continue;
+            if (!p.isAlive) continue;
+
+            if (NetworkManager.Singleton.ConnectedClients.TryGetValue(p.clientId, out var client)
+                && client.PlayerObject != null)
+            {
+                var look = client.PlayerObject.GetComponentInChildren<LookController>(true);
+                return look != null ? look.CameraTransform : null;
+            }
+        }
+
         return null;
     }
 
@@ -143,5 +385,11 @@ public class DeathCamController : MonoBehaviour
             }
             _savedBlendTime = -1f;
         }
+    }
+
+    public void RestoreBlendAfterKillcam()
+    {
+        if (forceHardCut) SetHardCut(false);
+        DLog("RestoreBlendAfterKillcam()");
     }
 }

@@ -262,4 +262,25 @@ public class GameplayUIManager : MonoBehaviour
         playerHUD.BindWeapon(weapon);
         ShowHUD();
     }
+
+    // ================================
+    //  HUD API (thin proxies to PlayerHUD)
+    // ================================
+    public void SetJetpackUIVisible(bool value)
+    {
+        if (playerHUD == null) return;
+        playerHUD.SetJetpackUIVisibility(value);
+    }
+
+    public void SetDashCharge(float currentCharge, float maxCharge)
+    {
+        if (playerHUD == null) return;
+        playerHUD.UpdateDashCharge(currentCharge, maxCharge);
+    }
+
+    public void SetJetpackCharge(float currentCharge, float maxCharge)
+    {
+        if (playerHUD == null) return;
+        playerHUD.UpdateJetpackCharge(currentCharge, maxCharge);
+    }
 }

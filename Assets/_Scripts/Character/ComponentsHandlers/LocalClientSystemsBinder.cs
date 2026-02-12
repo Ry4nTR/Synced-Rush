@@ -17,8 +17,5 @@ public class LocalClientSystemsBinder : NetworkBehaviour
         // Inject into the scripts that need it
         var sw = GetComponent<ClientComponentSwitcher>();
         if (sw != null) sw.SetClientSystems(systems);
-
-        var actor = GetComponent<PlayerRoundActor>();
-        if (actor != null) actor.SetClientSystems(systems);
     }
 }

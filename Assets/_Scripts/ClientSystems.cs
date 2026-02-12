@@ -7,35 +7,50 @@ public class ClientSystems : MonoBehaviour
 
     private void Awake()
     {
+        var all = FindObjectsByType<ClientSystems>(FindObjectsSortMode.None);
+        if (all.Length > 1)
+        {
+            Debug.LogWarning("[ClientSystems] Duplicate detected, destroying this one.", this);
+            Destroy(gameObject);
+            return;
+        }
+
         if (UI == null) UI = GetComponentInChildren<GameplayUIManager>(true);
         if (DeathCam == null) DeathCam = GetComponentInChildren<DeathCamController>(true);
     }
 
     private void OnEnable()
     {
-        RoundManager.OnKillcamRequested += HandleKillcamRequested;
         RoundManager.OnRoundEndPresentation += HandleRoundEnd;
         RoundManager.OnPreRoundStarted += HandlePreRound;
         RoundManager.OnMatchEnded += HandleMatchEnded;
+        RoundManager.OnKillcamRequested += HandleKillcamRequested;
     }
 
     private void OnDisable()
     {
-        RoundManager.OnKillcamRequested -= HandleKillcamRequested;
         RoundManager.OnRoundEndPresentation -= HandleRoundEnd;
         RoundManager.OnPreRoundStarted -= HandlePreRound;
         RoundManager.OnMatchEnded -= HandleMatchEnded;
+        RoundManager.OnKillcamRequested -= HandleKillcamRequested;
     }
+
 
     private void HandleKillcamRequested(ulong killerId, float seconds)
         => DeathCam?.PlayKillcamByKiller(killerId, seconds);
 
     private void HandleRoundEnd(int a, int b, bool matchOver, float seconds)
-        => UI?.PlayRoundEndPresentation(a, b, matchOver, seconds);
+    {
+        DeathCam?.StopKillcam(); // hard transition: scoreboard should never be on spectator cam
+        UI?.PlayRoundEndPresentation(a, b, matchOver, seconds);
+    }
 
     private void HandlePreRound(float duration)
     {
-        if (UI == null) return;
+        DeathCam?.StopKillcam(keepHardCutUntilRespawn: true);
+        DeathCam?.RestoreBlendAfterKillcam();
+
+        // your existing UI logic...
         UI.HideScorePanel();
         UI.StartCountdown(duration, () =>
         {

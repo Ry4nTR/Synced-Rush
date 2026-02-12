@@ -236,7 +236,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 2877608786
+  GlobalObjectIdHash: 3354322385
   InScenePlacedSourceGlobalObjectIdHash: 1514268395
   DeferredDespawnTick: 0
   Ownership: 1
@@ -1175,6 +1175,7 @@ GameObject:
   - component: {fileID: 6586182560886131289}
   - component: {fileID: 1191002731392592227}
   - component: {fileID: 7401382111009737757}
+  - component: {fileID: 6249127707769324377}
   m_Layer: 0
   m_Name: CinemachineCamera
   m_TagString: Untagged
@@ -1253,6 +1254,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineHardLockToTarget
   Damping: 0
+--- !u!114 &6249127707769324377
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8774927925553066462}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 009ad48b9747a944880a1006b9c7e9b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OwnerOnlyVcam
+  ShowTopMostFoldoutHeaderGroup: 1
+  vcam: {fileID: 1191002731392592227}
 --- !u!1001 &3098995572565689195
 PrefabInstance:
   m_ObjectHideFlags: 0
