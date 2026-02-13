@@ -271,3 +271,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonShaderController
   fadeSpeed: 8
+  baseMaterial: {fileID: 2100000, guid: f9be16cf5a9804e4d88bacf3ca5202d5, type: 2}
+  selectedMaterial: {fileID: 2100000, guid: f392851471ea82041865098f32c41653, type: 2}
