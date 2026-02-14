@@ -50,7 +50,8 @@ namespace SyncedRush.Generics
         public Resolution[] Resolutions { get; private set; }
 
         // Eventi
-        public event Action OnRebindsUpdated;
+        public event Action OnRebindsUpdate;
+        public event Action OnSettingsUpdate;
 
         private void Awake()
         {
@@ -76,7 +77,7 @@ namespace SyncedRush.Generics
             PlayerPrefs.SetString("Settings_Keys", rebinds);
             PlayerPrefs.Save();
 
-            OnRebindsUpdated?.Invoke();
+            OnRebindsUpdate?.Invoke();
         }
 
         public void LoadRebinds()
@@ -90,21 +91,18 @@ namespace SyncedRush.Generics
 
         public void SaveFOV(float value)
         {
-            PlayerPrefs.SetFloat("Settings_FOV", value);
-            PlayerPrefs.Save();
+            SaveAnyFloat("Settings_FOV", value);
         }
 
         public void SaveSensitivity(float value)
         {
-            PlayerPrefs.SetFloat("Settings_Sens", value);
-            PlayerPrefs.Save();
+            SaveAnyFloat("Settings_Sens", value);
         }
 
         public void SaveAudio(float value)
         {
-            PlayerPrefs.SetFloat("Settings_Audio", value);
+            SaveAnyFloat("Settings_Audio", value);
             ApplyAudio(value);
-            PlayerPrefs.Save();
         }
 
         public void SaveResolution(int width, int height)
@@ -113,6 +111,8 @@ namespace SyncedRush.Generics
             PlayerPrefs.SetInt("Settings_ResWidth", width);
             PlayerPrefs.SetInt("Settings_ResHeight", height);
             PlayerPrefs.Save();
+
+            OnSettingsUpdate?.Invoke();
         }
 
         // ESEMPIO PER CROSSHAIR (Parametri dinamici)
@@ -120,6 +120,8 @@ namespace SyncedRush.Generics
         {
             PlayerPrefs.SetFloat("Settings_" + key, value);
             PlayerPrefs.Save();
+
+            OnSettingsUpdate?.Invoke();
         }
 
         public float GetAnyFloat(string key)

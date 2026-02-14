@@ -52,7 +52,7 @@ public class PlayerInputHandler : MonoBehaviour
         _controls.Enable();
 
         if (SettingsManager.Instance != null)
-            SettingsManager.Instance.OnRebindsUpdated += RefreshBindings;
+            SettingsManager.Instance.OnRebindsUpdate += RefreshBindings;
     }
 
     private void OnDisable()
@@ -60,7 +60,7 @@ public class PlayerInputHandler : MonoBehaviour
         _controls.Disable();
 
         if (SettingsManager.Instance != null)
-            SettingsManager.Instance.OnRebindsUpdated -= RefreshBindings;
+            SettingsManager.Instance.OnRebindsUpdate -= RefreshBindings;
     }
 
     private void RefreshBindings()

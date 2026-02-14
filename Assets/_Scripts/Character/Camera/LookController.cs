@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Unity.Netcode;
+using SyncedRush.Generics;
 
 /// <summary>
 /// Client-side camera rotation controller.
@@ -62,6 +63,8 @@ public class LookController : NetworkBehaviour
         if (rawPitch > 180f) rawPitch -= 360f;
         pitch = Mathf.Clamp(rawPitch, minPitch, maxPitch);
 
+        RefreshSensitivity();
+
         // ✅ rebase everything
         simYaw = yaw;
         simPitch = pitch;
@@ -71,10 +74,22 @@ public class LookController : NetworkBehaviour
         inputHandler.SetCursorLocked(true);
     }
 
+    private void OnEnable()
+    {
+        if (IsOwner)
+            if (SettingsManager.Instance != null)
+                SettingsManager.Instance.OnSettingsUpdate += RefreshSensitivity;
+    }
+
     private void OnDisable()
     {
         if (IsOwner)
+        {
             inputHandler.SetCursorLocked(false);
+
+            if (SettingsManager.Instance != null)
+                SettingsManager.Instance.OnSettingsUpdate -= RefreshSensitivity;
+        }
     }
 
     private void LateUpdate()
@@ -135,6 +150,11 @@ public class LookController : NetworkBehaviour
             cameraHolder.localRotation = Quaternion.Euler(newPitch, 0f, 0f);
 
         confirmVisualUpdate = false; // we already applied this frame
+    }
+
+    private void RefreshSensitivity()
+    {
+        sensitivity = SettingsManager.Instance.Sensitivity;
     }
 
 }
