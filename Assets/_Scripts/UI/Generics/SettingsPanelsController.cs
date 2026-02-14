@@ -7,8 +7,8 @@ namespace SyncedRush.UI.Settings
 	{
 		[SerializeField] GameObject generalPanel;
 		[SerializeField] GameObject keybindsPanel;
+		[SerializeField] GameObject crosshairPanel;
 		[SerializeField] UnityEvent startEvent;
-        //[SerializeField] GameObject Panel;
 
         private void Start()
         {
@@ -24,5 +24,10 @@ namespace SyncedRush.UI.Settings
         {
 			keybindsPanel.SetActive(value);
         }
-	}
+
+        public void TurnOnCrosshair(bool value)
+        {
+            crosshairPanel.SetActive(value);
+        }
+    }
 }
