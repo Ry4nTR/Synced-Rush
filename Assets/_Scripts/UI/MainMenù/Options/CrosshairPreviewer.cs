@@ -1,8 +1,23 @@
+using SyncedRush.Generics;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace SyncedRush.UI.Settings
 {
+    public struct CrosshairSettings
+    {
+        public float targetLineLength;
+        public float targetThickness;
+        public float targetGap;
+        public float targetCenterDotSize;
+
+        public float smoothTime;
+
+        public Color crosshairColor;
+        public float opacity;
+        public bool showCenterDot;
+    }
+
     public class CrosshairPreviewer : MonoBehaviour
     {
         [Header("Elements")]
@@ -104,6 +119,26 @@ namespace SyncedRush.UI.Settings
         }
 
         // ===== API for Settings / Gameplay =====
+
+        public void LoadAndApplySettings()
+        {
+            ApplySettings(SettingsManager.Instance.CrosshairSettings);
+        }
+
+        public void ApplySettings(CrosshairSettings settings)
+        {
+            targetLineLength = settings.targetLineLength;
+            targetThickness = settings.targetThickness;
+            targetGap = settings.targetGap;
+            targetCenterDotSize = settings.targetCenterDotSize;
+
+            smoothTime = settings.smoothTime;
+            crosshairColor = settings.crosshairColor;
+            opacity = settings.opacity;
+            showCenterDot = settings.showCenterDot;
+
+            ApplyColor();
+        }
 
         public void SetGap(float value) => targetGap = value;
         public void SetThickness(float value) => targetThickness = value;
