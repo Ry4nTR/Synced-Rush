@@ -110,6 +110,9 @@ public class AutoTeamToggleController : MonoBehaviour
         if (lobbyManager == null || lobbyState == null)
             return;
 
+        // NEW: make the toggle actually control the mode used at StartMatch
+        lobbyManager.SetTeamAssignmentMode(enabled ? TeamAssignmentMode.Random : TeamAssignmentMode.Manual);
+
         if (enabled)
         {
             lobbyManager.AssignTeamsAutomatically();

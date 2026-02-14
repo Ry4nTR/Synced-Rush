@@ -93,6 +93,59 @@ public class LobbyManager : MonoBehaviour
         lobbyState.SetPlayerTeamServerRpc(clientId, teamId);
     }
 
+    public bool AreTeamsValidForStart(out string reason)
+    {
+        reason = string.Empty;
+
+        if (lobbyState == null || selectedGamemode == null)
+        {
+            reason = "Missing lobbyState or selectedGamemode";
+            return false;
+        }
+
+        var players = lobbyState.Players;
+        int perTeam = Mathf.Max(1, selectedGamemode.playersPerTeam);
+
+        // Assuming exactly 2 teams (0 and 1) since your UI is Team A/B
+        int teamCount = 2;
+
+        int[] counts = new int[teamCount];
+
+        for (int i = 0; i < players.Count; i++)
+        {
+            var p = players[i];
+
+            if (p.teamId < 0)
+            {
+                reason = $"Player {p.clientId} is Unassigned (teamId={p.teamId})";
+                return false;
+            }
+
+            if (p.teamId >= teamCount)
+            {
+                reason = $"Player {p.clientId} has invalid teamId={p.teamId} (expected 0..{teamCount - 1})";
+                return false;
+            }
+
+            counts[p.teamId]++;
+        }
+
+        // Optional: enforce max players per team (based on gamemode playersPerTeam)
+        for (int t = 0; t < teamCount; t++)
+        {
+            if (counts[t] > perTeam)
+            {
+                reason = $"Team {t} has too many players ({counts[t]}/{perTeam})";
+                return false;
+            }
+        }
+
+        // Optional: enforce no empty teams (if your mode requires both teams present)
+        // if (counts[0] == 0 || counts[1] == 0) { reason = "One team is empty"; return false; }
+
+        return true;
+    }
+
     // =========================
     // LOBBY MANAGEMENT
     // =========================
@@ -115,18 +168,19 @@ public class LobbyManager : MonoBehaviour
     // =========================
     public bool CanStartMatch(int playerCount, bool allReady)
     {
-        Debug.Log(
-            $"[LobbyManager] CanStartMatch? state={CurrentState} " +
-            $"players={playerCount} allReady={allReady} " +
-            $"gm={(selectedGamemode ? selectedGamemode.name : "NULL")} " +
-            $"map={(selectedMap ? selectedMap.name : "NULL")}"
-        );
-
         if (CurrentState != LobbyState.Open) return false;
         if (selectedGamemode == null) return false;
         if (!selectedGamemode.IsPlayerCountValid(playerCount)) return false;
         if (!allReady) return false;
         if (selectedMap == null) return false;
+
+        // NEW: enforce team assignment rules
+        if (!AreTeamsValidForStart(out var reason))
+        {
+            Debug.LogWarning($"[LobbyManager] Cannot start: teams invalid. {reason}");
+            return false;
+        }
+
         return true;
     }
 

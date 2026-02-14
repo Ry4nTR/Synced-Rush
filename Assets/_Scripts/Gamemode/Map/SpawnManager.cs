@@ -64,7 +64,19 @@ public class SpawnManager : MonoBehaviour
             if (actor != null) actor.ServerSetAliveState(true);
 
             var move = playerObj.GetComponent<MovementController>();
-            if (move != null) move.ServerResetForNewRound(spawn.position, spawn.rotation);
+            if (move != null)
+            {
+                Vector3 finalPos = spawn.position;
+
+                // Raycast downward to find actual ground
+                if (Physics.Raycast(spawn.position + Vector3.up * 2f, Vector3.down,
+                    out RaycastHit hit, 10f, LayerMask.GetMask("Default", "Ground")))
+                {
+                    finalPos = hit.point;
+                }
+
+                move.ServerResetForNewRound(finalPos, spawn.rotation);
+            }
 
             var wc = playerObj.GetComponentInChildren<WeaponController>(true);
             if (wc != null) wc.ResetForNewRound();
@@ -93,9 +105,15 @@ public class SpawnManager : MonoBehaviour
         for (int i = 0; i < players.Count; i++)
         {
             var p = players[i];
+            if (p.teamId < 0) p.teamId = 0;
 
-            if (p.teamId < 0)
-                p.teamId = 0;
+            // ✅ If already spawned, DO NOT spawn again.
+            if (NetworkManager.Singleton.ConnectedClients.TryGetValue(p.clientId, out var client) &&
+                client.PlayerObject != null)
+            {
+                // Optional: you can also reposition here if you want.
+                continue;
+            }
 
             Transform spawn = spawnPoints.GetRandomSpawn(p.teamId);
             if (spawn == null)
@@ -116,6 +134,8 @@ public class SpawnManager : MonoBehaviour
     {
         var instance = Instantiate(playerPrefab, spawnPoint.position, spawnPoint.rotation);
 
+        instance.transform.position = SnapRootToGround(instance, spawnPoint.position);
+
         var netObj = instance.GetComponent<NetworkObject>();
         if (netObj == null)
         {
@@ -130,4 +150,67 @@ public class SpawnManager : MonoBehaviour
 
         Debug.Log($"[SpawnManager] Spawned player clientId={player.clientId} netId={netObj.NetworkObjectId}");
     }
+
+    private Vector3 SnapRootToGround(GameObject instance, Vector3 desiredPos, float rayStartUp = 2f, float rayDistance = 10f)
+    {
+        // If you have a ground-only layer, use it here. Otherwise, keep Default/Ground.
+        int mask = LayerMask.GetMask("Default", "Ground");
+
+        Vector3 rayStart = desiredPos + Vector3.up * rayStartUp;
+
+        if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, rayDistance, mask, QueryTriggerInteraction.Ignore))
+        {
+            // If the prefab has a CharacterController, align its FEET to the hit point
+            var cc = instance.GetComponent<CharacterController>();
+            if (cc != null)
+            {
+                float feetOffset = (cc.height * 0.5f) - cc.center.y;
+                float y = hit.point.y + feetOffset + cc.skinWidth;
+                return new Vector3(desiredPos.x, y, desiredPos.z);
+            }
+
+            // Fallback: just put pivot on the ground (useful if pivot is already at feet)
+            return new Vector3(desiredPos.x, hit.point.y, desiredPos.z);
+        }
+
+        // If no ground hit, keep original
+        return desiredPos;
+    }
+
+    public void ServerSetAllGameplayEnabled(bool enabled)
+    {
+        if (!NetworkManager.Singleton.IsServer) return;
+        if (lobbyState == null) return;
+
+        var players = lobbyState.Players;
+        for (int i = 0; i < players.Count; i++)
+        {
+            var p = players[i];
+            if (!NetworkManager.Singleton.ConnectedClients.TryGetValue(p.clientId, out var client)) continue;
+            var po = client.PlayerObject;
+            if (po == null) continue;
+
+            var mc = po.GetComponent<MovementController>();
+            if (mc != null) mc.ServerSetGameplayEnabled(enabled);
+        }
+    }
+
+    public void ServerSnapAllToGround()
+    {
+        if (!NetworkManager.Singleton.IsServer) return;
+        if (lobbyState == null) return;
+
+        var players = lobbyState.Players;
+        for (int i = 0; i < players.Count; i++)
+        {
+            var p = players[i];
+            if (!NetworkManager.Singleton.ConnectedClients.TryGetValue(p.clientId, out var client)) continue;
+            var po = client.PlayerObject;
+            if (po == null) continue;
+
+            var mc = po.GetComponent<MovementController>();
+            if (mc != null) mc.ServerSnapToGround();
+        }
+    }
+
 }

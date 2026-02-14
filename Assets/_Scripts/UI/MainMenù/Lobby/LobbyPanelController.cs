@@ -155,6 +155,12 @@ public class LobbyPanelController : MonoBehaviour
             return;
         }
 
+        if (!lobbyManager.AreTeamsValidForStart(out var reason))
+        {
+            Debug.LogWarning($"[LOBBY] Start blocked: {reason}");
+            return;
+        }
+
         bool allReady = AreAllPlayersReady();
         int playerCount = lobbyState.Players.Count;
 
@@ -167,6 +173,8 @@ public class LobbyPanelController : MonoBehaviour
         lobbyManager.LockLobby();
 
         gameObject.SetActive(false);
+
+        Debug.Log($"[LOBBY] StartMatch pressed. TeamAssignmentMode={lobbyManager.TeamAssignmentMode}");
 
         if (lobbyManager.TeamAssignmentMode == TeamAssignmentMode.Random)
             lobbyManager.AssignTeamsAutomatically();

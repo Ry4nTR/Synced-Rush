@@ -948,5 +948,39 @@ public class MovementController : NetworkBehaviour
         _ui.SetJetpackCharge(Ability.JetpackCharge, jetpackMax);
         _ui.SetDashCharge(Ability.DashCharge, dashMax);
     }
+
+    public void ServerSnapToGround(float extraUp = 0.25f, float maxDown = 5f)
+    {
+        if (!IsServer) return;
+
+        // Disable CC for teleport (prevents clipping / penetration resolution)
+        bool wasEnabled = _characterController != null && _characterController.enabled;
+        if (wasEnabled) _characterController.enabled = false;
+
+        Vector3 pos = transform.position;
+
+        // Use YOUR ground mask
+        int mask = _groundLayerMask.value;
+
+        Vector3 rayStart = pos + Vector3.up * (extraUp + _characterController.height * 0.5f);
+        if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, maxDown + _characterController.height, mask, QueryTriggerInteraction.Ignore))
+        {
+            // Place feet on hit point (CharacterController pivot is usually at center)
+            float feetOffset = (_characterController.height * 0.5f) - _characterController.center.y;
+            float y = hit.point.y + feetOffset + _characterController.skinWidth;
+
+            transform.position = new Vector3(pos.x, y, pos.z);
+        }
+
+        HorizontalVelocity = Vector2.zero;
+        VerticalVelocity = 0f;
+
+        if (wasEnabled) _characterController.enabled = true;
+
+        if (_visualRoot != null)
+            _visualRoot.localPosition = Vector3.zero;
+
+        PublishServerSnapshot(GetServerAckSequence());
+    }
 }
 
