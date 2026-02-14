@@ -1,4 +1,6 @@
+using SyncedRush.Generics;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Centralized input buffer using Unity Input System.
@@ -40,6 +42,15 @@ public class PlayerInputHandler : MonoBehaviour
     private void Awake()
     {
         _controls = new PlayerInputSystem();
+
+        if (SettingsManager.Instance != null)
+        {
+            string savedRebinds = PlayerPrefs.GetString("Settings_Keys", string.Empty);
+            if (!string.IsNullOrEmpty(savedRebinds))
+            {
+                _controls.asset.LoadBindingOverridesFromJson(savedRebinds);
+            }
+        }
     }
 
     private void OnEnable()
