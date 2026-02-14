@@ -43,25 +43,33 @@ public class PlayerInputHandler : MonoBehaviour
     {
         _controls = new PlayerInputSystem();
 
-        if (SettingsManager.Instance != null)
-        {
-            string savedRebinds = PlayerPrefs.GetString("Settings_Keys", string.Empty);
-            if (!string.IsNullOrEmpty(savedRebinds))
-            {
-                _controls.asset.LoadBindingOverridesFromJson(savedRebinds);
-            }
-        }
+        RefreshBindings();
     }
 
     private void OnEnable()
     {
         SetCursorLocked(true);
         _controls.Enable();
+
+        if (SettingsManager.Instance != null)
+            SettingsManager.Instance.OnRebindsUpdated += RefreshBindings;
     }
 
     private void OnDisable()
     {
         _controls.Disable();
+
+        if (SettingsManager.Instance != null)
+            SettingsManager.Instance.OnRebindsUpdated -= RefreshBindings;
+    }
+
+    private void RefreshBindings()
+    {
+        string rebinds = PlayerPrefs.GetString("Settings_Keys", string.Empty);
+        if (!string.IsNullOrEmpty(rebinds))
+        {
+            _controls.asset.LoadBindingOverridesFromJson(rebinds);
+        }
     }
 
     private void Update()

@@ -1,4 +1,5 @@
 using SyncedRush.UI.Settings;
+using System;
 using UnityEngine;
 using UnityEngine.Audio;
 using UnityEngine.InputSystem;
@@ -9,14 +10,17 @@ namespace SyncedRush.Generics
     {
         public static SettingsManager Instance { get; private set; }
 
+        // Variabili
         [Header("Input")]
         [SerializeField] private InputActionAsset inputActions;
+        [Header("Audio")]
+        [SerializeField] private AudioMixer mainMixer;
+
         private const string RebindsKey = "Settings_Rebinds";
 
-        [Header("Audio")]
-        public AudioMixer mainMixer;
-
+        // Proprietà
         public InputActionAsset InputActions => inputActions;
+
         public float FOV => PlayerPrefs.GetFloat("Settings_FOV", 60f);
         public float Sensitivity => PlayerPrefs.GetFloat("Settings_Sens", 100f);
         public CrosshairSettings CrosshairSettings
@@ -45,6 +49,9 @@ namespace SyncedRush.Generics
 
         public Resolution[] Resolutions { get; private set; }
 
+        // Eventi
+        public event Action OnRebindsUpdated;
+
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -68,6 +75,8 @@ namespace SyncedRush.Generics
             string rebinds = inputActions.SaveBindingOverridesAsJson();
             PlayerPrefs.SetString("Settings_Keys", rebinds);
             PlayerPrefs.Save();
+
+            OnRebindsUpdated?.Invoke();
         }
 
         public void LoadRebinds()
