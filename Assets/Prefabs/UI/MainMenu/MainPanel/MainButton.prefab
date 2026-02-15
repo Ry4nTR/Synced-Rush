@@ -273,6 +273,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ButtonShaderController
   baseMaterial: {fileID: 2100000, guid: f9be16cf5a9804e4d88bacf3ca5202d5, type: 2}
   selectedMaterial: {fileID: 2100000, guid: f392851471ea82041865098f32c41653, type: 2}
+  clickSound: {fileID: 8300000, guid: db69a82d918c6f44d868ff9222afbf0d, type: 3}
+  hoverSound: {fileID: 0}
 --- !u!1 &7639023092803893243
 GameObject:
   m_ObjectHideFlags: 0

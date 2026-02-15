@@ -1,3 +1,4 @@
+using SyncedRush.Generics;
 using UnityEngine;
 
 public class WeaponAudioService_Basic : MonoBehaviour, IWeaponAudioService
@@ -17,5 +18,6 @@ public class WeaponAudioService_Basic : MonoBehaviour, IWeaponAudioService
         if (clip == null) return;
 
         AudioSource.PlayClipAtPoint(clip, position);
+        AudioManager.Instance.PlaySFXAt(clip, position);
     }
 }

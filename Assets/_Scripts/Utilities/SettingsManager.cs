@@ -134,7 +134,7 @@ namespace SyncedRush.Generics
         private void ApplyAudio(float value)
         {
             float db = Mathf.Log10(Mathf.Clamp(value, 0.0001f, 1f)) * 20;
-            mainMixer.SetFloat("MasterVol", db);
+            mainMixer.SetFloat("Master", db);
         }
 
         public void LoadAllSettings()

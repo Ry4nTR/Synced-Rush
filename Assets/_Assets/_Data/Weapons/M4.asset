@@ -37,8 +37,8 @@ MonoBehaviour:
   spreadIncreasePerShot: 0.35
   maxSpread: 3
   weaponPrefab: {fileID: 1283181734671400031, guid: 0df6a6bea0eca044e8bffd822fa4a3ce, type: 3}
-  shootSound: {fileID: 0}
-  reloadSound: {fileID: 0}
+  shootSound: {fileID: 8300000, guid: c2d17b55c6460e443af193873d090bc8, type: 3}
+  reloadSound: {fileID: 8300000, guid: 832f5db36c7fbbb40b36163c576d417b, type: 3}
   emptySound: {fileID: 0}
   muzzleFlashPrefab: {fileID: 8078720523478869859, guid: a078d461c73c0a84e95702d0f8e31f1e, type: 3}
   bulletTracerPrefab: {fileID: 1193953125369175018, guid: 73c1a5358c1e0af45a076e3709852fca, type: 3}

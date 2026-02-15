@@ -270,6 +270,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: acc1f12a4ce08ef4bbd424fab8068cf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonShaderController
-  fadeSpeed: 8
   baseMaterial: {fileID: 2100000, guid: f9be16cf5a9804e4d88bacf3ca5202d5, type: 2}
   selectedMaterial: {fileID: 2100000, guid: f392851471ea82041865098f32c41653, type: 2}
+  clickSound: {fileID: 8300000, guid: db69a82d918c6f44d868ff9222afbf0d, type: 3}
+  hoverSound: {fileID: 0}

@@ -247,6 +247,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TabController
   tabText: {fileID: 2851501977939790924}
+  clickSound: {fileID: 8300000, guid: db69a82d918c6f44d868ff9222afbf0d, type: 3}
+  hoverSound: {fileID: 0}
 --- !u!1 &4873757607330051520
 GameObject:
   m_ObjectHideFlags: 0
