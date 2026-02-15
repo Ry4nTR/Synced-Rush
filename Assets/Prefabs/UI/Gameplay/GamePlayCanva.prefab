@@ -957,6 +957,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoundCountdownPanel
   countdownText: {fileID: 7802102163181059701}
+  countdownSound: {fileID: 8300000, guid: 43db3059b82654e44bc38f1a4165c53e, type: 3}
 --- !u!1 &5035709988935019597
 GameObject:
   m_ObjectHideFlags: 0

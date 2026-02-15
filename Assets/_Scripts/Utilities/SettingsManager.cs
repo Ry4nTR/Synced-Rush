@@ -89,6 +89,20 @@ namespace SyncedRush.Generics
             }
         }
 
+        public void ResetAllBindings()
+        {
+            foreach (var map in inputActions.actionMaps)
+            {
+                map.RemoveAllBindingOverrides();
+            }
+
+            string emptyRebinds = inputActions.SaveBindingOverridesAsJson();
+            PlayerPrefs.SetString("Settings_Keys", emptyRebinds);
+            PlayerPrefs.Save();
+
+            OnRebindsUpdate?.Invoke();
+        }
+
         public void SaveFOV(float value)
         {
             SaveAnyFloat("Settings_FOV", value);

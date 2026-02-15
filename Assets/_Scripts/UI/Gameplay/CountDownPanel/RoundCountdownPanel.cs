@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SyncedRush.Generics;
+using System;
 using System.Collections;
 using TMPro;
 using UnityEngine;
@@ -11,6 +12,7 @@ using UnityEngine;
 public class RoundCountdownPanel : MonoBehaviour
 {
     [SerializeField] private TMP_Text countdownText;
+    [SerializeField] private AudioClip countdownSound;
 
     private Coroutine routine;
 
@@ -26,16 +28,24 @@ public class RoundCountdownPanel : MonoBehaviour
 
     private IEnumerator CountdownCoroutine(float seconds, Action onFinished)
     {
-        float remaining = Mathf.Max(0f, seconds);
-        while (remaining > 0f)
+        int remaining = Mathf.CeilToInt(seconds);
+
+        while (remaining > 0)
         {
             if (countdownText != null)
-                countdownText.text = Mathf.CeilToInt(remaining).ToString();
-            yield return null;
-            remaining -= Time.deltaTime;
+                countdownText.text = remaining.ToString();
+
+            if (remaining < 4)
+                AudioManager.Instance.PlayUISound(countdownSound);
+
+            yield return new WaitForSeconds(1f);
+
+            remaining--;
         }
+
         if (countdownText != null)
             countdownText.text = string.Empty;
+
         routine = null;
         onFinished?.Invoke();
     }

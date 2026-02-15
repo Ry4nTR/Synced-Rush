@@ -1,4 +1,5 @@
 using SyncedRush.Character.Movement;
+using SyncedRush.Generics;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -21,6 +22,8 @@ public class AbilitySelectButton : MonoBehaviour
     [SerializeField] private Color normalColor = Color.white;
     [Tooltip("Color used when this ability is selected.")]
     [SerializeField] private Color selectedColor = new Color(0.3f, 1f, 0.6f, 1f);
+    [Tooltip("Sound played when this ability is selected.")]
+    [SerializeField] private AudioClip selectSound;
 
     // Track the currently selected ability button so we can unhighlight the previous one
     private static AbilitySelectButton currentlySelected;
@@ -46,6 +49,11 @@ public class AbilitySelectButton : MonoBehaviour
     {
         RefreshState();
     }
+    private void OnDestroy()
+    {
+        button.onClick.RemoveListener(OnClick);
+    }
+
 
     private void OnClick()
     {
@@ -61,6 +69,9 @@ public class AbilitySelectButton : MonoBehaviour
         }
         SetSelected(true);
         currentlySelected = this;
+
+        if (selectSound != null)
+            AudioManager.Instance.PlayUISound(selectSound);
     }
 
     private void SetSelected(bool selected)

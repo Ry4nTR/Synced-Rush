@@ -139,6 +139,7 @@ MonoBehaviour:
   highlightGraphic: {fileID: 0}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   selectedColor: {r: 0.3, g: 0.6, b: 1, a: 1}
+  selectSound: {fileID: 0}
 --- !u!1 &1131807097466811480
 GameObject:
   m_ObjectHideFlags: 0
@@ -278,6 +279,7 @@ MonoBehaviour:
   highlightGraphic: {fileID: 0}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   selectedColor: {r: 0, g: 1, b: 0.028357267, a: 1}
+  selectSound: {fileID: 8300000, guid: a22b55f967239a94f94d2af01c31f890, type: 3}
 --- !u!1 &1923969378494916262
 GameObject:
   m_ObjectHideFlags: 0
@@ -553,6 +555,7 @@ MonoBehaviour:
   highlightGraphic: {fileID: 0}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   selectedColor: {r: 0.3, g: 0.6, b: 1, a: 1}
+  selectSound: {fileID: 8300000, guid: da148f98eec46a140af35e8ef045289c, type: 3}
 --- !u!1 &3413477892929172273
 GameObject:
   m_ObjectHideFlags: 0
@@ -1114,6 +1117,7 @@ MonoBehaviour:
   highlightGraphic: {fileID: 0}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   selectedColor: {r: 0, g: 1, b: 0.028357267, a: 1}
+  selectSound: {fileID: 8300000, guid: 9cabafaeb49bb564a9aeb9b2cf6a54c5, type: 3}
 --- !u!1 &8200093933242418671
 GameObject:
   m_ObjectHideFlags: 0
@@ -1362,3 +1366,4 @@ MonoBehaviour:
   highlightGraphic: {fileID: 0}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   selectedColor: {r: 0.3, g: 0.6, b: 1, a: 1}
+  selectSound: {fileID: 8300000, guid: aefe68d00fd96504ba1f13e78c939a04, type: 3}

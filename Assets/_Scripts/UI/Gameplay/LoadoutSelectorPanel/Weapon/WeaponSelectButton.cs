@@ -1,3 +1,4 @@
+using SyncedRush.Generics;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,6 +14,8 @@ public class WeaponSelectButton : MonoBehaviour
     [SerializeField] private Color normalColor = Color.white;
     [Tooltip("Color used when this weapon is selected.")]
     [SerializeField] private Color selectedColor = new Color(0.3f, 0.6f, 1f, 1f);
+    [Tooltip("Sound played when this weapon is selected.")]
+    [SerializeField] private AudioClip selectSound;
 
     // Track the currently selected weapon button so we can unhighlight the previous one
     private static WeaponSelectButton currentlySelected;
@@ -40,6 +43,11 @@ public class WeaponSelectButton : MonoBehaviour
         RefreshState();
     }
 
+    private void OnDestroy()
+    {
+        button.onClick.RemoveListener(OnClick);
+    }
+
     private void OnClick()
     {
         if (panel != null)
@@ -54,6 +62,9 @@ public class WeaponSelectButton : MonoBehaviour
         }
         SetSelected(true);
         currentlySelected = this;
+
+        if (selectSound != null)
+            AudioManager.Instance.PlayUISound(selectSound);
     }
 
     private void SetSelected(bool selected)

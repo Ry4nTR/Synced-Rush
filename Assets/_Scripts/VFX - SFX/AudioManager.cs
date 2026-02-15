@@ -13,7 +13,7 @@ namespace SyncedRush.Generics
         [SerializeField] private AudioMixerGroup sfxMixerGroup;
 
         [Header("Pool Settings")]
-        [SerializeField] private int poolSize = 128;
+        [SerializeField] private int poolSize = 200;
         private Queue<AudioSource> sfxPool = new Queue<AudioSource>();
 
         [Header("UI Audio Source")]

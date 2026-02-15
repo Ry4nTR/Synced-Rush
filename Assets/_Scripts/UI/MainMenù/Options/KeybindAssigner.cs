@@ -15,6 +15,16 @@ namespace SyncedRush.UI.Settings
 
         void Start() => RefreshDisplay();
 
+        private void OnEnable()
+        {
+            SettingsManager.Instance.OnRebindsUpdate += RefreshDisplay;
+        }
+        private void OnDisable()
+        {
+            SettingsManager.Instance.OnRebindsUpdate -= RefreshDisplay;
+
+        }
+
         public void StartRebinding()
         {
             if (actionToRebind == null) return;
