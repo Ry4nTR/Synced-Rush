@@ -17,7 +17,6 @@ public class WeaponAudioService_Basic : MonoBehaviour, IWeaponAudioService
 
         if (clip == null) return;
 
-        AudioSource.PlayClipAtPoint(clip, position);
         AudioManager.Instance.PlaySFXAt(clip, position);
     }
 }
