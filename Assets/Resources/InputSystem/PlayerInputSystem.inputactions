@@ -59,6 +59,17 @@
                 },
                 {
                     "name": "",
+                    "id": "14407876-56fb-4a21-bbc8-8d5aa40aac79",
+                    "path": "<Keyboard>/backquote",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ToggleExitPanel",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "4ceb7428-0a20-4323-ad4b-b3320d969d08",
                     "path": "<Keyboard>/f8",
                     "interactions": "",

@@ -91,6 +91,8 @@ MonoBehaviour:
   spectatorVcam: {fileID: 454462495698371560}
   boostAbovePlayer: 100
   forceHardCut: 1
+  teamSpectateOffset: {x: 0, y: 2.2, z: -4}
+  teamFollowSmooth: 10
 --- !u!1 &6476653323431060259
 GameObject:
   m_ObjectHideFlags: 0
@@ -151,6 +153,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: GamePlayCanva
       objectReference: {fileID: 0}
+    - target: {fileID: 3439693170082392238, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
+      propertyPath: optionsPanel.root
+      value: 
+      objectReference: {fileID: 2504308777651019519}
     - target: {fileID: 3761552388010608383, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
       propertyPath: m_Pivot.x
       value: 0
@@ -231,15 +237,24 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4969976367528255767, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -0.000030517578
+      objectReference: {fileID: 0}
     - target: {fileID: 7080892540731810298, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
       propertyPath: clientSystems
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 416611508543442260}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
+--- !u!1 &2504308777651019519 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9038588359219086106, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}
+  m_PrefabInstance: {fileID: 6894610437870198245}
+  m_PrefabAsset: {fileID: 0}
 --- !u!224 &7754394121133955866 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 3761552388010608383, guid: 14e1af7cddc628e45b935477e8c00e8f, type: 3}

@@ -39,6 +39,13 @@ public class PlayerHUD : MonoBehaviour
     [SerializeField] private Color hitmarkerHeadshotColor = Color.red;
     [SerializeField] private Color hitmarkerKillColor = Color.cyan;
 
+    [Header("Disconnect Message")]
+    [Tooltip("UI text element used to display disconnect announcements. Optional.")]
+    [SerializeField] private TMP_Text disconnectMessageText;
+
+    // Coroutine handle for disconnect message
+    private Coroutine disconnectCoroutine;
+
     private Coroutine _hitmarkerRoutine;
     private Vector3 _hitmarkerBaseScale;
 
@@ -117,6 +124,31 @@ public class PlayerHUD : MonoBehaviour
             StopCoroutine(_hitmarkerRoutine);
 
         _hitmarkerRoutine = StartCoroutine(HitmarkerRoutine(isKill, isHeadshot));
+    }
+
+    /// <summary>
+    /// Shows a temporary disconnect message on the HUD. If the message text reference is not assigned, this call is ignored.
+    /// </summary>
+    public void ShowDisconnectMessage(string message, float duration)
+    {
+        if (disconnectMessageText == null) return;
+
+        disconnectMessageText.gameObject.SetActive(true);
+        disconnectMessageText.text = message;
+
+        // Cancel any previous hide coroutine
+        if (disconnectCoroutine != null)
+            StopCoroutine(disconnectCoroutine);
+
+        disconnectCoroutine = StartCoroutine(HideDisconnectAfterTime(duration));
+    }
+
+    private IEnumerator HideDisconnectAfterTime(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (disconnectMessageText != null)
+            disconnectMessageText.gameObject.SetActive(false);
+        disconnectCoroutine = null;
     }
 
     private IEnumerator HitmarkerRoutine(bool isKill, bool isHeadshot)
