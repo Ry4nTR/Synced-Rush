@@ -8,13 +8,32 @@ namespace SyncedRush.Generics
 {
     public class SettingsManager : MonoBehaviour
     {
-        public static SettingsManager Instance { get; private set; }
-
         // Variabili
         [Header("Input")]
         [SerializeField] private InputActionAsset inputActions;
         [Header("Audio")]
         [SerializeField] private AudioMixer mainMixer;
+
+        private static SettingsManager _instance;
+        public static SettingsManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = UnityEngine.Object.FindAnyObjectByType<SettingsManager>();
+
+                    if (_instance == null)
+                    {
+                        GameObject go = new("SettingsManager");
+                        _instance = go.AddComponent<SettingsManager>();
+
+                        _instance.SetupResources();
+                    }
+                }
+                return _instance;
+            }
+        }
 
         private const string RebindsKey = "Settings_Rebinds";
 
@@ -60,13 +79,28 @@ namespace SyncedRush.Generics
                 Destroy(gameObject);
                 return;
             }
-
-            Instance = this;
+                
+            _instance = this;
             DontDestroyOnLoad(gameObject);
 
+            SetupResources();
             Resolutions = Screen.resolutions;
 
             LoadAllSettings();
+        }
+
+        private void SetupResources()
+        {
+            if (inputActions == null)
+                inputActions = Resources.Load<InputActionAsset>("InputSystem/PlayerInputSystem");
+
+            if (mainMixer == null)
+                mainMixer = Resources.Load<AudioMixer>("Master");
+
+            if (inputActions == null || mainMixer == null)
+            {
+                Debug.LogError("Ziopera! Impossibile trovare gli asset in Resources. Controlla i nomi dei file!");
+            }
         }
 
         // --- PUBLIC API: SALVATAGGIO ---
