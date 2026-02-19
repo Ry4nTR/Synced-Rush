@@ -166,7 +166,7 @@ public class GameplayUIManager : MonoBehaviour
 
         runtimeAction.performed -= OnTogglePausePerformed;
         runtimeAction.performed += OnTogglePausePerformed;
-}
+    }
 
     private void UnbindPauseAction()
     {

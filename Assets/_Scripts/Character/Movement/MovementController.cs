@@ -72,6 +72,9 @@ public class MovementController : NetworkBehaviour
     private readonly NetworkVariable<GrappleNetState> _serverGrappleState =
         new(new GrappleNetState(), NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
+    private readonly NetworkVariable<bool> _gameplayEnabledNet = new NetworkVariable<bool>(true,
+        NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
     // =========================
     // Runtime State
     // =========================
@@ -216,6 +219,8 @@ public class MovementController : NetworkBehaviour
 
     // Gameplay enable/disable
     public bool ServerGameplayEnabled { get; private set; } = true;
+
+    public bool GameplayEnabledNet => _gameplayEnabledNet.Value;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
     // Used by ServerGhostRuntimeDebug
@@ -859,7 +864,7 @@ public class MovementController : NetworkBehaviour
         if (!IsServer) return;
 
         float yaw = rot.eulerAngles.y;
-        float pitch = 0f; // reset to straight
+        float pitch = 0f;
 
         bool wasEnabled = _characterController.enabled;
         _characterController.enabled = false;
@@ -878,7 +883,15 @@ public class MovementController : NetworkBehaviour
         if (Ability != null)
             Ability.ServerResetRuntimeStateForNewRound();
 
+        // ✅ IMPORTANT: hard reset server input buffer timeline for this player
+        // Use ack+1 as the "new first expected" tick on server as well.
         int ack = GetServerAckSequence();
+        int nextExpected = ack + 1;
+
+        if (_netInput != null)
+            _netInput.ServerHardResetInputTimeline(nextExpected);
+
+        // Publish new authoritative baseline snapshot
         PublishServerSnapshot(ack);
 
         var rpcParams = new ClientRpcParams
@@ -933,13 +946,28 @@ public class MovementController : NetworkBehaviour
     {
         if (!IsServer) return;
 
+        // Update the server-only flag
         ServerGameplayEnabled = enabled;
+        // Update the networked flag so clients know whether to send inputs
+        _gameplayEnabledNet.Value = enabled;
 
-        // Optional: zero velocities so the dead doesn't keep sliding
+        // When disabling gameplay we also want to clear the server input
+        // stream so that old inputs don't accumulate while simulation is paused.
         if (!enabled)
         {
+            // Zero velocities so the character doesn't keep sliding on the server
             HorizontalVelocity = Vector2.zero;
             VerticalVelocity = 0f;
+
+            // Reset the input timeline on the server to the next sequence
+            // after the last processed one. This helps avoid trimming of a
+            // full buffer when gameplay is re-enabled. Also update the
+            // _serverLastProcessedSequence to ensure the next ack is correct.
+            if (_netInput != null)
+            {
+                int nextSeq = _serverLastProcessedSequence + 1;
+                _netInput.ServerHardResetInputTimeline(nextSeq);
+            }
         }
     }
 
@@ -996,4 +1024,3 @@ public class MovementController : NetworkBehaviour
         PublishServerSnapshot(GetServerAckSequence());
     }
 }
-

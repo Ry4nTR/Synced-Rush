@@ -45,6 +45,24 @@ public class NetworkPlayerInput : NetworkBehaviour
     public int ServerBufferedCount => _serverBufferedInputs.Count;
     public int ServerNextExpected => _serverNextExpectedSequence;
 
+    /// <summary>
+    /// Hard-reset the server-side input stream. Clears buffered inputs and resets
+    /// sequencing state to the specified next expected sequence.
+    /// Use on respawn / round reset / gameplay pause to prevent the server from
+    /// expecting old sequences.
+    /// </summary>
+    public void ServerHardResetInputTimeline(int nextExpectedSequence)
+    {
+        if (!IsServer) return;
+
+        _serverBufferedInputs.Clear();
+        _serverNextExpectedSequence = nextExpectedSequence;
+
+        _stallTicks = 0;
+        _hasLastRealServerInput = false;
+        _lastRealServerInput = default;
+    }
+
     // =========================
     // Grapple state (unchanged)
     // =========================
@@ -79,6 +97,13 @@ public class NetworkPlayerInput : NetworkBehaviour
 
         // Wait until MovementController is aligned to server spawn
         if (_character != null && !_character.HasInitialServerState)
+            return;
+
+        // NEW: if gameplay is disabled, do not send or record inputs. This prevents
+        // the server buffer from filling up when the game is paused or in UI.
+        // GameplayEnabledNet is a networked bool exposed by MovementController and
+        // updated via ServerSetGameplayEnabled().
+        if (_character != null && !_character.GameplayEnabledNet)
             return;
 
         var input = BuildOwnerTickInput();
@@ -190,21 +215,66 @@ public class NetworkPlayerInput : NetworkBehaviour
 
     private void ReceiveInputOnServer(SimulationTickData inputData, ServerRpcParams rpcParams)
     {
-        // If first received input is ahead, sync expected forward
+
+        // If expected is behind what we actually have buffered (common after respawn / ForceSequence),
+        // snap expected forward to the minimum buffered key.
+        if (_serverBufferedInputs.Count > 0)
+        {
+            int minKey = System.Linq.Enumerable.First(_serverBufferedInputs.Keys);
+            if (_serverNextExpectedSequence < minKey)
+            {
+                ResyncExpectedToMinBuffered("expected < minBuffered");
+            }
+        }
+
+        // If first-ever packet (or after a hard reset) starts far ahead, jump expected to that first seq
+        // (prevents waiting forever for 0..N that will never come).
         if (_serverBufferedInputs.Count == 0 && !_hasLastRealServerInput && inputData.Sequence > _serverNextExpectedSequence)
+        {
             _serverNextExpectedSequence = inputData.Sequence;
+            _stallTicks = 0;
+        }
 
         // Drop already-processed
         if (inputData.Sequence < _serverNextExpectedSequence)
+        {
             return;
+        }
 
+        // Insert/update in buffer
         _serverBufferedInputs[inputData.Sequence] = inputData;
 
+        // Cap buffer and self-heal if we are forced to drop old keys
         while (_serverBufferedInputs.Count > MaxBufferedInputs)
         {
             int firstKey = System.Linq.Enumerable.First(_serverBufferedInputs.Keys);
             _serverBufferedInputs.Remove(firstKey);
         }
+
+        // After trimming, ensure expected is not behind min key
+        if (_serverBufferedInputs.Count > 0)
+        {
+            int minKey = System.Linq.Enumerable.First(_serverBufferedInputs.Keys);
+            if (_serverNextExpectedSequence < minKey)
+            {
+                ResyncExpectedToMinBuffered("after-trim expected < minBuffered");
+            }
+        }
+    }
+
+    private void ResyncExpectedToMinBuffered(string reason)
+    {
+        if (_serverBufferedInputs.Count == 0)
+            return;
+
+        int minKey = System.Linq.Enumerable.First(_serverBufferedInputs.Keys);
+
+        _serverNextExpectedSequence = minKey;
+
+        // Reset stall and last-real because we’re changing the timeline.
+        _stallTicks = 0;
+        _hasLastRealServerInput = false;
+        _lastRealServerInput = default;
     }
 
     // =========================
@@ -214,7 +284,7 @@ public class NetworkPlayerInput : NetworkBehaviour
 
     public bool TryConsumeNextServerInput(out SimulationTickData data, out bool usedReal)
     {
-        // 1) REAL: expected input present
+        // 1) Expected input exists -> consume REAL
         if (_serverBufferedInputs.TryGetValue(_serverNextExpectedSequence, out data))
         {
             _serverBufferedInputs.Remove(_serverNextExpectedSequence);
@@ -232,31 +302,62 @@ public class NetworkPlayerInput : NetworkBehaviour
         // 2) Missing expected
         usedReal = false;
 
-        // If we never received any real input yet, we cannot simulate
+        // If we have buffered inputs but not the expected one, we might be behind (packet loss / reorder / reset).
+        // If expected is behind min buffered key, resync.
+        if (_serverBufferedInputs.Count > 0)
+        {
+            int minKey = System.Linq.Enumerable.First(_serverBufferedInputs.Keys);
+            if (_serverNextExpectedSequence < minKey)
+            {
+                ResyncExpectedToMinBuffered("consume expected < minBuffered");
+
+                // Try again immediately after resync
+                if (_serverBufferedInputs.TryGetValue(_serverNextExpectedSequence, out data))
+                {
+                    _serverBufferedInputs.Remove(_serverNextExpectedSequence);
+                    _serverNextExpectedSequence++;
+
+                    _lastRealServerInput = data;
+                    _hasLastRealServerInput = true;
+
+                    _stallTicks = 0;
+                    usedReal = true;
+
+                    return true;
+                }
+            }
+        }
+
+        // If we never got any real input yet, we cannot HOLD.
         if (!_hasLastRealServerInput)
         {
+            _stallTicks++;
+
             data = default;
             return false;
         }
 
-        // 2a) Stall briefly
+        // Normal tiny jitter: stall a couple of ticks, then HOLD
         _stallTicks++;
 
+        // Stall briefly to allow packet to arrive
         if (_stallTicks <= maxStallTicks)
         {
             data = default;
             return false;
         }
 
-        // 2b) HOLD last REAL for one simulated tick.
-        // IMPORTANT: we advance expected so server time doesn't freeze forever.
+        // HOLD last real input for one simulated tick (keeps server moving smoothly)
         data = _lastRealServerInput;
         data.Sequence = _serverNextExpectedSequence;
         _serverNextExpectedSequence++;
+
         _stallTicks = 0;
         usedReal = false;
+
         return true;
     }
+
 
     // =========================
     // Grapple state (unchanged)

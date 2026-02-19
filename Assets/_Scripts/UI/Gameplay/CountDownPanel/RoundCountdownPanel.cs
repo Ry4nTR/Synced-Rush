@@ -50,8 +50,8 @@ public class RoundCountdownPanel : MonoBehaviour
         onFinished?.Invoke();
     }
 
-    public void CancelCountdown() 
-    { 
+    public void CancelCountdown()
+    {
         if (routine != null)
         {
             StopCoroutine(routine);
