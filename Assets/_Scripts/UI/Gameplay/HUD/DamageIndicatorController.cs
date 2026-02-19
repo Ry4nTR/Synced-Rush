@@ -90,9 +90,6 @@ public class DamageIndicatorController : MonoBehaviour
             _indicatorMat.SetFloat("_HitDir", hitDir);
             //_indicatorImage.materialForRendering.SetFloat("_HitDir", hitDir);
 
-            Debug.Log("Forward attuale: " + _playerTransform.forward);
-            //Debug.Log($"Rotazione UI: {hitDir} | Alpha: {1 - (elapsed / fadeDuration)}");
-
             float intensity = Mathf.Lerp(1, 0, elapsed / fadeDuration);
             SetAlpha(intensity);
 

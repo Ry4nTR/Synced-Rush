@@ -268,12 +268,12 @@ public class ClientComponentSwitcher : NetworkBehaviour
 
     public void SetWeaponGameplayEnabled(bool enabled)
     {
-        // Owner-only systems
         if (weaponController != null) weaponController.enabled = enabled && IsOwner;
         if (shootingSystem != null) shootingSystem.enabled = enabled && IsOwner;
 
-        // WeaponNetworkHandler is server||owner (keep it consistent)
-        if (weaponNetworkHandler != null) weaponNetworkHandler.enabled = enabled && (IsServer || IsOwner);
+        // Keep server weapon handler running even if local owner paused (important for host)
+        if (weaponNetworkHandler != null)
+            weaponNetworkHandler.enabled = (IsServer || IsOwner); // don't gate it by "enabled"
     }
 
     public void SetMovementGameplayEnabled(bool enabled)
@@ -282,13 +282,5 @@ public class ClientComponentSwitcher : NetworkBehaviour
         // but this is a hard kill-switch for gameplay simulation.
         if (movementFSM != null) movementFSM.enabled = enabled && (IsServer || IsOwner);
         if (moveController != null) moveController.enabled = enabled; // your MC is always enabled; keep if you want
-    }
-
-    public void OwnerResetWeaponForNewRound()
-    {
-        if (!IsOwner) return;
-
-        if (weaponController != null)
-            weaponController.ResetForNewRound();
     }
 }

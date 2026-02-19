@@ -122,7 +122,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1130589604482184908}
-        m_TargetAssemblyTypeName: ExitMenuPanel, Assembly-CSharp
+        m_TargetAssemblyTypeName: PausePanel, Assembly-CSharp
         m_MethodName: OnOptionsButton
         m_Mode: 1
         m_Arguments:
@@ -614,9 +614,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ef5e10a841c4f841be29677ecf19002, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExitMenuPanel
-  mainMenuSceneName: TestMainMenuScene
-  optionsPanelGroup: {fileID: 1336753356719706853}
-  pausePanelGroup: {fileID: 7811441172712952358}
+  ui: {fileID: 3439693170082392238}
 --- !u!1 &2388457615134497208
 GameObject:
   m_ObjectHideFlags: 0
@@ -755,7 +753,9 @@ MonoBehaviour:
   optionsPanel:
     root: {fileID: 0}
     cg: {fileID: 0}
+  togglePauseActionRef: {fileID: -4473441648422092307, guid: ba699f85d4cdecf499a983150b9bc31c, type: 3}
   mainMenuSceneName: TestMainMenuScene
+  disconnectMessageSeconds: 5
 --- !u!1 &3410390853584727845
 GameObject:
   m_ObjectHideFlags: 0
@@ -1928,6 +1928,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayerHUD
       objectReference: {fileID: 0}
+    - target: {fileID: 2715842605986927767, guid: 81dae5452a6632941953e95fbff97651, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6585135344376155785, guid: 81dae5452a6632941953e95fbff97651, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -2089,7 +2093,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 471138358178983570, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -5
+      value: -5.000046
       objectReference: {fileID: 0}
     - target: {fileID: 779946030513041839, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchorMax.y
@@ -2621,7 +2625,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3933271326896706853, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -5
+      value: -5.000046
       objectReference: {fileID: 0}
     - target: {fileID: 3971927565974255219, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchorMax.y
@@ -2669,11 +2673,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4185102399758318912, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -5
+      value: -5.000046
       objectReference: {fileID: 0}
     - target: {fileID: 4193011358637256827, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -5
+      value: -5.000046
       objectReference: {fileID: 0}
     - target: {fileID: 4532515312586599768, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchorMax.y
@@ -2777,7 +2781,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4920895620360472295, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -5
+      value: -5.000046
       objectReference: {fileID: 0}
     - target: {fileID: 4969191285711698514, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchorMax.y
@@ -2822,6 +2826,18 @@ PrefabInstance:
     - target: {fileID: 5557006089770276478, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5746111843604368426, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 427601901829168924}
+    - target: {fileID: 5746111843604368426, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: OnBackButton
+      objectReference: {fileID: 0}
+    - target: {fileID: 5746111843604368426, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
+      value: OptionsPanel, Assembly-CSharp
       objectReference: {fileID: 0}
     - target: {fileID: 5828354369620497384, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchorMax.y
@@ -3029,7 +3045,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6627168463707230078, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -5
+      value: -5.000046
       objectReference: {fileID: 0}
     - target: {fileID: 6649895707329607556, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchorMax.y
@@ -3061,7 +3077,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6936861407419121480, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -5
+      value: -5.000046
       objectReference: {fileID: 0}
     - target: {fileID: 6994720081632146131, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchorMax.y
@@ -3089,7 +3105,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7407962081204861110, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_Size
-      value: 0.699453
+      value: 0.7164878
       objectReference: {fileID: 0}
     - target: {fileID: 7407962081204861110, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_Value
@@ -3225,7 +3241,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8285444334512803827, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -5
+      value: -5.000046
       objectReference: {fileID: 0}
     - target: {fileID: 8386406666294806989, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchorMax.y
@@ -3293,7 +3309,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8639568579860511771, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -5
+      value: -5.000046
       objectReference: {fileID: 0}
     - target: {fileID: 8685598405749909737, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_AnchorMax.y
@@ -3359,11 +3375,6 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 427601901829168924}
   m_SourcePrefab: {fileID: 100100000, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
---- !u!225 &1336753356719706853 stripped
-CanvasGroup:
-  m_CorrespondingSourceObject: {fileID: 3010776932831089653, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
-  m_PrefabInstance: {fileID: 4270951433802645776}
-  m_PrefabAsset: {fileID: 0}
 --- !u!224 &2548142240319288896 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1736602125785806672, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
@@ -3386,5 +3397,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ccb9eae8b01b3a42bbce5c0612760e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OptionsPanel
-  optionsGroup: {fileID: 1336753356719706853}
-  pauseGroup: {fileID: 7811441172712952358}
+  ui: {fileID: 3439693170082392238}

@@ -269,6 +269,7 @@ public class MovementController : NetworkBehaviour
         if (IsServer)
         {
             PublishServerSnapshot(0);
+            PublishServerAbilityVars();
         }
 
         // --- IMPORTANT: consume current value immediately ---
@@ -384,6 +385,7 @@ public class MovementController : NetworkBehaviour
 
         if (IsServer && !ServerGameplayEnabled)
         {
+            PublishServerAbilityVars();
             PublishServerSnapshot(GetServerAckSequence());
             return;
         }
@@ -404,7 +406,11 @@ public class MovementController : NetworkBehaviour
             SimulateServerRemoteTick();
 
         if (IsServer)
+        {
+            PublishServerAbilityVars();
             PublishServerSnapshot(GetServerAckSequence());
+        }
+
     }
 
     // =========================
@@ -470,6 +476,13 @@ public class MovementController : NetworkBehaviour
         _serverSnapshot.Value = snap;
     }
 
+    private void PublishServerAbilityVars()
+    {
+        if (!IsServer || Ability == null) return;
+        _serverJetpackCharge.Value = Ability.JetpackCharge;
+        _serverUsingJetpack.Value = Ability.UsingJetpack;
+    }
+
     // =========================
     // Simulation Ticks
     // =========================
@@ -508,7 +521,7 @@ public class MovementController : NetworkBehaviour
         {
             if (!_netInput.TryConsumeNextServerInput(out var nextInput, out bool usedReal))
             {
-                // Stall: no simulation this FixedUpdate
+                PublishServerAbilityVars();
                 return;
             }
 

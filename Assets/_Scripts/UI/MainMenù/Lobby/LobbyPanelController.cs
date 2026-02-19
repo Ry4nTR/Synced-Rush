@@ -174,8 +174,6 @@ public class LobbyPanelController : MonoBehaviour
 
         gameObject.SetActive(false);
 
-        Debug.Log($"[LOBBY] StartMatch pressed. TeamAssignmentMode={lobbyManager.TeamAssignmentMode}");
-
         if (lobbyManager.TeamAssignmentMode == TeamAssignmentMode.Random)
             lobbyManager.AssignTeamsAutomatically();
 

@@ -53,8 +53,7 @@ public class GameplayUIManager : MonoBehaviour
     // Pause input binding (Global)
     // ================================
     [Header("Input Binding")]
-    [SerializeField] private string globalActionMapName = "Global";
-    [SerializeField] private string togglePauseActionName = "ToggleExitPanel";
+    [SerializeField] private InputActionReference togglePauseActionRef;
 
     private PlayerInput _playerInput;
     private ClientComponentSwitcher _switcher;
@@ -144,53 +143,43 @@ public class GameplayUIManager : MonoBehaviour
         if (player == null) return;
 
         _playerInput = player.GetComponent<PlayerInput>();
-        _switcher = player.GetComponent<ClientComponentSwitcher>();
+        if (_playerInput == null)
+            _playerInput = player.GetComponentInChildren<PlayerInput>(true);
 
+        _switcher = player.GetComponent<ClientComponentSwitcher>();
         if (_switcher == null)
-            _switcher = ClientComponentSwitcher.ClientComponentSwitcherLocal.Local;
+            _switcher = player.GetComponentInChildren<ClientComponentSwitcher>(true);
 
         if (_playerInput == null || _playerInput.actions == null)
-        {
-            Debug.LogWarning("[GameplayUIManager] Cannot bind pause: PlayerInput/actions missing.", this);
             return;
-        }
 
-        var map = _playerInput.actions.FindActionMap(globalActionMapName, throwIfNotFound: false);
-        if (map == null)
-        {
-            Debug.LogWarning($"[GameplayUIManager] ActionMap '{globalActionMapName}' not found.", this);
+        if (togglePauseActionRef == null || togglePauseActionRef.action == null)
             return;
-        }
 
-        var action = map.FindAction(togglePauseActionName, throwIfNotFound: false);
-        if (action == null)
-        {
-            Debug.LogWarning($"[GameplayUIManager] Action '{togglePauseActionName}' not found in map '{globalActionMapName}'.", this);
+        // Find the runtime action by GUID inside PlayerInput.actions (safe even if renamed)
+        var runtimeAction = _playerInput.actions.FindAction(togglePauseActionRef.action.id);
+        if (runtimeAction == null)
             return;
-        }
 
-        if (!map.enabled) map.Enable();
-        if (!action.enabled) action.Enable();
+        runtimeAction.actionMap.Enable();
+        runtimeAction.Enable();
 
-        action.performed -= OnTogglePausePerformed;
-        action.performed += OnTogglePausePerformed;
-
-        Debug.Log($"[GameplayUIManager] Bound pause toggle '{globalActionMapName}/{togglePauseActionName}'. currentActionMap='{_playerInput.currentActionMap?.name}'.", this);
-    }
+        runtimeAction.performed -= OnTogglePausePerformed;
+        runtimeAction.performed += OnTogglePausePerformed;
+}
 
     private void UnbindPauseAction()
     {
         if (_playerInput == null || _playerInput.actions == null) return;
+        if (togglePauseActionRef == null || togglePauseActionRef.action == null) return;
 
-        var map = _playerInput.actions.FindActionMap(globalActionMapName, throwIfNotFound: false);
-        var action = map != null ? map.FindAction(togglePauseActionName, throwIfNotFound: false) : null;
-        if (action != null)
-            action.performed -= OnTogglePausePerformed;
+        var runtimeAction = _playerInput.actions.FindAction(togglePauseActionRef.action.id);
+        if (runtimeAction != null)
+            runtimeAction.performed -= OnTogglePausePerformed;
     }
 
     private void OnTogglePausePerformed(InputAction.CallbackContext ctx)
     {
-        Debug.Log($"[GameplayUIManager] Pause toggle PERFORMED. action='{ctx.action?.name}' control='{ctx.control?.path}' currentActionMap='{_playerInput?.currentActionMap?.name}'.", this);
         ToggleExitMenu();
     }
 
@@ -266,8 +255,6 @@ public class GameplayUIManager : MonoBehaviour
         if (_switcher == null)
             _switcher = ClientComponentSwitcher.ClientComponentSwitcherLocal.Local;
 
-        Debug.Log($"[GameplayUIManager] ToggleExitMenu() -> pauseOpen={_pauseOpen} switcherFound={_switcher != null}", this);
-
         if (_pauseOpen)
         {
             HideHUD();
@@ -276,7 +263,6 @@ public class GameplayUIManager : MonoBehaviour
 
             // IMPORTANT: disable gameplay
             _switcher?.SetState_UIMenu();
-            _switcher?.SetMovementGameplayEnabled(false);
             _switcher?.SetWeaponGameplayEnabled(false);
         }
         else
@@ -287,7 +273,6 @@ public class GameplayUIManager : MonoBehaviour
 
             // Re-enable gameplay
             _switcher?.SetState_Gameplay();
-            _switcher?.SetMovementGameplayEnabled(true);
             _switcher?.SetWeaponGameplayEnabled(true);
         }
     }
