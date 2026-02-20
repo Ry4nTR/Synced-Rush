@@ -215,9 +215,6 @@ public class LobbyManager : MonoBehaviour
         Debug.Log($"Lobby entering PostMatch. Winning team: {winningTeamId}");
 
         // Immediately reset lobby state so players must ready up again for the next match.
-        // This will clear ready/alive flags and remove team assignments.  If a final
-        // results panel is displayed on clients, the lobby remains unlocked to
-        // allow new matches after returning to the lobby UI.
         if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer)
         {
             ResetLobbyAfterMatch();

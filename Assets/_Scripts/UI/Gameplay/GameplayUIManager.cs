@@ -122,9 +122,19 @@ public class GameplayUIManager : MonoBehaviour
 
     private void Update()
     {
-        // Keep trying until we bind once (helps if UI manager spawns before player object)
         if (_playerInput == null || _switcher == null)
             TryBindLocalInput();
+
+        var nm = NetworkManager.Singleton;
+        if (nm == null) return;
+
+        // If we’re a client and we’re no longer connected/listening -> host is gone
+        if (!nm.IsHost && (_disconnectRoutine == null) && (!nm.IsConnectedClient || !nm.IsListening))
+        {
+            Debug.Log("[GameplayUIManager] Lost connection to host (watchdog).");
+            playerHUD?.ShowDisconnectMessage("Host has disconnected", disconnectMessageSeconds);
+            _disconnectRoutine = StartCoroutine(DisconnectAndReturnToMenu(disconnectMessageSeconds));
+        }
     }
 
     private void OnClientConnected(ulong clientId)
@@ -425,17 +435,27 @@ public class GameplayUIManager : MonoBehaviour
     // ================================
     private void OnClientDisconnected(ulong clientId)
     {
-        if (NetworkManager.Singleton == null) return;
+        var nm = NetworkManager.Singleton;
+        if (nm == null) return;
 
-        // Ignore local disconnect; your Exit button handles that path.
-        if (clientId == NetworkManager.Singleton.LocalClientId)
+        // Ignore our own intentional shutdown (Exit button path)
+        if (clientId == nm.LocalClientId)
             return;
 
         if (_disconnectRoutine != null)
             return;
 
-        Debug.Log($"[GameplayUIManager] Remote client disconnected: {clientId}. Returning to menu in {disconnectMessageSeconds}s", this);
+        // If we are a client and the server disconnected -> host is gone
+        if (!nm.IsHost && clientId == NetworkManager.ServerClientId)
+        {
+            Debug.Log("[GameplayUIManager] Host disconnected during match.");
+            playerHUD?.ShowDisconnectMessage("Host has disconnected", disconnectMessageSeconds);
+            _disconnectRoutine = StartCoroutine(DisconnectAndReturnToMenu(disconnectMessageSeconds));
+            return;
+        }
 
+        // Otherwise: peer client disconnected (if you want to keep match alive, change this)
+        Debug.Log($"[GameplayUIManager] Client disconnected: {clientId}. Returning to menu in {disconnectMessageSeconds}s");
         playerHUD?.ShowDisconnectMessage("A player has disconnected", disconnectMessageSeconds);
         _disconnectRoutine = StartCoroutine(DisconnectAndReturnToMenu(disconnectMessageSeconds));
     }
