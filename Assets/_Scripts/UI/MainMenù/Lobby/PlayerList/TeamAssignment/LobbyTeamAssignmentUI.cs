@@ -14,69 +14,69 @@ public class LobbyTeamAssignmentUI : MonoBehaviour
     [Header("Team Drop Zones (Team A/B only)")]
     [SerializeField] private List<TeamDropZone> teamDropZones = new();
 
-    [Header("Services")]
-    [SerializeField] private NetworkLobbyState lobbyState;
-
-    private void Awake()
-    {
-        if (lobbyState == null)
-            lobbyState = FindFirstObjectByType<NetworkLobbyState>();
-    }
+    private NetworkLobbyState lobbyState;
 
     private void OnEnable()
     {
+        Bind();
+        SessionServices.OnReady += OnSessionReady;
         StartCoroutine(InitWhenReady());
+    }
+
+    private void OnDisable()
+    {
+        SessionServices.OnReady -= OnSessionReady;
+
+        if (lobbyState != null && lobbyState.Players != null)
+            lobbyState.Players.OnListChanged -= OnPlayersChanged;
+    }
+
+    private void OnSessionReady(SessionServices s)
+    {
+        Bind();
+        StartCoroutine(InitWhenReady());
+    }
+
+    private void Bind()
+    {
+        var s = SessionServices.Current;
+        if (s == null) return;
+
+        lobbyState = s.LobbyState;
     }
 
     private IEnumerator InitWhenReady()
     {
+        // Wait for net
         while (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening)
             yield return null;
 
-        while (lobbyState == null)
+        // Wait for session + lobby state
+        while (SessionServices.Current == null || lobbyState == null || !lobbyState.IsSpawned)
         {
-            lobbyState = FindFirstObjectByType<NetworkLobbyState>();
+            Bind();
             yield return null;
         }
 
+        // Subscribe once
         lobbyState.Players.OnListChanged -= OnPlayersChanged;
         lobbyState.Players.OnListChanged += OnPlayersChanged;
 
         RebuildUI();
     }
 
-    private void OnDisable()
-    {
-        if (lobbyState != null && lobbyState.Players != null)
-            lobbyState.Players.OnListChanged -= OnPlayersChanged;
-    }
-
-    private void OnPlayersChanged(Unity.Netcode.NetworkListEvent<NetLobbyPlayer> _)
+    private void OnPlayersChanged(NetworkListEvent<NetLobbyPlayer> _)
     {
         RebuildUI();
     }
 
     private void RebuildUI()
     {
-        if (playerItemPrefab == null)
-        {
-            Debug.LogError("[LobbyTeamAssignmentUI] Player Item Prefab is NOT assigned.");
-            return;
-        }
+        if (playerItemPrefab == null) { Debug.LogError("[LobbyTeamAssignmentUI] playerItemPrefab not assigned."); return; }
+        if (unassignedContainer == null) { Debug.LogError("[LobbyTeamAssignmentUI] unassignedContainer not assigned."); return; }
+        if (lobbyState == null) { Debug.LogWarning("[LobbyTeamAssignmentUI] lobbyState missing."); return; }
 
-        if (unassignedContainer == null)
-        {
-            Debug.LogError("[LobbyTeamAssignmentUI] Unassigned Container is NOT assigned.");
-            return;
-        }
-
-        if (lobbyState == null)
-        {
-            Debug.LogWarning("[LobbyTeamAssignmentUI] No lobbyState yet.");
-            return;
-        }
-
-        // Clear existing items
+        // Clear
         ClearChildren(unassignedContainer);
         foreach (var dz in teamDropZones)
         {
@@ -84,9 +84,8 @@ public class LobbyTeamAssignmentUI : MonoBehaviour
                 ClearChildren(dz.Container);
         }
 
-        bool isHost = NetworkManager.Singleton.IsHost;
+        bool isHost = NetworkManager.Singleton != null && NetworkManager.Singleton.IsHost;
 
-        // Recreate all items from the network list
         foreach (var p in lobbyState.Players)
         {
             var item = Instantiate(playerItemPrefab);
@@ -94,7 +93,6 @@ public class LobbyTeamAssignmentUI : MonoBehaviour
 
             Transform parent = unassignedContainer;
 
-            // Team assignment
             if (p.teamId >= 0)
             {
                 var dz = teamDropZones.Find(z => z != null && z.TeamId == p.teamId);

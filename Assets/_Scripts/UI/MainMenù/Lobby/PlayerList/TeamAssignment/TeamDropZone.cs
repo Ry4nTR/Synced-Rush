@@ -11,15 +11,29 @@ public class TeamDropZone : MonoBehaviour, IDropHandler
     public int TeamId => teamId;
     public Transform Container => container;
 
-    [Header("Services (assign in Inspector)")]
-    [SerializeField] private LobbyManager lobbyManager;
-    [SerializeField] private NetworkLobbyState lobbyState;
+    private LobbyManager lobbyManager;
+    private NetworkLobbyState lobbyState;
 
-    private void Awake()
+    private void OnEnable()
     {
-        // Optional fallbacks (remove if you want strict inspector-only)
-        if (lobbyManager == null) lobbyManager = FindFirstObjectByType<LobbyManager>();
-        if (lobbyState == null) lobbyState = FindFirstObjectByType<NetworkLobbyState>();
+        Bind();
+        SessionServices.OnReady += OnSessionReady;
+    }
+
+    private void OnDisable()
+    {
+        SessionServices.OnReady -= OnSessionReady;
+    }
+
+    private void OnSessionReady(SessionServices s) => Bind();
+
+    private void Bind()
+    {
+        var s = SessionServices.Current;
+        if (s == null) return;
+
+        lobbyManager = s.LobbyManager;
+        lobbyState = s.LobbyState;
     }
 
     public void OnDrop(PointerEventData eventData)
@@ -27,33 +41,18 @@ public class TeamDropZone : MonoBehaviour, IDropHandler
         if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsHost)
             return;
 
+        if (lobbyManager == null || lobbyState == null)
+            return;
+
         var item = eventData.pointerDrag
             ? eventData.pointerDrag.GetComponent<LobbyPlayerItemUI>()
             : null;
 
         if (item == null) return;
-        if (lobbyManager == null || lobbyState == null) return;
 
-        // Find current team
-        int currentTeam = -999;
-        var players = lobbyState.Players;
-        for (int i = 0; i < players.Count; i++)
-        {
-            if (players[i].clientId == item.ClientId)
-            {
-                currentTeam = players[i].teamId;
-                break;
-            }
-        }
-
-        // Dropped into same team -> do nothing
-        if (currentTeam == teamId)
-            return;
-
-        // Assign on server
         lobbyManager.SetPlayerTeam(item.ClientId, teamId);
 
-        // Remove dragged visual (UI will rebuild from NetworkList)
+        // If you want the UI to “snap” immediately like before:
         Destroy(item.gameObject);
     }
 }

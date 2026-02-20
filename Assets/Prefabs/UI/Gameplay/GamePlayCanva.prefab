@@ -751,10 +751,10 @@ MonoBehaviour:
     root: {fileID: 7192945641962596126}
     cg: {fileID: 0}
   optionsPanel:
-    root: {fileID: 0}
+    root: {fileID: 9038588359219086106}
     cg: {fileID: 0}
   togglePauseActionRef: {fileID: -4473441648422092307, guid: ba699f85d4cdecf499a983150b9bc31c, type: 3}
-  mainMenuSceneName: TestMainMenuScene
+  mainMenuSceneName: MainMenuScene
   disconnectMessageSeconds: 5
 --- !u!1 &3410390853584727845
 GameObject:
@@ -3105,7 +3105,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7407962081204861110, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_Size
-      value: 0.7164878
+      value: 0.752528
       objectReference: {fileID: 0}
     - target: {fileID: 7407962081204861110, guid: 2d87d2867a5a358408a6abfd6d0963d2, type: 3}
       propertyPath: m_Value

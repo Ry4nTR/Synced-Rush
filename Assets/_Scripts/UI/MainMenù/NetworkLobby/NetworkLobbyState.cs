@@ -15,8 +15,6 @@ public class NetworkLobbyState : NetworkBehaviour
     {
         Players ??= new NetworkList<NetLobbyPlayer>();
 
-        DontDestroyOnLoad(gameObject);
-
         if (matchmaking == null)
             matchmaking = FindFirstObjectByType<MatchmakingManager>();
     }
@@ -32,6 +30,9 @@ public class NetworkLobbyState : NetworkBehaviour
 
             NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
             NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
+
+            foreach (var id in NetworkManager.Singleton.ConnectedClientsIds)
+                OnClientConnected(id);
         }
     }
 

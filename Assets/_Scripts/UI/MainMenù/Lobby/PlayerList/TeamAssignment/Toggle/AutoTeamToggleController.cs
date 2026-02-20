@@ -14,35 +14,82 @@ public class AutoTeamToggleController : MonoBehaviour
     [Header("Behavior")]
     [SerializeField] private bool hideForClients = true;
 
-    [Header("Services")]
-    [SerializeField] private LobbyManager lobbyManager;
-    [SerializeField] private NetworkLobbyState lobbyState;
+    // Bound from SessionServices (NO searching)
+    private LobbyManager lobbyManager;
+    private NetworkLobbyState lobbyState;
 
     private bool isWired;
+    private Coroutine initRoutine;
 
     private void Awake()
     {
-        if (toggle == null)
-            toggle = GetComponent<Toggle>();
-
-        if (visualRoot == null)
-            visualRoot = gameObject; // default to this object
-
-        if (lobbyManager == null) lobbyManager = FindFirstObjectByType<LobbyManager>();
-        if (lobbyState == null) lobbyState = FindFirstObjectByType<NetworkLobbyState>();
+        if (toggle == null) toggle = GetComponent<Toggle>();
+        if (visualRoot == null) visualRoot = gameObject;
     }
 
     private void OnEnable()
     {
-        StartCoroutine(InitWhenNetworkReady());
+        // If session already exists (host/client already started), bind immediately.
+        TryBindFromSession();
+
+        // Otherwise bind when SessionRoot spawns.
+        SessionServices.OnReady += HandleSessionReady;
+
+        if (initRoutine != null) StopCoroutine(initRoutine);
+        initRoutine = StartCoroutine(InitWhenNetworkAndSessionReady());
     }
 
     private void OnDisable()
     {
+        SessionServices.OnReady -= HandleSessionReady;
+
+        if (initRoutine != null)
+        {
+            StopCoroutine(initRoutine);
+            initRoutine = null;
+        }
+
         if (toggle != null)
             toggle.onValueChanged.RemoveListener(OnToggleChanged);
 
         isWired = false;
+    }
+
+    private void HandleSessionReady(SessionServices _)
+    {
+        TryBindFromSession();
+        // if we are already listening, we can refresh now
+        RefreshUI();
+    }
+
+    private void TryBindFromSession()
+    {
+        var s = SessionServices.Current;
+        if (s == null) return;
+
+        lobbyManager = s.LobbyManager;
+        lobbyState = s.LobbyState;
+    }
+
+    private IEnumerator InitWhenNetworkAndSessionReady()
+    {
+        // Wait for Netcode to start (host/client)
+        while (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening)
+            yield return null;
+
+        // Wait for SessionRoot to exist
+        while (SessionServices.Current == null)
+            yield return null;
+
+        // Bind references from SessionServices
+        TryBindFromSession();
+
+        // Wait for LobbyState spawn (so RPCs/list are valid)
+        while (lobbyState == null || !lobbyState.IsSpawned)
+            yield return null;
+
+        // Apply host/client visibility and wire toggle
+        RefreshUI();
     }
 
     public void RefreshUI()
@@ -51,49 +98,20 @@ public class AutoTeamToggleController : MonoBehaviour
 
         bool isHost = NetworkManager.Singleton.IsHost;
 
-        // Hide for clients (but DON'T disable the whole GO permanently by mistake)
+        // Hide for clients
         if (hideForClients && !isHost)
         {
             if (visualRoot != null) visualRoot.SetActive(false);
             return;
         }
 
-        // Ensure visible for host
+        // Show for host
         if (visualRoot != null) visualRoot.SetActive(true);
 
+        // Make sure we are bound (in case RefreshUI is called early)
+        TryBindFromSession();
 
-        // Wire the callback once
-        if (!isWired && toggle != null)
-        {
-            toggle.onValueChanged.RemoveListener(OnToggleChanged);
-            toggle.onValueChanged.AddListener(OnToggleChanged);
-            isWired = true;
-        }
-    }
-
-    private IEnumerator InitWhenNetworkReady()
-    {
-        // Wait for NetworkManager to exist
-        while (NetworkManager.Singleton == null)
-            yield return null;
-
-        // Wait until we're actually listening (host or client started)
-        while (!NetworkManager.Singleton.IsListening)
-            yield return null;
-
-        bool isHost = NetworkManager.Singleton.IsHost;
-
-        // Hide for clients (but DON'T disable the whole GO permanently by mistake)
-        if (hideForClients && !isHost)
-        {
-            if (visualRoot != null) visualRoot.SetActive(false);
-            yield break;
-        }
-
-        // Ensure visible for host
-        if (visualRoot != null) visualRoot.SetActive(true);
-
-        // Wire the callback once
+        // Wire callback exactly once
         if (!isWired && toggle != null)
         {
             toggle.onValueChanged.RemoveListener(OnToggleChanged);
@@ -104,13 +122,13 @@ public class AutoTeamToggleController : MonoBehaviour
 
     private void OnToggleChanged(bool enabled)
     {
+        // Only host is allowed to assign teams
         if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsHost)
             return;
 
-        if (lobbyManager == null || lobbyState == null)
+        if (lobbyManager == null || lobbyState == null || !lobbyState.IsSpawned)
             return;
 
-        // NEW: make the toggle actually control the mode used at StartMatch
         lobbyManager.SetTeamAssignmentMode(enabled ? TeamAssignmentMode.Random : TeamAssignmentMode.Manual);
 
         if (enabled)
@@ -119,6 +137,7 @@ public class AutoTeamToggleController : MonoBehaviour
         }
         else
         {
+            // Clear teams
             var players = lobbyState.Players;
             for (int i = 0; i < players.Count; i++)
             {

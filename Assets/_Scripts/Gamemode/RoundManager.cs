@@ -78,11 +78,6 @@ public class RoundManager : NetworkBehaviour
     private MapDefinition currentMap;
     private NetworkLobbyState lobbyState;
 
-    private void Awake()
-    {
-        DontDestroyOnLoad(gameObject);
-    }
-
     // =========================================================
     // MATCH START / SCENE LOAD
     // =========================================================

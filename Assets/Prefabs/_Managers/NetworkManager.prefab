@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 7427486159217281227}
   - component: {fileID: 2847307873401717290}
   - component: {fileID: 2520700430663800747}
+  - component: {fileID: 6972160040639395161}
   m_Layer: 0
   m_Name: NetworkManager
   m_TagString: Untagged
@@ -49,7 +50,7 @@ MonoBehaviour:
   NetworkConfig:
     ProtocolVersion: 0
     NetworkTransport: {fileID: 2520700430663800747}
-    PlayerPrefab: {fileID: 2338101018676570622, guid: 06d2d2216f6dc4b45aa17064cd622129, type: 3}
+    PlayerPrefab: {fileID: 0}
     Prefabs:
       NetworkPrefabsLists:
       - {fileID: 11400000, guid: 8b34482e5501b7a41ab97172ec65755c, type: 2}
@@ -100,8 +101,21 @@ MonoBehaviour:
   ConnectionData:
     Address: 127.0.0.1
     Port: 7777
-    ServerListenAddress: 127.0.0.1
+    ServerListenAddress: 0.0.0.0
   DebugSimulator:
     PacketDelayMS: 0
     PacketJitterMS: 0
     PacketDropRate: 0
+--- !u!114 &6972160040639395161
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8745430024497902079}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a6527b5e70ea7647ab929e13dba23d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SingletonGuard
+  key: NetworkManager

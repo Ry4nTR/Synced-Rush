@@ -12,12 +12,6 @@ public class PanelManager : MonoBehaviour
     private void Start()
     {
         ShowMainMenu();
-
-        // Workaround per bug che non mostra il nome della lobby e l'IP nella nuova UI
-        // Il problema sta nel fatto che per qualche diavolo di motivo viene prima eseguito l'OnEnable di LobbyPanelController piuttosto che l'Awake di LobbyManager
-        // Grazie Unity per farmi apprezzare di più Godot
-        lobbyPanel.gameObject.SetActive(false);
-        lobbyPanel.gameObject.SetActive(true);
     }
 
     // =========================

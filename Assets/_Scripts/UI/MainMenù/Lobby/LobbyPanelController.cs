@@ -1,7 +1,8 @@
-﻿using Unity.Collections;
+﻿using System.Collections;
+using TMPro;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
-using TMPro;
 
 public class LobbyPanelController : MonoBehaviour
 {
@@ -14,48 +15,40 @@ public class LobbyPanelController : MonoBehaviour
     [Header("Refs")]
     [SerializeField] private PanelManager uiManager;
 
-    // Inject these via Inspector (preferred)
-    [Header("Services (assign in Inspector if possible)")]
-    [SerializeField] private NetworkLobbyState lobbyState;
-    [SerializeField] private LobbyManager lobbyManager;
-    [SerializeField] private MatchmakingManager matchmakingManager;
-    [SerializeField] private RoundManager roundManager;
+    [Header("Scene Services (MainMenu)")]
+    [SerializeField] private MatchmakingManager matchmakingManager;   // keep this on AppBootstrap
+
+    [Header("Children")]
     [SerializeField] private AutoTeamToggleController autoTeamToggle;
 
-    private Coroutine _bindRoutine;
+    private NetworkLobbyState lobbyState;
+    private LobbyManager lobbyManager;
+    private RoundManager roundManager;
 
-    private void Awake()
-    {
-        // Fallbacks if not assigned in Inspector
-        if (lobbyState == null) lobbyState = FindFirstObjectByType<NetworkLobbyState>();
-        if (lobbyManager == null) lobbyManager = FindFirstObjectByType<LobbyManager>();
-        if (matchmakingManager == null) matchmakingManager = FindFirstObjectByType<MatchmakingManager>();
-
-        // RoundManager is DontDestroyOnLoad → should exist somewhere, cache it once
-        if (roundManager == null) roundManager = FindFirstObjectByType<RoundManager>();
-    }
+    private Coroutine bindRoutine;
 
     private void OnEnable()
     {
-        RefreshUI();
-
-        if (_bindRoutine != null) StopCoroutine(_bindRoutine);
-        _bindRoutine = StartCoroutine(BindLobbyStateWhenReady());
+        Bind();
+        SessionServices.OnReady += OnSessionReady;
 
         if (NetworkManager.Singleton != null)
         {
             NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
             NetworkManager.Singleton.OnPreShutdown += OnNetworkShutdown;
         }
+
+        if (bindRoutine != null) StopCoroutine(bindRoutine);
+        bindRoutine = StartCoroutine(BindWhenReady());
+
+        RefreshUI();
     }
 
     private void OnDisable()
     {
-        if (_bindRoutine != null)
-        {
-            StopCoroutine(_bindRoutine);
-            _bindRoutine = null;
-        }
+        SessionServices.OnReady -= OnSessionReady;
+
+        if (bindRoutine != null) { StopCoroutine(bindRoutine); bindRoutine = null; }
 
         UnsubscribeLobbyState();
 
@@ -66,36 +59,48 @@ public class LobbyPanelController : MonoBehaviour
         }
     }
 
-    private System.Collections.IEnumerator BindLobbyStateWhenReady()
+    private void OnSessionReady(SessionServices s)
     {
-        // Ensure we have a lobbyState reference
-        while (lobbyState == null)
-        {
-            lobbyState = FindFirstObjectByType<NetworkLobbyState>();
-            yield return null;
-        }
+        Bind();
+        RefreshUI();
+    }
 
-        // Wait until its NetworkList exists
-        while (lobbyState.Players == null)
+    private void Bind()
+    {
+        var s = SessionServices.Current;
+        if (s == null) return;
+
+        lobbyState = s.LobbyState;
+        lobbyManager = s.LobbyManager;
+        roundManager = s.RoundManager;
+
+        SubscribeLobbyState();
+    }
+
+    private IEnumerator BindWhenReady()
+    {
+        while (SessionServices.Current == null)
             yield return null;
 
-        // Avoid double subscribe
+        Bind();
+        RefreshUI();
+    }
+
+    private void SubscribeLobbyState()
+    {
+        if (lobbyState == null) return;
+
         UnsubscribeLobbyState();
 
         lobbyState.LobbyName.OnValueChanged += OnLobbyNameChanged;
         lobbyState.Players.OnListChanged += OnPlayersChanged;
-
-        // Now safe to refresh using Players
-        RefreshUI();
     }
 
     private void UnsubscribeLobbyState()
     {
         if (lobbyState == null) return;
 
-        if (lobbyState.LobbyName != null)
-            lobbyState.LobbyName.OnValueChanged -= OnLobbyNameChanged;
-
+        lobbyState.LobbyName.OnValueChanged -= OnLobbyNameChanged;
         if (lobbyState.Players != null)
             lobbyState.Players.OnListChanged -= OnPlayersChanged;
     }
@@ -105,9 +110,7 @@ public class LobbyPanelController : MonoBehaviour
     // =========================
     public void OnReadyPressed()
     {
-        if (lobbyState == null || NetworkManager.Singleton == null)
-            return;
-
+        if (lobbyState == null || NetworkManager.Singleton == null) return;
         lobbyState.ToggleReadyServerRpc(NetworkManager.Singleton.LocalClientId);
     }
 
@@ -119,15 +122,9 @@ public class LobbyPanelController : MonoBehaviour
     public void OnLeaveLobbyPressed()
     {
         if (NetworkManager.Singleton != null)
-        {
-            Debug.Log(NetworkManager.Singleton.IsHost
-                ? "[LOBBY] Host stopped the lobby"
-                : "[LOBBY] Client left the lobby");
-
             NetworkManager.Singleton.Shutdown();
-        }
-        uiManager.ShowMainMenu();
 
+        uiManager.ShowMainMenu();
         RefreshUI();
     }
 
@@ -149,9 +146,10 @@ public class LobbyPanelController : MonoBehaviour
         if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsHost)
             return;
 
-        if (lobbyState == null || lobbyManager == null)
+        // IMPORTANT: these MUST come from SessionServices (network spawned)
+        if (lobbyState == null || lobbyManager == null || roundManager == null)
         {
-            Debug.LogWarning("[LOBBY] Cannot start match: missing lobby state/manager.");
+            Debug.LogWarning("[LOBBY] Cannot start match: SessionServices not bound yet.");
             return;
         }
 
@@ -166,28 +164,16 @@ public class LobbyPanelController : MonoBehaviour
 
         if (!lobbyManager.CanStartMatch(playerCount, allReady))
         {
-            Debug.LogWarning("[LOBBY] Cannot start match yet. Ensure a gamemode, map, and enough ready players.");
+            Debug.LogWarning("[LOBBY] Cannot start match yet.");
             return;
         }
 
         lobbyManager.LockLobby();
 
-        gameObject.SetActive(false);
-
         if (lobbyManager.TeamAssignmentMode == TeamAssignmentMode.Random)
             lobbyManager.AssignTeamsAutomatically();
 
-        var gamemode = lobbyManager.GetSelectedGamemode();
-        var map = lobbyManager.GetSelectedMap();
-
-        if (roundManager == null) roundManager = FindFirstObjectByType<RoundManager>();
-        if (roundManager == null)
-        {
-            Debug.LogError("[LOBBY] RoundManager not found; cannot start match.");
-            return;
-        }
-
-        roundManager.StartMatch(lobbyManager, gamemode, map);
+        roundManager.StartMatch(lobbyManager, lobbyManager.GetSelectedGamemode(), lobbyManager.GetSelectedMap());
     }
 
     // =========================
@@ -201,15 +187,11 @@ public class LobbyPanelController : MonoBehaviour
         if (NetworkManager.Singleton == null) return;
 
         if (!NetworkManager.Singleton.IsHost && clientId == NetworkManager.ServerClientId)
-        {
-            Debug.Log("[NET] Host left lobby");
             uiManager.ShowMainMenu();
-        }
     }
 
     private void OnNetworkShutdown()
     {
-        Debug.Log("[NET] Network shutdown — returning to main menu");
         uiManager.ShowMainMenu();
     }
 
@@ -224,21 +206,16 @@ public class LobbyPanelController : MonoBehaviour
             startMatchButton.SetActive(isHost);
 
         if (lobbyNameText != null)
-            lobbyNameText.text = lobbyState != null ? lobbyState.LobbyName.Value.ToString() : string.Empty;
+            lobbyNameText.text = lobbyState != null ? lobbyState.LobbyName.Value.ToString() : "";
+
+        if (hostIpPanel != null)
+            hostIpPanel.SetActive(isHost);
 
         if (hostIpText != null)
         {
             hostIpText.gameObject.SetActive(isHost);
-            if (isHost)
-                hostIpText.text = matchmakingManager != null ? $"Host IP: {matchmakingManager.GetLocalIP()}" : "Host IP: (missing)";
-        }
-
-        if (hostIpPanel != null)
-        {
-            if (isHost)
-                hostIpPanel.SetActive(true);
-            else
-                hostIpPanel.SetActive(false);
+            if (isHost && matchmakingManager != null)
+                hostIpText.text = $"Host IP: {matchmakingManager.GetLocalIP()}";
         }
 
         if (autoTeamToggle != null)

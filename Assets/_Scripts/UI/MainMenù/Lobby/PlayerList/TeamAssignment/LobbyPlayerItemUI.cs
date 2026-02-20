@@ -104,8 +104,10 @@ public class LobbyPlayerItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler,
 
         canvasGroup.blocksRaycasts = true;
 
-        // If drop zone didn't reparent us, return to original parent
         if (transform.parent == rootCanvas.transform && originalParent != null)
+        {
             transform.SetParent(originalParent, false);
+            if (rectTransform != null) rectTransform.anchoredPosition = Vector2.zero;
+        }
     }
 }

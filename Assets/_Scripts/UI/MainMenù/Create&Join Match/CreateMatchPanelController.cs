@@ -1,4 +1,6 @@
+using System.Collections;
 using TMPro;
+using Unity.Netcode;
 using UnityEngine;
 
 public class CreateMatchPanelController : MonoBehaviour
@@ -20,6 +22,8 @@ public class CreateMatchPanelController : MonoBehaviour
     [Header("Services")]
     [SerializeField] private MatchmakingManager matchmakingManager;
     [SerializeField] private NetworkLobbyState lobbyState;
+
+    private Coroutine _createRoutine;
 
     private void Awake()
     {
@@ -66,18 +70,38 @@ public class CreateMatchPanelController : MonoBehaviour
     // =========================
     public void OnCreateMatchPressed()
     {
-        string playerName = string.IsNullOrWhiteSpace(playerNameInput.text)
-            ? "Host"
-            : playerNameInput.text;
-
-        string lobbyName = string.IsNullOrWhiteSpace(lobbyNameInput.text)
-            ? $"{playerName}'s Lobby"
-            : lobbyNameInput.text;
+        string playerName = string.IsNullOrWhiteSpace(playerNameInput.text) ? "Host" : playerNameInput.text;
+        string lobbyName = string.IsNullOrWhiteSpace(lobbyNameInput.text) ? $"{playerName}'s Lobby" : lobbyNameInput.text;
 
         PlayerProfile.PlayerName = playerName;
 
         matchmakingManager.SetLocalPlayerName(playerName);
         matchmakingManager.Host();
+
+        if (_createRoutine != null) StopCoroutine(_createRoutine);
+        _createRoutine = StartCoroutine(HostCreateLobbyFlow(playerName, lobbyName));
+    }
+
+    private IEnumerator HostCreateLobbyFlow(string playerName, string lobbyName)
+    {
+        float timeout = 4f;
+        float t = 0f;
+
+        while (t < timeout && SessionServices.Current == null)
+        {
+            t += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        var s = SessionServices.Current;
+        if (s == null)
+        {
+            Debug.LogError("[CreateMatchPanelController] SessionServices not ready (timeout).");
+            yield break;
+        }
+
+        var lobbyManager = s.LobbyManager;
+        var lobbyState = s.LobbyState;
 
         lobbyManager.CreateLobby(playerName, lobbyName);
         lobbyManager.SetGamemode(gamemodes[gamemodeDropdown.value]);

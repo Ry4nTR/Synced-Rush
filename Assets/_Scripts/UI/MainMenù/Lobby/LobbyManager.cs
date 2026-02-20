@@ -35,8 +35,6 @@ public class LobbyManager : MonoBehaviour
 
     private void Awake()
     {
-        DontDestroyOnLoad(gameObject);
-
         if (lobbyState == null)
             lobbyState = FindFirstObjectByType<NetworkLobbyState>();
     }

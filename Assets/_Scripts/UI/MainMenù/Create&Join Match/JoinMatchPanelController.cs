@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using Unity.Netcode;
 using UnityEngine;
@@ -61,8 +62,32 @@ public class JoinMatchPanelController : MonoBehaviour
 
         NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
 
-        lobbyState.SetPlayerNameServerRpc(matchmakingManager.LocalPlayerName);
-        uiManager.ShowLobby();
+        StartCoroutine(WaitForSessionThen(() =>
+        {
+            SessionServices.Current.LobbyState.SetPlayerNameServerRpc(matchmakingManager.LocalPlayerName);
+            uiManager.ShowLobby();
+        }));
+    }
+
+    private IEnumerator WaitForSessionThen(System.Action action)
+    {
+        float timeout = 6f;
+        float t = 0f;
+
+        while (t < timeout)
+        {
+            var s = SessionServices.Current;
+            if (s != null && s.LobbyState != null && s.LobbyState.IsSpawned)
+            {
+                action?.Invoke();
+                yield break;
+            }
+
+            t += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        Debug.LogError("[JoinMatchPanelController] SessionServices/LobbyState not ready (timeout).");
     }
 
     private void Show(CanvasGroup group)

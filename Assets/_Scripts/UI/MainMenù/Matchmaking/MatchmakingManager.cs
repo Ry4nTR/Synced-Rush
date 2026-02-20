@@ -6,11 +6,16 @@ using UnityEngine;
 
 public class MatchmakingManager : MonoBehaviour
 {
+    [SerializeField] private SessionLifecycle sessionLifecycle;
+
     public string LocalPlayerName { get; private set; } = "";
 
     private void Awake()
     {
         DontDestroyOnLoad(gameObject);
+
+        if (sessionLifecycle == null)
+            sessionLifecycle = FindFirstObjectByType<SessionLifecycle>();
     }
 
     public void SetLocalPlayerName(string name)
@@ -19,7 +24,7 @@ public class MatchmakingManager : MonoBehaviour
     }
 
     public void Host()
-    {
+    {   
         var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
 
         // IMPORTANT: listen on all interfaces
@@ -28,7 +33,12 @@ public class MatchmakingManager : MonoBehaviour
 
         if (NetworkManager.Singleton.StartHost())
         {
+            sessionLifecycle?.EnsureSessionRoot();
             Debug.Log("[NET] Host started");
+        }
+        else
+        {
+            Debug.LogError("[NET] StartHost failed");
         }
     }
 
@@ -45,10 +55,16 @@ public class MatchmakingManager : MonoBehaviour
 
     public void Leave()
     {
-        if (!NetworkManager.Singleton.IsListening)
-            return;
+        var nm = NetworkManager.Singleton;
+        if (nm == null) return;
 
-        NetworkManager.Singleton.Shutdown();
+        // IMPORTANT: if host/server, despawn SessionRoot BEFORE shutdown
+        if (nm.IsServer)
+            sessionLifecycle?.DestroySessionRoot();
+
+        if (nm.IsListening)
+            nm.Shutdown();
+
         Debug.Log("Left lobby");
     }
 
