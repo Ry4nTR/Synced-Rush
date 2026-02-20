@@ -28,7 +28,7 @@ public class RoundCountdownPanel : MonoBehaviour
 
     private IEnumerator CountdownCoroutine(float seconds, Action onFinished)
     {
-        int remaining = Mathf.CeilToInt(seconds);
+        int remaining = Mathf.FloorToInt(seconds);
 
         while (remaining > 0)
         {

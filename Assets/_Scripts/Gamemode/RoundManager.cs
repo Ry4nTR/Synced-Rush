@@ -78,10 +78,6 @@ public class RoundManager : NetworkBehaviour
     private MapDefinition currentMap;
     private NetworkLobbyState lobbyState;
 
-    // =========================================================
-    // UNITY
-    // =========================================================
-
     private void Awake()
     {
         DontDestroyOnLoad(gameObject);
@@ -90,7 +86,6 @@ public class RoundManager : NetworkBehaviour
     // =========================================================
     // MATCH START / SCENE LOAD
     // =========================================================
-
     public void StartMatch(LobbyManager lobby, GamemodeDefinition mode, MapDefinition map)
     {
         if (!IsServer) return;
@@ -176,7 +171,6 @@ public class RoundManager : NetworkBehaviour
     // =========================================================
     // ROUND FLOW
     // =========================================================
-
     private void StartNextRound()
     {
         if (!IsServer) return;
