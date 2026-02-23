@@ -61,8 +61,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TeamDropZone
   teamId: 0
   container: {fileID: 7439878538966530569}
-  lobbyManager: {fileID: 0}
-  lobbyState: {fileID: 0}
 --- !u!114 &6033482827143052837
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -347,8 +345,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TeamDropZone
   teamId: 1
   container: {fileID: 2600287827161037452}
-  lobbyManager: {fileID: 0}
-  lobbyState: {fileID: 0}
 --- !u!114 &8824523247200478791
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -588,8 +584,6 @@ MonoBehaviour:
   toggle: {fileID: 7114496828294056436}
   visualRoot: {fileID: 5585685109987385122}
   hideForClients: 1
-  lobbyManager: {fileID: 0}
-  lobbyState: {fileID: 0}
 --- !u!1 &3090548997586625261
 GameObject:
   m_ObjectHideFlags: 0
@@ -1209,7 +1203,6 @@ MonoBehaviour:
   teamDropZones:
   - {fileID: 2238127286855478194}
   - {fileID: 256045353087995331}
-  lobbyState: {fileID: 0}
 --- !u!1 &5585685109987385122
 GameObject:
   m_ObjectHideFlags: 0
@@ -1860,10 +1853,7 @@ MonoBehaviour:
   hostIpText: {fileID: 824759108674225637}
   startMatchButton: {fileID: 3615310807700793059}
   uiManager: {fileID: 0}
-  lobbyState: {fileID: 0}
-  lobbyManager: {fileID: 0}
   matchmakingManager: {fileID: 0}
-  roundManager: {fileID: 0}
   autoTeamToggle: {fileID: 3922667712677550919}
 --- !u!1 &7856065088110614028
 GameObject:

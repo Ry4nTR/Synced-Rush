@@ -19,6 +19,14 @@ public class LobbyManager : MonoBehaviour
     [Header("Lobby Info")]
     public string LobbyName { get; private set; }
 
+    // Stores the current lobby password on the server. Clients should not access this directly.
+    private string lobbyPassword = string.Empty;
+
+    /// <summary>
+    /// True if this lobby currently has a non-empty password set.
+    /// </summary>
+    public bool HasPassword => !string.IsNullOrEmpty(lobbyPassword);
+
     [Header("State")]
     public LobbyState CurrentState { get; private set; } = LobbyState.None;
 
@@ -147,10 +155,20 @@ public class LobbyManager : MonoBehaviour
     // =========================
     // LOBBY MANAGEMENT
     // =========================
-    public void CreateLobby(string hostName, string lobbyName)
+    /// <summary>
+    /// Creates a new lobby and sets its name and optional password. Only the host should call this.
+    /// The password can be empty or null to disable password protection.
+    /// </summary>
+    public void CreateLobby(string hostName, string lobbyName, string password = null)
     {
         LobbyName = lobbyName;
+        lobbyPassword = password ?? string.Empty;
         CurrentState = LobbyState.Open;
+        // Inform the network state of the password requirement. This call must be on the server.
+        if (lobbyState != null)
+        {
+            lobbyState.SetLobbyPassword(lobbyPassword);
+        }
     }
 
     public void LeaveLobby()
@@ -159,6 +177,13 @@ public class LobbyManager : MonoBehaviour
         selectedGamemode = null;
         selectedMap = null;
         CurrentState = LobbyState.None;
+        // Clear password
+        lobbyPassword = string.Empty;
+        if (lobbyState != null)
+        {
+            // Removing password also updates HasPassword
+            lobbyState.SetLobbyPassword(string.Empty);
+        }
     }
 
     // =========================
@@ -185,6 +210,9 @@ public class LobbyManager : MonoBehaviour
     public void LockLobby()
     {
         CurrentState = LobbyState.InGame;
+
+        if (LobbyDiscoveryService.Instance != null)
+            LobbyDiscoveryService.Instance.StopBroadcasting();
     }
 
     // Resets lobby state after a match ends.

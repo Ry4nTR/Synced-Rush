@@ -1,6 +1,5 @@
 using System.Collections;
 using TMPro;
-using Unity.Netcode;
 using UnityEngine;
 
 public class CreateMatchPanelController : MonoBehaviour
@@ -9,10 +8,12 @@ public class CreateMatchPanelController : MonoBehaviour
     [SerializeField] private TMP_InputField playerNameInput;
     [SerializeField] private TMP_InputField lobbyNameInput;
     [SerializeField] private TMP_Dropdown gamemodeDropdown;
-    [SerializeField] private TMP_Dropdown mapDropdown;  
+    [SerializeField] private TMP_Dropdown mapDropdown;
+
+    [Header("Lobby Password")]
+    [SerializeField] private TMP_InputField passwordInput;
 
     [Header("Refs")]
-    [SerializeField] private LobbyManager lobbyManager;
     [SerializeField] private PanelManager uiManager;
 
     [Header("Data")]
@@ -21,14 +22,13 @@ public class CreateMatchPanelController : MonoBehaviour
 
     [Header("Services")]
     [SerializeField] private MatchmakingManager matchmakingManager;
-    [SerializeField] private NetworkLobbyState lobbyState;
 
-    private Coroutine _createRoutine;
+    private Coroutine createRoutine;
 
     private void Awake()
     {
-        if (matchmakingManager == null) matchmakingManager = FindFirstObjectByType<MatchmakingManager>();
-        if (lobbyState == null) lobbyState = FindFirstObjectByType<NetworkLobbyState>();
+        if (matchmakingManager == null)
+            matchmakingManager = FindFirstObjectByType<MatchmakingManager>();
     }
 
     private void Start()
@@ -48,7 +48,6 @@ public class CreateMatchPanelController : MonoBehaviour
         foreach (var map in maps)
             mapDropdown.options.Add(new TMP_Dropdown.OptionData(map.mapName));
 
-        // set to first option
         gamemodeDropdown.value = 0;
         mapDropdown.value = 0;
 
@@ -56,58 +55,90 @@ public class CreateMatchPanelController : MonoBehaviour
         mapDropdown.RefreshShownValue();
     }
 
-    // Reset all input fields to default values
     public void ResetInputs()
     {
         playerNameInput.text = "";
+        lobbyNameInput.text = "";
         gamemodeDropdown.value = 0;
         mapDropdown.value = 0;
-        lobbyNameInput.text = "";
+
+        if (passwordInput != null)
+            passwordInput.text = string.Empty;
     }
 
     // =========================
-    // UI EVENTS
+    // UI EVENT
     // =========================
+
     public void OnCreateMatchPressed()
     {
-        string playerName = string.IsNullOrWhiteSpace(playerNameInput.text) ? "Host" : playerNameInput.text;
-        string lobbyName = string.IsNullOrWhiteSpace(lobbyNameInput.text) ? $"{playerName}'s Lobby" : lobbyNameInput.text;
+        string playerName = string.IsNullOrWhiteSpace(playerNameInput.text) ? "Host" : playerNameInput.text.Trim();
+        string lobbyName = string.IsNullOrWhiteSpace(lobbyNameInput.text) ? $"{playerName}'s Lobby" : lobbyNameInput.text.Trim();
+        string password = passwordInput != null ? passwordInput.text : string.Empty;
 
         PlayerProfile.PlayerName = playerName;
 
         matchmakingManager.SetLocalPlayerName(playerName);
         matchmakingManager.Host();
 
-        if (_createRoutine != null) StopCoroutine(_createRoutine);
-        _createRoutine = StartCoroutine(HostCreateLobbyFlow(playerName, lobbyName));
+        if (createRoutine != null)
+            StopCoroutine(createRoutine);
+
+        createRoutine = StartCoroutine(HostCreateLobbyFlow(playerName, lobbyName, password));
     }
 
-    private IEnumerator HostCreateLobbyFlow(string playerName, string lobbyName)
+    private IEnumerator HostCreateLobbyFlow(string playerName, string lobbyName, string password)
     {
-        float timeout = 4f;
+        float timeout = 6f;
         float t = 0f;
 
-        while (t < timeout && SessionServices.Current == null)
+        while (t < timeout && (SessionServices.Current == null || SessionServices.Current.LobbyState == null || SessionServices.Current.LobbyManager == null))
         {
             t += Time.unscaledDeltaTime;
             yield return null;
         }
 
         var s = SessionServices.Current;
-        if (s == null)
-        {
-            Debug.LogError("[CreateMatchPanelController] SessionServices not ready (timeout).");
-            yield break;
-        }
+        if (s == null) yield break;
 
         var lobbyManager = s.LobbyManager;
         var lobbyState = s.LobbyState;
 
-        lobbyManager.CreateLobby(playerName, lobbyName);
-        lobbyManager.SetGamemode(gamemodes[gamemodeDropdown.value]);
-        lobbyManager.SetMap(maps[mapDropdown.value]);
+        var gm = gamemodes[gamemodeDropdown.value];
+        var map = maps[mapDropdown.value];
+
+        lobbyManager.CreateLobby(playerName, lobbyName, password);
+        lobbyManager.SetGamemode(gm);
+        lobbyManager.SetMap(map);
+
+        while (!lobbyState.IsSpawned)
+            yield return null;
 
         lobbyState.SetLobbyNameServerRpc(lobbyName);
+
+        // ✅ max players based on gamemode
+        lobbyState.SetMaxPlayersServerRpc(Mathf.Max(1, gm.requiredPlayers));
+
+        // ✅ password (server only)
+        lobbyState.ServerSetLobbyPassword(password);
+
+        // ✅ host name (otherwise stays "Connecting...")
+        lobbyState.SetPlayerNameServerRpc(playerName);
+
+        // ✅ LAN broadcast includes MaxPlayers now
+        var discovery = LobbyDiscoveryService.Instance;
+        if (discovery != null)
+        {
+            bool hasPassword = !string.IsNullOrEmpty(password);
+
+            discovery.StartBroadcasting(
+                lobbyName,
+                () => lobbyState.Players.Count,
+                () => lobbyState.MaxPlayers.Value,
+                () => lobbyManager.CurrentState == LobbyState.InGame,
+                hasPassword
+            );
+        }
 
         uiManager.ShowLobby();
         ResetInputs();

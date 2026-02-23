@@ -4,19 +4,19 @@ using UnityEngine;
 
 public class NetworkLobbyState : NetworkBehaviour
 {
-    [SerializeField] private MatchmakingManager matchmaking;
-
     public NetworkVariable<FixedString64Bytes> LobbyName =
         new("", NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
-    public NetworkList<NetLobbyPlayer> Players = new NetworkList<NetLobbyPlayer>();
+    public NetworkList<NetLobbyPlayer> Players;
+
+    public NetworkVariable<int> MaxPlayers =
+        new(2, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
+    private string lobbyPassword = string.Empty;
 
     private void Awake()
     {
         Players ??= new NetworkList<NetLobbyPlayer>();
-
-        if (matchmaking == null)
-            matchmaking = FindFirstObjectByType<MatchmakingManager>();
     }
 
     public override void OnNetworkSpawn()
@@ -45,38 +45,43 @@ public class NetworkLobbyState : NetworkBehaviour
         }
     }
 
-    // =========================
-    // CONNECTION HANDLERS
-    // =========================
+    // =====================================================
+    // CONNECTION / FULL LOBBY GUARD
+    // =====================================================
+
     private void OnClientConnected(ulong clientId)
     {
-        // Prevent duplicates
+        if (!IsServer) return;
+
+        if (clientId != NetworkManager.ServerClientId)
+        {
+            int max = Mathf.Max(1, MaxPlayers.Value);
+            if (Players.Count >= max)
+            {
+                Debug.Log($"[LobbyState] Reject {clientId}: lobby full ({Players.Count}/{max})");
+                NetworkManager.Singleton.DisconnectClient(clientId);
+                return;
+            }
+        }
+
         for (int i = 0; i < Players.Count; i++)
             if (Players[i].clientId == clientId)
                 return;
 
-        string initialName = "Connecting...";
-
-        // If this is the host (server client), we already know the local name on this machine
-        if (clientId == NetworkManager.ServerClientId && IsHost)
-            initialName = (matchmaking != null) ? matchmaking.LocalPlayerName : "Host";
-
         Players.Add(new NetLobbyPlayer
         {
             clientId = clientId,
-            name = initialName,
+            name = "Connecting...",
             isReady = false,
             isHost = clientId == NetworkManager.ServerClientId,
             teamId = -1,
             isAlive = false
         });
-
-        Debug.Log($"[SERVER] Client joined lobby: {clientId}");
     }
 
     private void OnClientDisconnected(ulong clientId)
     {
-        Debug.Log($"[SERVER] Client left lobby: {clientId}");
+        if (!IsServer) return;
 
         for (int i = Players.Count - 1; i >= 0; i--)
         {
@@ -88,36 +93,40 @@ public class NetworkLobbyState : NetworkBehaviour
         }
     }
 
-    // =========================
-    // RPCS
-    // =========================
-    // Toggle a player's ready status.
-    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-    public void ToggleReadyServerRpc(ulong clientId)
+    // =====================================================
+    // SERVER SETTINGS
+    // =====================================================
+
+    // Called from LobbyManager
+    public void SetLobbyPassword(string password)
     {
-        for (int i = 0; i < Players.Count; i++)
-        {
-            if (Players[i].clientId == clientId)
-            {
-                var p = Players[i];
-                p.isReady = !p.isReady;
-                Players[i] = p;
-                break;
-            }
-        }
+        if (!IsServer) return;
+        lobbyPassword = (password ?? string.Empty).Trim();
     }
 
-    // Set the lobby name.
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    public void SetMaxPlayersServerRpc(int maxPlayers)
+    {
+        if (!IsServer) return;
+        MaxPlayers.Value = Mathf.Clamp(maxPlayers, 1, 16);
+    }
+
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     public void SetLobbyNameServerRpc(string name)
     {
-        LobbyName.Value = name;
+        if (!IsServer) return;
+        LobbyName.Value = (name ?? string.Empty);
     }
 
-    // Set a player's display name.
+    // =====================================================
+    // PLAYER UPDATES
+    // =====================================================
+
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     public void SetPlayerNameServerRpc(string playerName, RpcParams rpcParams = default)
     {
+        if (!IsServer) return;
+
         ulong senderId = rpcParams.Receive.SenderClientId;
 
         for (int i = 0; i < Players.Count; i++)
@@ -132,13 +141,38 @@ public class NetworkLobbyState : NetworkBehaviour
         }
     }
 
-    // Set a player's team ID.
+    // REQUIRED BY LobbyPanelController
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    public void ToggleReadyServerRpc(ulong clientId, RpcParams rpcParams = default)
+    {
+        if (!IsServer) return;
+
+        ulong sender = rpcParams.Receive.SenderClientId;
+
+        // Only host can toggle others
+        if (sender != NetworkManager.ServerClientId && sender != clientId)
+            return;
+
+        for (int i = 0; i < Players.Count; i++)
+        {
+            if (Players[i].clientId == clientId)
+            {
+                var p = Players[i];
+                p.isReady = !p.isReady;
+                Players[i] = p;
+                break;
+            }
+        }
+    }
+
+    // REQUIRED BY LobbyManager (team assignment)
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     public void SetPlayerTeamServerRpc(ulong targetClientId, int teamId, RpcParams rpcParams = default)
     {
-        // Only the host can set teams; reject if the sender is not the host.
-        ulong senderId = rpcParams.Receive.SenderClientId;
-        if (senderId != NetworkManager.ServerClientId)
+        if (!IsServer) return;
+
+        // Only host can assign teams
+        if (rpcParams.Receive.SenderClientId != NetworkManager.ServerClientId)
             return;
 
         for (int i = 0; i < Players.Count; i++)
@@ -151,5 +185,33 @@ public class NetworkLobbyState : NetworkBehaviour
                 break;
             }
         }
+    }
+
+    // =====================================================
+    // PASSWORD CHECK
+    // =====================================================
+
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    public void SubmitLobbyPasswordServerRpc(string passwordAttempt, RpcParams rpcParams = default)
+    {
+        if (!IsServer) return;
+
+        if (string.IsNullOrEmpty(lobbyPassword))
+            return;
+
+        string attempt = (passwordAttempt ?? string.Empty).Trim();
+        ulong senderId = rpcParams.Receive.SenderClientId;
+
+        if (!string.Equals(attempt, lobbyPassword))
+        {
+            Debug.Log($"[LobbyState] Wrong password from {senderId}, disconnecting.");
+            NetworkManager.Singleton.DisconnectClient(senderId);
+        }
+    }
+
+    public void ServerSetLobbyPassword(string password)
+    {
+        if (!IsServer) return;
+        lobbyPassword = (password ?? string.Empty).Trim();
     }
 }

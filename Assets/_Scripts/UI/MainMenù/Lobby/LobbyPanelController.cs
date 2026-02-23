@@ -121,7 +121,9 @@ public class LobbyPanelController : MonoBehaviour
 
     public void OnLeaveLobbyPressed()
     {
-        if (NetworkManager.Singleton != null)
+        if (matchmakingManager != null)
+            matchmakingManager.Leave();
+        else if (NetworkManager.Singleton != null)
             NetworkManager.Singleton.Shutdown();
 
         uiManager.ShowMainMenu();

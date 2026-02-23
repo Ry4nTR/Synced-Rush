@@ -24,7 +24,7 @@ public class MatchmakingManager : MonoBehaviour
     }
 
     public void Host()
-    {   
+    {
         var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
 
         // IMPORTANT: listen on all interfaces
@@ -64,6 +64,11 @@ public class MatchmakingManager : MonoBehaviour
 
         if (nm.IsListening)
             nm.Shutdown();
+
+        // Stop broadcasting our lobby if we were hosting
+        var discovery = LobbyDiscoveryService.Instance;
+        if (discovery != null)
+            discovery.StopBroadcasting();
 
         Debug.Log("Left lobby");
     }
