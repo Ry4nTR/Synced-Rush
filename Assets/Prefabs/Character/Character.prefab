@@ -1176,6 +1176,7 @@ GameObject:
   - component: {fileID: 1191002731392592227}
   - component: {fileID: 7401382111009737757}
   - component: {fileID: 6249127707769324377}
+  - component: {fileID: 808687935074831331}
   m_Layer: 0
   m_Name: CinemachineCamera
   m_TagString: Untagged
@@ -1268,6 +1269,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::OwnerOnlyVcam
   ShowTopMostFoldoutHeaderGroup: 1
   vcam: {fileID: 1191002731392592227}
+--- !u!114 &808687935074831331
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8774927925553066462}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0fbefd1c25c9fa5429449c360d9d3571, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FovApplier
+  worldCam: {fileID: 1191002731392592227}
+  viewmodelCamera: {fileID: 2403002803719941364}
 --- !u!1001 &3098995572565689195
 PrefabInstance:
   m_ObjectHideFlags: 0

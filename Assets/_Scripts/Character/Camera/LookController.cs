@@ -1,14 +1,8 @@
-﻿using UnityEngine;
+﻿using SyncedRush.Generics;
+using SyncedRush.UI.Settings;
 using Unity.Netcode;
-using SyncedRush.Generics;
+using UnityEngine;
 
-/// <summary>
-/// Client-side camera rotation controller.
-/// Attach this to the YawPivot object (child of Character).
-/// - Horizontal rotation (Yaw) happens on the Pivot.
-/// - Vertical rotation (Pitch) happens on the CameraHolder.
-/// - Only the owner runs this script.
-/// </summary>
 [DefaultExecutionOrder(-200)]
 public class LookController : NetworkBehaviour
 {
@@ -19,7 +13,7 @@ public class LookController : NetworkBehaviour
     [SerializeField] private Transform cameraHolder;
 
     [Header("Arms")]
-    [Tooltip("Optional reference to the root of the first‑person arms. If assigned, the arms will follow the camera's vertical rotation.")]
+    [Tooltip("Optional reference to the root of the first-person arms. If assigned, the arms will follow the camera's vertical rotation.")]
     [SerializeField] private Transform armsRoot;
 
     [Header("Settings")]
@@ -27,6 +21,9 @@ public class LookController : NetworkBehaviour
     [SerializeField] private bool invertY = false;
     [SerializeField] private float minPitch = -80f;
     [SerializeField] private float maxPitch = 80f;
+
+    private float _runtimeSensitivity;
+    private bool _runtimeInvertY;
 
     private float pitch;    // Vertical
     private float yaw;      // Horizontal
@@ -41,11 +38,9 @@ public class LookController : NetworkBehaviour
     public float SimYaw => simYaw;
     public float SimPitch => simPitch;
 
-
-    // provide access to camera transform
     public Transform CameraTransform => cameraHolder;
-    public float CurrentYaw => yaw;    
-    public float CurrentPitch => pitch; // signed pitch, already clamped
+    public float CurrentYaw => yaw;
+    public float CurrentPitch => pitch;
 
     private void Start()
     {
@@ -63,9 +58,12 @@ public class LookController : NetworkBehaviour
         if (rawPitch > 180f) rawPitch -= 360f;
         pitch = Mathf.Clamp(rawPitch, minPitch, maxPitch);
 
-        RefreshSensitivity();
+        // Keep your original behavior
+        ApplyLookSettings();
 
-        // ✅ rebase everything
+        // New: pull runtime settings (used by Update look math)
+        RefreshFromSettings();
+
         simYaw = yaw;
         simPitch = pitch;
         localYaw = yaw;
@@ -76,20 +74,31 @@ public class LookController : NetworkBehaviour
 
     private void OnEnable()
     {
-        if (IsOwner)
-            if (SettingsManager.Instance != null)
-                SettingsManager.Instance.OnSettingsUpdate += RefreshSensitivity;
+        if (!IsOwner) return;
+
+        // New: subscribe to settings changes (runtime cache)
+        RefreshFromSettings();
+        var sm = SettingsManager.Instance;
+        if (sm != null) sm.OnSettingsChanged += RefreshFromSettings;
+
+        // Keep your original subscription if you still want it
+        if (SettingsManager.Instance != null)
+            SettingsManager.Instance.OnSettingsChanged += ApplyLookSettings;
     }
 
     private void OnDisable()
     {
-        if (IsOwner)
-        {
-            inputHandler.SetCursorLocked(false);
+        if (!IsOwner) return;
 
-            if (SettingsManager.Instance != null)
-                SettingsManager.Instance.OnSettingsUpdate -= RefreshSensitivity;
-        }
+        inputHandler.SetCursorLocked(false);
+
+        // New: correct unsubscribe (must match what we subscribed)
+        var sm = SettingsManager.Instance;
+        if (sm != null) sm.OnSettingsChanged -= RefreshFromSettings;
+
+        // Keep your original unsubscribe
+        if (SettingsManager.Instance != null)
+            SettingsManager.Instance.OnSettingsChanged -= ApplyLookSettings;
     }
 
     private void LateUpdate()
@@ -103,7 +112,6 @@ public class LookController : NetworkBehaviour
 
         transform.rotation = Quaternion.Euler(0f, yaw, 0f);
 
-        // CameraHolder pitch stays local (relative to the Pivot we just rotated)
         cameraHolder.localRotation = Quaternion.Euler(pitch, 0f, 0f);
     }
 
@@ -113,12 +121,16 @@ public class LookController : NetworkBehaviour
 
         Vector2 look = inputHandler.Look;
 
-        float deltaX = look.x * sensitivity * 0.8f * Time.deltaTime;
-        float deltaY = look.y * sensitivity * 0.8f * Time.deltaTime;
+        // New: use runtime values so it updates live
+        float sens = _runtimeSensitivity > 0f ? _runtimeSensitivity : sensitivity;
+        bool inv = _runtimeInvertY;
+
+        float deltaX = look.x * sens * 0.8f * Time.deltaTime;
+        float deltaY = look.y * sens * 0.8f * Time.deltaTime;
 
         localYaw += deltaX;
 
-        localPitch += invertY ? deltaY : -deltaY;
+        localPitch += inv ? deltaY : -deltaY;
         localPitch = Mathf.Clamp(localPitch, minPitch, maxPitch);
     }
 
@@ -131,10 +143,8 @@ public class LookController : NetworkBehaviour
 
     public void ForceAimYawPitch(float newYaw, float newPitch)
     {
-        // Clamp pitch
         newPitch = Mathf.Clamp(newPitch, minPitch, maxPitch);
 
-        // Rebase ALL internal state
         yaw = newYaw;
         pitch = newPitch;
 
@@ -144,17 +154,30 @@ public class LookController : NetworkBehaviour
         localYaw = newYaw;
         localPitch = newPitch;
 
-        // Apply immediately (works even if component is disabled)
         transform.rotation = Quaternion.Euler(0f, newYaw, 0f);
         if (cameraHolder != null)
             cameraHolder.localRotation = Quaternion.Euler(newPitch, 0f, 0f);
 
-        confirmVisualUpdate = false; // we already applied this frame
+        confirmVisualUpdate = false;
     }
 
-    private void RefreshSensitivity()
+    private void ApplyLookSettings()
     {
-        sensitivity = SettingsManager.Instance.Sensitivity;
+        var sm = SettingsManager.Instance;
+        if (sm == null) return;
+        sensitivity = sm.Sensitivity;
+        invertY = sm.InvertY;
     }
 
+    private void RefreshFromSettings()
+    {
+        var sm = SettingsManager.Instance;
+        if (sm == null) return;
+
+        _runtimeSensitivity = sm.GetFloat(FloatSettingKey.Sensitivity);
+        _runtimeInvertY = sm.GetBool(BoolSettingKey.InvertY);
+
+        // Optional debug (remove once verified)
+        // Debug.Log($"[LookController] runtime sens={_runtimeSensitivity} invertY={_runtimeInvertY}");
+    }
 }

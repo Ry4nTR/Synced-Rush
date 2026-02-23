@@ -4,20 +4,6 @@ using UnityEngine.UI;
 
 namespace SyncedRush.UI.Settings
 {
-    public struct CrosshairSettings
-    {
-        public float targetLineLength;
-        public float targetThickness;
-        public float targetGap;
-        public float targetCenterDotSize;
-
-        public float smoothTime;
-
-        public Color crosshairColor;
-        public float opacity;
-        public bool showCenterDot;
-    }
-
     public class CrosshairPreviewer : MonoBehaviour
     {
         [Header("Elements")]
@@ -27,7 +13,7 @@ namespace SyncedRush.UI.Settings
         [SerializeField] private RectTransform left;
         [SerializeField] private RectTransform right;
 
-        [Header("Target Settings (User / Gameplay)")]
+        [Header("Target Settings")]
         public float targetLineLength = 10f;
         public float targetThickness = 2f;
         public float targetGap = 6f;
@@ -38,59 +24,47 @@ namespace SyncedRush.UI.Settings
 
         [Header("Appearance")]
         [SerializeField] private Color crosshairColor = Color.white;
-        [Range(0f, 1f)]
-        [SerializeField] private float opacity = 1f;
+        [SerializeField] private float opacity = 1f; // can be 0..1 or 0..100
         [SerializeField] private bool showCenterDot = true;
 
-        // Runtime smoothed values
-        private float currentLength;
-        private float currentThickness;
-        private float currentGap;
-        private float currentDotSize;
+        float currentLength, currentThickness, currentGap, currentDotSize;
+        float lengthVel, thicknessVel, gapVel, dotVel;
 
-        // SmoothDamp velocities
-        private float lengthVel;
-        private float thicknessVel;
-        private float gapVel;
-        private float dotVel;
+        Image[] images;
 
-        private Image[] images;
-
-        private void Awake()
+        void Awake()
         {
-            images = GetComponentsInChildren<Image>();
-            ApplyColor();
+            images = GetComponentsInChildren<Image>(true);
 
-            // Initialize smoothed values
             currentLength = targetLineLength;
             currentThickness = targetThickness;
             currentGap = targetGap;
             currentDotSize = targetCenterDotSize;
+
+            ApplyColor();
         }
 
-        private void Update()
+        void OnEnable()
         {
-            SmoothValues();
-            UpdateCrosshair();
+            ApplyFromManager();
+
+            var sm = SettingsManager.Instance;
+            if (sm != null) sm.OnSettingsChanged += ApplyFromManager;
         }
 
-        private void SmoothValues()
+        void OnDisable()
         {
-            currentLength = Mathf.SmoothDamp(
-                currentLength, targetLineLength, ref lengthVel, smoothTime);
-
-            currentThickness = Mathf.SmoothDamp(
-                currentThickness, targetThickness, ref thicknessVel, smoothTime);
-
-            currentGap = Mathf.SmoothDamp(
-                currentGap, targetGap, ref gapVel, smoothTime);
-
-            currentDotSize = Mathf.SmoothDamp(
-                currentDotSize, targetCenterDotSize, ref dotVel, smoothTime);
+            var sm = SettingsManager.Instance;
+            if (sm != null) sm.OnSettingsChanged -= ApplyFromManager;
         }
 
-        private void UpdateCrosshair()
+        void Update()
         {
+            currentLength = Mathf.SmoothDamp(currentLength, targetLineLength, ref lengthVel, smoothTime);
+            currentThickness = Mathf.SmoothDamp(currentThickness, targetThickness, ref thicknessVel, smoothTime);
+            currentGap = Mathf.SmoothDamp(currentGap, targetGap, ref gapVel, smoothTime);
+            currentDotSize = Mathf.SmoothDamp(currentDotSize, targetCenterDotSize, ref dotVel, smoothTime);
+
             SetLine(top, Vector2.up, currentGap, new Vector2(currentThickness, currentLength));
             SetLine(bottom, Vector2.down, currentGap, new Vector2(currentThickness, currentLength));
             SetLine(left, Vector2.left, currentGap, new Vector2(currentLength, currentThickness));
@@ -103,46 +77,42 @@ namespace SyncedRush.UI.Settings
             }
         }
 
-        private void SetLine(RectTransform line, Vector2 dir, float gap, Vector2 size)
+        void ApplyFromManager()
         {
-            line.anchoredPosition = dir * gap;
-            line.sizeDelta = size;
-        }
+            var sm = SettingsManager.Instance;
+            if (sm == null) return;
 
-        private void ApplyColor()
-        {
-            Color c = crosshairColor;
-            c.a = opacity;
+            var c = sm.Data.crosshair;
 
-            foreach (var img in images)
-                img.color = c;
-        }
+            targetLineLength = c.lineLength;
+            targetThickness = c.thickness;
+            targetGap = c.gap;
+            targetCenterDotSize = c.dotSize;
 
-        // ===== API for Settings / Gameplay =====
-
-        public void LoadAndApplySettings()
-        {
-            ApplySettings(SettingsManager.Instance.CrosshairSettings);
-        }
-
-        public void ApplySettings(CrosshairSettings settings)
-        {
-            targetLineLength = settings.targetLineLength;
-            targetThickness = settings.targetThickness;
-            targetGap = settings.targetGap;
-            targetCenterDotSize = settings.targetCenterDotSize;
-
-            smoothTime = settings.smoothTime;
-            crosshairColor = settings.crosshairColor;
-            opacity = settings.opacity;
-            showCenterDot = settings.showCenterDot;
+            smoothTime = c.smoothTime;
+            crosshairColor = c.color;
+            opacity = c.opacity;
+            showCenterDot = c.showDot;
 
             ApplyColor();
         }
 
-        public void SetGap(float value) => targetGap = value;
-        public void SetThickness(float value) => targetThickness = value;
-        public void SetLength(float value) => targetLineLength = value;
-        public void SetDotSize(float value) => targetCenterDotSize = value;
+        void SetLine(RectTransform line, Vector2 dir, float gap, Vector2 size)
+        {
+            if (!line) return;
+            line.anchoredPosition = dir * gap;
+            line.sizeDelta = size;
+        }
+
+        void ApplyColor()
+        {
+            Color c = crosshairColor;
+
+            float a = (opacity > 1f) ? (opacity / 100f) : opacity;
+            c.a = Mathf.Clamp01(a);
+
+            foreach (var img in images)
+                if (img) img.color = c;
+        }
     }
 }

@@ -941,6 +941,7 @@ GameObject:
   - component: {fileID: 4655627911540343689}
   - component: {fileID: 1336651115064116756}
   - component: {fileID: 4237358901491419366}
+  - component: {fileID: 1902976484289958619}
   m_Layer: 5
   m_Name: Crosshair
   m_TagString: Untagged
@@ -1005,6 +1006,19 @@ MonoBehaviour:
   crosshairColor: {r: 0, g: 0.90963364, b: 1, a: 1}
   opacity: 1
   showCenterDot: 0
+--- !u!114 &1902976484289958619
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6025129753438927218}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96ad96ed97d173446bb81c6dff8172d0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CrosshairApplier
+  crosshairController: {fileID: 4237358901491419366}
 --- !u!1 &6439145451224318750
 GameObject:
   m_ObjectHideFlags: 0

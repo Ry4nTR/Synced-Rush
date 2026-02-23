@@ -41,7 +41,8 @@ public class CrosshairController : MonoBehaviour
 
     private void Awake()
     {
-        images = GetComponentsInChildren<Image>();
+        if (images == null || images.Length == 0)
+            images = GetComponentsInChildren<Image>(true);
         ApplyColor();
 
         // Initialize smoothed values
@@ -94,11 +95,20 @@ public class CrosshairController : MonoBehaviour
 
     private void ApplyColor()
     {
-        Color c = crosshairColor;
-        c.a = opacity;
+        if (images == null || images.Length == 0)
+            images = GetComponentsInChildren<Image>(true);
 
-        foreach (var img in images)
+        Color c = crosshairColor;
+
+        float a = (opacity > 1f) ? (opacity / 100f) : opacity;
+        c.a = Mathf.Clamp01(a);
+
+        for (int i = 0; i < images.Length; i++)
+        {
+            var img = images[i];
+            if (img == null) continue;
             img.color = c;
+        }
     }
 
     // ===== API for Settings / Gameplay =====
@@ -107,4 +117,25 @@ public class CrosshairController : MonoBehaviour
     public void SetThickness(float value) => targetThickness = value;
     public void SetLength(float value) => targetLineLength = value;
     public void SetDotSize(float value) => targetCenterDotSize = value;
+    public void ApplySettings(SyncedRush.Generics.CrosshairConfig settings)
+    {
+        targetLineLength = settings.lineLength;
+        targetThickness = settings.thickness;
+        targetGap = settings.gap;
+        targetCenterDotSize = settings.dotSize;
+        smoothTime = settings.smoothTime;
+        crosshairColor = settings.color;
+
+        // Keep raw value as stored, ApplyColor() will normalize safely
+        opacity = settings.opacity;
+
+        showCenterDot = settings.showDot;
+        ApplyColor();
+    }
+    public void LoadAndApplySettings()
+    {
+        var sm = SyncedRush.Generics.SettingsManager.Instance;
+        if (sm != null)
+            ApplySettings(sm.Data.crosshair);
+    }
 }

@@ -16,12 +16,12 @@ public class ResolutionDropdownHandler : MonoBehaviour
     {
         PopulateOptions();
 
-        int savedW = PlayerPrefs.GetInt("Settings_ResWidth", Screen.currentResolution.width);
-        int savedH = PlayerPrefs.GetInt("Settings_ResHeight", Screen.currentResolution.height);
-
+        // Determine which option matches the saved resolution stored in SettingsManager
+        var sm = SyncedRush.Generics.SettingsManager.Instance;
+        int savedW = sm != null ? sm.ResolutionWidth : Screen.currentResolution.width;
+        int savedH = sm != null ? sm.ResolutionHeight : Screen.currentResolution.height;
         string targetResText = $"{savedW} x {savedH}";
         int targetIndex = 0;
-
         for (int i = 0; i < dropdown.options.Count; i++)
         {
             if (dropdown.options[i].text == targetResText)
@@ -30,7 +30,6 @@ public class ResolutionDropdownHandler : MonoBehaviour
                 break;
             }
         }
-
         dropdown.value = targetIndex;
         dropdown.RefreshShownValue();
     }
@@ -39,17 +38,16 @@ public class ResolutionDropdownHandler : MonoBehaviour
     {
         if (dropdown == null) dropdown = GetComponent<TMP_Dropdown>();
 
-        dropdown.onValueChanged.AddListener(index => {
+        dropdown.onValueChanged.AddListener(index =>
+        {
             string[] parts = dropdown.options[index].text.Split('x');
             if (parts.Length == 2)
             {
                 int w = int.Parse(parts[0].Trim());
                 int h = int.Parse(parts[1].Trim());
-
-                SettingsManager.Instance.SaveResolution(w, h);
-
-                PlayerPrefs.SetInt("Settings_ResWidth", w);
-                PlayerPrefs.SetInt("Settings_ResHeight", h);
+                var sm = SyncedRush.Generics.SettingsManager.Instance;
+                if (sm != null)
+                    sm.SetResolution(w, h);
             }
         });
     }
