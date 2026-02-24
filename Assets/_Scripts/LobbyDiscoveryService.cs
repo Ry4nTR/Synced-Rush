@@ -1,12 +1,13 @@
-using UnityEngine;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using UnityEngine;
 
 public class LobbyDiscoveryService : MonoBehaviour
 {
@@ -34,6 +35,8 @@ public class LobbyDiscoveryService : MonoBehaviour
 
     private readonly Dictionary<string, LobbyInfo> lobbies = new();
 
+    private List<IPEndPoint> _broadcastEndpoints;
+
     private Func<int> getPlayerCount;
     private Func<int> getMaxPlayers;
     private Func<bool> getInGame;
@@ -42,6 +45,19 @@ public class LobbyDiscoveryService : MonoBehaviour
     private readonly System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
 
     private float NowSeconds() => (float)clock.Elapsed.TotalSeconds;
+
+
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+    public bool DebugIsListening => listener != null;
+    public string DebugBoundEndpoint => _boundEndpoint;
+    public int DebugPacketsReceived => _packetsReceived;
+    public float DebugLastRecvAgoSeconds => _packetsReceived == 0 ? -1f : (NowSeconds() - _lastRecvTime);
+    public int DebugLobbyCount { get { lock (lobbies) return lobbies.Count; } }
+
+    private string _boundEndpoint = "n/a";
+    private int _packetsReceived = 0;
+    private float _lastRecvTime = 0f;
+#endif
 
     private void Awake()
     {
@@ -111,8 +127,15 @@ public class LobbyDiscoveryService : MonoBehaviour
             return;
         }
 
-        var endpoint = new IPEndPoint(IPAddress.Broadcast, broadcastPort);
-        StartCoroutine(BroadcastCoroutine(lobbyName, hasPassword, endpoint));
+        _broadcastEndpoints = BuildBroadcastEndpoints();
+
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+        Debug.Log($"[LobbyDiscovery] Broadcast endpoints:");
+        foreach (var ep in _broadcastEndpoints)
+            Debug.Log($"   -> {ep}");
+#endif
+
+        StartCoroutine(BroadcastCoroutine(lobbyName, hasPassword));
     }
 
     // Convenience overload (if you don’t care about InGame yet)
@@ -133,10 +156,8 @@ public class LobbyDiscoveryService : MonoBehaviour
         StopAllCoroutines();
     }
 
-    private System.Collections.IEnumerator BroadcastCoroutine(string lobbyName, bool hasPassword, IPEndPoint endpoint)
+    private System.Collections.IEnumerator BroadcastCoroutine(string lobbyName, bool hasPassword)
     {
-        var loopback = new IPEndPoint(IPAddress.Loopback, broadcastPort);
-
         while (broadcaster != null)
         {
             string ip = GetLocalIPAddress();
@@ -150,22 +171,65 @@ public class LobbyDiscoveryService : MonoBehaviour
 
             try
             {
-                // LAN
-                broadcaster.Send(bytes, bytes.Length, endpoint);
-                // Same-PC testing reliability
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                broadcaster.Send(bytes, bytes.Length, loopback);
-#endif
+                foreach (var ep in _broadcastEndpoints)
+                    broadcaster.Send(bytes, bytes.Length, ep);
             }
             catch (Exception ex)
             {
                 Debug.LogWarning($"[LobbyDiscoveryService] Broadcast send failed: {ex.Message}");
             }
 
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
             Debug.Log($"[LobbyDiscovery] SEND '{msg}'");
+#endif
 
             yield return new WaitForSeconds(1f);
         }
+    }
+
+    private List<IPEndPoint> BuildBroadcastEndpoints()
+    {
+        var eps = new List<IPEndPoint>();
+
+        // Global broadcast (may be ignored by some routers)
+        eps.Add(new IPEndPoint(IPAddress.Broadcast, broadcastPort));
+
+        foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
+        {
+            if (ni.OperationalStatus != OperationalStatus.Up)
+                continue;
+
+            if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback)
+                continue;
+
+            var ipProps = ni.GetIPProperties();
+
+            foreach (var ua in ipProps.UnicastAddresses)
+            {
+                if (ua.Address.AddressFamily != AddressFamily.InterNetwork)
+                    continue;
+
+                if (ua.IPv4Mask == null)
+                    continue;
+
+                byte[] ipBytes = ua.Address.GetAddressBytes();
+                byte[] maskBytes = ua.IPv4Mask.GetAddressBytes();
+                byte[] broadcastBytes = new byte[4];
+
+                for (int i = 0; i < 4; i++)
+                    broadcastBytes[i] = (byte)(ipBytes[i] | (maskBytes[i] ^ 255));
+
+                var broadcastAddress = new IPAddress(broadcastBytes);
+                eps.Add(new IPEndPoint(broadcastAddress, broadcastPort));
+            }
+        }
+
+        // Remove duplicates
+        var unique = new Dictionary<string, IPEndPoint>();
+        foreach (var ep in eps)
+            unique[$"{ep.Address}:{ep.Port}"] = ep;
+
+        return new List<IPEndPoint>(unique.Values);
     }
 
     // =========================
@@ -174,8 +238,6 @@ public class LobbyDiscoveryService : MonoBehaviour
 
     public void StartListening()
     {
-        Debug.Log($"[LobbyDiscovery] StartListening() called. listener={(listener != null ? "NOT NULL" : "NULL")} port={broadcastPort}");
-
         if (listener != null) return;
 
         try
@@ -186,6 +248,12 @@ public class LobbyDiscoveryService : MonoBehaviour
             listener.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
             listener.ExclusiveAddressUse = false;
             listener.Client.Bind(new IPEndPoint(IPAddress.Any, broadcastPort));
+
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+            var lep = (IPEndPoint)listener.Client.LocalEndPoint;
+            _boundEndpoint = $"{lep.Address}:{lep.Port}";
+            Debug.Log($"[LobbyDiscovery] LISTENER BOUND {_boundEndpoint}");
+#endif
         }
         catch (Exception ex)
         {
@@ -221,6 +289,11 @@ public class LobbyDiscoveryService : MonoBehaviour
             try { result = await listener.ReceiveAsync(); }
             catch (ObjectDisposedException) { break; }
             catch { if (ct.IsCancellationRequested) break; else continue; }
+
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+            _packetsReceived++;
+            _lastRecvTime = NowSeconds();
+#endif
 
             string message;
             try { message = Encoding.UTF8.GetString(result.Buffer); }

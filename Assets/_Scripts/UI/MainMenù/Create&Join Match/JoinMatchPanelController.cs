@@ -38,6 +38,31 @@ public class JoinMatchPanelController : MonoBehaviour
 
     private Coroutine refreshRoutine;
 
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+    [SerializeField] private TextMeshProUGUI debugText;
+    private float _nextDebugUpdate;
+#endif
+
+    private void Update()
+    {
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+        if (debugText == null) return;
+        if (Time.unscaledTime < _nextDebugUpdate) return;
+        _nextDebugUpdate = Time.unscaledTime + 0.5f;
+
+        var d = LobbyDiscoveryService.Instance;
+        int lobbyCount = d != null ? d.DebugLobbyCount : -1;
+
+        debugText.text =
+            $"DISCOVERY\n" +
+            $"Listening: {(d != null && d.DebugIsListening ? "YES" : "NO")}\n" +
+            $"Bound: {d?.DebugBoundEndpoint ?? "n/a"}\n" +
+            $"Packets: {d?.DebugPacketsReceived ?? 0}\n" +
+            $"LastRecvAgo: {d?.DebugLastRecvAgoSeconds.ToString("0.0") ?? "n/a"}\n" +
+            $"Lobbies: {lobbyCount}\n";
+#endif
+    }
+
     private void Awake()
     {
         if (matchmakingManager == null)
@@ -50,8 +75,6 @@ public class JoinMatchPanelController : MonoBehaviour
 
     private void OnEnable()
     {
-        Debug.Log($"[JoinMatchPanel] OnEnable (instance={GetInstanceID()})");
-
         // If I'm hosting, don't bind the discovery listen socket.
         if (Unity.Netcode.NetworkManager.Singleton == null ||
             !Unity.Netcode.NetworkManager.Singleton.IsServer)
@@ -67,8 +90,6 @@ public class JoinMatchPanelController : MonoBehaviour
 
     private void OnDisable()
     {
-        Debug.Log($"[JoinMatchPanel] OnDisable (instance={GetInstanceID()})");
-
         if (refreshRoutine != null)
         {
             StopCoroutine(refreshRoutine);
