@@ -50,7 +50,14 @@ public class JoinMatchPanelController : MonoBehaviour
 
     private void OnEnable()
     {
-        LobbyDiscoveryService.Instance?.StartListening();
+        Debug.Log($"[JoinMatchPanel] OnEnable (instance={GetInstanceID()})");
+
+        // If I'm hosting, don't bind the discovery listen socket.
+        if (Unity.Netcode.NetworkManager.Singleton == null ||
+            !Unity.Netcode.NetworkManager.Singleton.IsServer)
+        {
+            LobbyDiscoveryService.Instance?.StartListening();
+        }
 
         if (refreshRoutine != null)
             StopCoroutine(refreshRoutine);
@@ -60,13 +67,19 @@ public class JoinMatchPanelController : MonoBehaviour
 
     private void OnDisable()
     {
+        Debug.Log($"[JoinMatchPanel] OnDisable (instance={GetInstanceID()})");
+
         if (refreshRoutine != null)
         {
             StopCoroutine(refreshRoutine);
             refreshRoutine = null;
         }
 
-        LobbyDiscoveryService.Instance?.StopListening();
+        if (Unity.Netcode.NetworkManager.Singleton == null ||
+            !Unity.Netcode.NetworkManager.Singleton.IsServer)
+        {
+            LobbyDiscoveryService.Instance?.StopListening();
+        }
     }
 
     private IEnumerator RefreshListLoop()

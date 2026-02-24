@@ -1,11 +1,12 @@
+using UnityEngine;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using UnityEngine;
 
 public class LobbyDiscoveryService : MonoBehaviour
 {
@@ -37,6 +38,11 @@ public class LobbyDiscoveryService : MonoBehaviour
     private Func<int> getMaxPlayers;
     private Func<bool> getInGame;
 
+    private readonly ConcurrentQueue<LobbyInfo> pending = new();
+    private readonly System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
+
+    private float NowSeconds() => (float)clock.Elapsed.TotalSeconds;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -51,8 +57,15 @@ public class LobbyDiscoveryService : MonoBehaviour
 
     private void Update()
     {
+        // consume incoming packets on main thread
+        while (pending.TryDequeue(out var info))
+        {
+            lock (lobbies) { lobbies[info.Ip] = info; }
+        }
+
+        // timeout pruning using the same clock
+        float now = NowSeconds();
         List<string> toRemove = null;
-        float now = Time.unscaledTime;
 
         lock (lobbies)
         {
@@ -64,12 +77,8 @@ public class LobbyDiscoveryService : MonoBehaviour
                     toRemove.Add(kvp.Key);
                 }
             }
-
             if (toRemove != null)
-            {
-                foreach (var ip in toRemove)
-                    lobbies.Remove(ip);
-            }
+                foreach (var ip in toRemove) lobbies.Remove(ip);
         }
     }
 
@@ -109,6 +118,7 @@ public class LobbyDiscoveryService : MonoBehaviour
     // Convenience overload (if you don’t care about InGame yet)
     public void StartBroadcasting(string lobbyName, Func<int> getPlayerCountFunc, Func<int> getMaxPlayersFunc, bool hasPassword)
     {
+        Debug.Log($"[LobbyDiscovery] START BROADCAST name='{lobbyName}' port={broadcastPort} hasPwd={hasPassword}");
         StartBroadcasting(lobbyName, getPlayerCountFunc, getMaxPlayersFunc, () => false, hasPassword);
     }
 
@@ -143,12 +153,16 @@ public class LobbyDiscoveryService : MonoBehaviour
                 // LAN
                 broadcaster.Send(bytes, bytes.Length, endpoint);
                 // Same-PC testing reliability
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 broadcaster.Send(bytes, bytes.Length, loopback);
+#endif
             }
             catch (Exception ex)
             {
                 Debug.LogWarning($"[LobbyDiscoveryService] Broadcast send failed: {ex.Message}");
             }
+
+            Debug.Log($"[LobbyDiscovery] SEND '{msg}'");
 
             yield return new WaitForSeconds(1f);
         }
@@ -160,6 +174,8 @@ public class LobbyDiscoveryService : MonoBehaviour
 
     public void StartListening()
     {
+        Debug.Log($"[LobbyDiscovery] StartListening() called. listener={(listener != null ? "NOT NULL" : "NULL")} port={broadcastPort}");
+
         if (listener != null) return;
 
         try
@@ -173,7 +189,7 @@ public class LobbyDiscoveryService : MonoBehaviour
         }
         catch (Exception ex)
         {
-            Debug.LogWarning($"[LobbyDiscoveryService] Failed to start listener on port {broadcastPort}: {ex.Message}");
+            Debug.LogError($"[LobbyDiscovery] LISTEN BIND FAILED port={broadcastPort} ex={ex}");
             listener = null;
             return;
         }
@@ -202,7 +218,6 @@ public class LobbyDiscoveryService : MonoBehaviour
         while (!ct.IsCancellationRequested)
         {
             UdpReceiveResult result;
-
             try { result = await listener.ReceiveAsync(); }
             catch (ObjectDisposedException) { break; }
             catch { if (ct.IsCancellationRequested) break; else continue; }
@@ -214,11 +229,12 @@ public class LobbyDiscoveryService : MonoBehaviour
             var parts = message.Split('|');
             if (parts.Length < 4) continue;
 
-            // Backward compat:
-            // Old: <ip>|<lobbyName>|<playerCount>|<hasPassword>
-            // New: <ip>|<lobbyName>|<playerCount>|<maxPlayers>|<hasPassword>|<inGame>
+            string remoteIp = result.RemoteEndPoint.Address.ToString();
+            string advertisedIp = parts[0]; // this is the host’s LAN IP you put in the message
 
-            string ip = parts[0];
+            // If the packet came from loopback, it's your same-PC test send.
+            // Use the advertised LAN IP as the lobby key so it merges with the broadcast entry.
+            string ipKey = (remoteIp == "127.0.0.1" || remoteIp == "::1") ? advertisedIp : remoteIp;
             string name = parts[1];
 
             int.TryParse(parts[2], out int count);
@@ -235,25 +251,19 @@ public class LobbyDiscoveryService : MonoBehaviour
             }
             else
             {
-                // old format
                 hasPwd = parts[3] == "1";
             }
 
-            var info = new LobbyInfo
+            pending.Enqueue(new LobbyInfo
             {
-                Ip = ip,
+                Ip = ipKey,
                 LobbyName = name,
                 PlayerCount = count,
-                MaxPlayers = Mathf.Max(1, maxPlayers),
+                MaxPlayers = System.Math.Max(1, maxPlayers),
                 HasPassword = hasPwd,
                 InGame = inGame,
-                lastSeen = Time.unscaledTime
-            };
-
-            lock (lobbies)
-            {
-                lobbies[ip] = info;
-            }
+                lastSeen = NowSeconds()
+            });
         }
     }
 
