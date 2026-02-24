@@ -43,13 +43,13 @@ Material:
     m_Ints: []
     m_Floats:
     - _AmbientOcclusion: 0
-    - _EmissionStrenght: 3
+    - _EmissionStrenght: 2
     - _Metallic: 0
     - _QueueControl: 0
     - _QueueOffset: 0
     - _Smoothness: 0
     m_Colors:
-    - _Color: {r: 1, g: 0.69706917, b: 0, a: 1}
+    - _Color: {r: 1, g: 1, b: 0, a: 1}
     - _ScrollSpeed: {r: 0, g: -0.1, b: 0, a: 0}
     - _Tiling: {r: 1, g: 0.3, b: 0, a: 0}
   m_BuildTextureStacks: []

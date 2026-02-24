@@ -43,15 +43,15 @@ Material:
     m_Ints: []
     m_Floats:
     - _AmbientOcclusion: 0
-    - _EmissionStrenght: 2
+    - _EmissionStrenght: 1.5
     - _Metallic: 0
     - _QueueControl: 0
     - _QueueOffset: 0
     - _Smoothness: 0
     m_Colors:
     - _Color: {r: 0, g: 1, b: 0, a: 1}
-    - _ScrollSpeed: {r: 0.15, g: 0, b: 0, a: 0}
-    - _Tiling: {r: 0.5, g: 2, b: 0, a: 0}
+    - _ScrollSpeed: {r: 0.02, g: 0, b: 0, a: 0}
+    - _Tiling: {r: 0.1, g: 2, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &3388125272546002308
