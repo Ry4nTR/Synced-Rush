@@ -43,7 +43,7 @@ Material:
     m_Ints: []
     m_Floats:
     - _AmbientOcclusion: 0
-    - _EmissionStrenght: 2
+    - _EmissionStrenght: 1.5
     - _Metallic: 0
     - _QueueControl: 0
     - _QueueOffset: 0
