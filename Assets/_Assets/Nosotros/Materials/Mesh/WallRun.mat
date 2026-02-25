@@ -28,6 +28,10 @@ Material:
         m_Texture: {fileID: 2800000, guid: 72af03b25d0bd1348857950c99c742ae, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _SampleTexture2D_0f027da4667e467ca2d0dec6139dd6b2_Texture_1_Texture2D:
+        m_Texture: {fileID: 2800000, guid: f37ab06b12762b44384c432bc9e624b3, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - unity_Lightmaps:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -47,9 +51,10 @@ Material:
     - _Metallic: 0
     - _QueueControl: 0
     - _QueueOffset: 0
-    - _Smoothness: 0
+    - _Smoothness: 1
     m_Colors:
     - _Color: {r: 0, g: 1, b: 0, a: 1}
+    - _DotTileSize: {r: 3, g: 3, b: 0, a: 0}
     - _ScrollSpeed: {r: 0.02, g: 0, b: 0, a: 0}
     - _Tiling: {r: 0.1, g: 2, b: 0, a: 0}
   m_BuildTextureStacks: []
