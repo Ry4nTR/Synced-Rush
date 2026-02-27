@@ -16,18 +16,7 @@ public class LoadoutSelectorPanel : MonoBehaviour
     // Tracks whether the selector is currently used in a pre‑round state.
     private bool inPreRound = false;
 
-    /// <summary>
-    /// True while the loadout panel is open. Exposed so other systems (e.g. pause
-    /// menu) can query whether we should return to loadout state when
-    /// unpausing.
-    /// </summary>
     public bool IsOpen => isOpen;
-
-    /// <summary>
-    /// True while the loadout panel is being used during the pre‑round
-    /// countdown. Exposed so other systems can restore the correct input
-    /// state when exiting pause.
-    /// </summary>
     public bool InPreRound => inPreRound;
 
     private void Start()

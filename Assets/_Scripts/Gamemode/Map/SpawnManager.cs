@@ -1,23 +1,13 @@
 ﻿using UnityEngine;
 using Unity.Netcode;
+using System.Collections.Generic;
 
 public class SpawnManager : MonoBehaviour
 {
     private MapSpawnPoints spawnPoints;
 
-    // ---------------------------------------------------------------------
-    // Spawn point rotation per team
-    //
-    // To ensure that players on the same team do not spawn on the same
-    // position and to allow rotation across rounds, we maintain a shuffled
-    // list of spawn points per team and track an index into each list.  Each
-    // call to GetNextSpawn() will return the next spawn in the list and
-    // increment the index.  At the start of a match and before each round
-    // reset, the lists are shuffled and indices reset to zero.
-    //
-    // Key: teamId (0 = Team A, 1 = Team B)
-    private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<Transform>> _teamSpawnOrder = new();
-    private readonly System.Collections.Generic.Dictionary<int, int> _teamSpawnIndex = new();
+    private readonly Dictionary<int, List<Transform>> _teamSpawnOrder = new();
+    private readonly Dictionary<int, int> _teamSpawnIndex = new();
 
     [Header("Prefabs")]
     [Tooltip("Networked player prefab to spawn for each lobby member")]
@@ -46,11 +36,6 @@ public class SpawnManager : MonoBehaviour
         SetupTeamSpawnOrder();
     }
 
-    /// <summary>
-    /// Populates and shuffles the spawn lists per team.  This should be
-    /// called once at match start.  The lists are re‑shuffled for each
-    /// round via ShuffleSpawnOrderForNewRound().
-    /// </summary>
     private void SetupTeamSpawnOrder()
     {
         _teamSpawnOrder.Clear();
@@ -74,10 +59,6 @@ public class SpawnManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Randomly shuffles the given list of spawn transforms in place. Uses
-    /// UnityEngine.Random to ensure deterministic behaviour across clients.
-    /// </summary>
     private void ShuffleSpawnList(System.Collections.Generic.List<Transform> list)
     {
         for (int i = list.Count - 1; i > 0; i--)
@@ -87,11 +68,6 @@ public class SpawnManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Retrieves the next spawn position for the given team.  The order
-    /// advances on each call and wraps around to the beginning.  Returns
-    /// null if no spawn points exist for the team.
-    /// </summary>
     private Transform GetNextSpawn(int teamId)
     {
         if (!_teamSpawnOrder.TryGetValue(teamId, out var list) || list == null || list.Count == 0)
@@ -104,10 +80,6 @@ public class SpawnManager : MonoBehaviour
         return spawn;
     }
 
-    /// <summary>
-    /// Reshuffles the spawn order for each team and resets indices. Call this
-    /// before starting a new round to ensure a fresh spawn order.
-    /// </summary>
     private void ShuffleSpawnOrderForNewRound()
     {
         foreach (var kvp in _teamSpawnOrder)
