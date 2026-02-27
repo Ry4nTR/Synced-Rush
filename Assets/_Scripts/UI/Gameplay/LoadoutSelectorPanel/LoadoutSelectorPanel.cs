@@ -16,6 +16,20 @@ public class LoadoutSelectorPanel : MonoBehaviour
     // Tracks whether the selector is currently used in a pre‑round state.
     private bool inPreRound = false;
 
+    /// <summary>
+    /// True while the loadout panel is open. Exposed so other systems (e.g. pause
+    /// menu) can query whether we should return to loadout state when
+    /// unpausing.
+    /// </summary>
+    public bool IsOpen => isOpen;
+
+    /// <summary>
+    /// True while the loadout panel is being used during the pre‑round
+    /// countdown. Exposed so other systems can restore the correct input
+    /// state when exiting pause.
+    /// </summary>
+    public bool InPreRound => inPreRound;
+
     private void Start()
     {
         if (clientSystems == null)
@@ -65,11 +79,12 @@ public class LoadoutSelectorPanel : MonoBehaviour
         if (inPreRound)
         {
             if (!isOpen) return;
+            // Hide the loadout panel but remain in loadout mode.  Let the
+            // UI manager update its own mode and input locks.  Do not
+            // transition to gameplay; keep pre‑round active.
+            uiManager?.SetLoadoutVisibility(false);
 
-            uiManager.HideLoadoutPanel();
-            uiManager.ShowHUD();
-
-            // Keep loadout input state during pre-round
+            // Keep loadout input state during pre‑round
             componentSwitcher?.SetState_Loadout();
 
             isOpen = false;
@@ -81,16 +96,18 @@ public class LoadoutSelectorPanel : MonoBehaviour
         // Live round toggle behaviour
         if (!isOpen)
         {
-            uiManager.ShowLoadoutPanel();
-            uiManager.HideHUD();
+            // Show the loadout panel and switch to UI mode.  The UI manager
+            // will update its internal mode and input locks.
+            uiManager?.SetLoadoutVisibility(true);
             // Switch the local player into UI mode so they can click buttons
             componentSwitcher?.SetState_Loadout();
             isOpen = true;
         }
         else
         {
-            uiManager.HideLoadoutPanel();
-            uiManager.ShowHUD();
+            // Hide the loadout panel and return to gameplay.  The UI
+            // manager will update its mode and input locks accordingly.
+            uiManager?.SetLoadoutVisibility(false);
             // Switch back to gameplay mode on toggle close
             componentSwitcher?.SetState_Gameplay();
             isOpen = false;
@@ -109,12 +126,14 @@ public class LoadoutSelectorPanel : MonoBehaviour
         if (LocalAbilitySelection.SelectedAbility == CharacterAbility.None)
             LocalAbilitySelection.SelectedAbility = defaultAbility;
 
-        uiManager.ShowLoadoutPanel();
-        uiManager.HideHUD();
-
+        // The UI manager now handles showing/hiding panels and managing
+        // input state for the pre‑round.  Simply mark our local state and
+        // ensure the player is using the UI action map.
         inPreRound = true;
         isOpen = true;
 
+        // Switch to the UI action map so that the player can select
+        // weapons/abilities.  Movement remains disabled via the UI manager.
         componentSwitcher?.SetState_Loadout();
     }
 
@@ -168,8 +187,8 @@ public class LoadoutSelectorPanel : MonoBehaviour
                 move.ChangeAbility(LocalAbilitySelection.SelectedAbility);
         }
 
-        uiManager.HideLoadoutPanel();
-        uiManager.ShowHUD();
+        // Let the UI manager handle showing/hiding panels.  Clear our local
+        // state flags so the UI manager knows the pre‑round is finished.
         inPreRound = false;
         isOpen = false;
     }

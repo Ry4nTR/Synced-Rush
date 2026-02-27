@@ -334,12 +334,11 @@ public class RoundManager : NetworkBehaviour
         // For any other systems that want it
         OnPreRoundStarted?.Invoke(remaining);
 
-        ui.ShowLoadoutPanel();
-        ui.StartCountdown(remaining, () =>
-        {
-            ui.HideLoadoutPanel();
-            ui.ShowHUD();
-        });
+        // Start the countdown via the GameplayUIManager.  The UI manager will
+        // handle displaying the loadout panel, hiding the HUD and restoring
+        // the appropriate state when the countdown finishes.  Do not
+        // manually show/hide panels here.
+        ui.StartCountdown(remaining);
     }
 
     // =========================================================
@@ -368,7 +367,25 @@ public class RoundManager : NetworkBehaviour
             var s = GetLocalSwitcherSafe();
             if (s != null)
             {
+                // Apply the state change (e.g. SetState_Loadout or SetState_Gameplay)
                 apply(s);
+
+                // After switching the action map, update the UI input locks based on the
+                // current UI state.  This ensures that if the pause menu or
+                // loadout UI are visible, gameplay input remains disabled even
+                // when the server tells us to switch to gameplay.
+                try
+                {
+                    var clientSystems = FindFirstObjectByType<ClientSystems>();
+                    var ui = clientSystems != null ? clientSystems.UI : null;
+                    if (ui != null)
+                    {
+                        // Call the public wrapper rather than the private method for safety
+                        ui.EnforceInputLockForCurrentUI();
+                    }
+                }
+                catch { /* ignore: optional enforcement */ }
+
                 yield break;
             }
 
@@ -408,9 +425,22 @@ public class RoundManager : NetworkBehaviour
         }
         else
         {
+            // Allow movement and weapons again, but the UI manager will
+            // enforce its own locks if pause or loadout are active.
             sw.SetMovementGameplayEnabled(true);
             sw.SetWeaponGameplayEnabled(true);
         }
+
+        // After adjusting frozen state, update UI locks to ensure that if
+        // the pause menu or loadout panel are still active, gameplay
+        // remains disabled.
+        try
+        {
+            var clientSystems = FindFirstObjectByType<ClientSystems>();
+            var ui = clientSystems != null ? clientSystems.UI : null;
+            ui?.EnforceInputLockForCurrentUI();
+        }
+        catch { /* ignore optional enforcement */ }
     }
 
     // =========================================================

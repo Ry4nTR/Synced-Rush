@@ -46,19 +46,6 @@ public class LobbyDiscoveryService : MonoBehaviour
 
     private float NowSeconds() => (float)clock.Elapsed.TotalSeconds;
 
-
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
-    public bool DebugIsListening => listener != null;
-    public string DebugBoundEndpoint => _boundEndpoint;
-    public int DebugPacketsReceived => _packetsReceived;
-    public float DebugLastRecvAgoSeconds => _packetsReceived == 0 ? -1f : (NowSeconds() - _lastRecvTime);
-    public int DebugLobbyCount { get { lock (lobbies) return lobbies.Count; } }
-
-    private string _boundEndpoint = "n/a";
-    private int _packetsReceived = 0;
-    private float _lastRecvTime = 0f;
-#endif
-
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -129,12 +116,6 @@ public class LobbyDiscoveryService : MonoBehaviour
 
         _broadcastEndpoints = BuildBroadcastEndpoints();
 
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
-        Debug.Log($"[LobbyDiscovery] Broadcast endpoints:");
-        foreach (var ep in _broadcastEndpoints)
-            Debug.Log($"   -> {ep}");
-#endif
-
         StartCoroutine(BroadcastCoroutine(lobbyName, hasPassword));
     }
 
@@ -178,10 +159,6 @@ public class LobbyDiscoveryService : MonoBehaviour
             {
                 Debug.LogWarning($"[LobbyDiscoveryService] Broadcast send failed: {ex.Message}");
             }
-
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
-            Debug.Log($"[LobbyDiscovery] SEND '{msg}'");
-#endif
 
             yield return new WaitForSeconds(1f);
         }
@@ -248,12 +225,6 @@ public class LobbyDiscoveryService : MonoBehaviour
             listener.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
             listener.ExclusiveAddressUse = false;
             listener.Client.Bind(new IPEndPoint(IPAddress.Any, broadcastPort));
-
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
-            var lep = (IPEndPoint)listener.Client.LocalEndPoint;
-            _boundEndpoint = $"{lep.Address}:{lep.Port}";
-            Debug.Log($"[LobbyDiscovery] LISTENER BOUND {_boundEndpoint}");
-#endif
         }
         catch (Exception ex)
         {
@@ -289,11 +260,6 @@ public class LobbyDiscoveryService : MonoBehaviour
             try { result = await listener.ReceiveAsync(); }
             catch (ObjectDisposedException) { break; }
             catch { if (ct.IsCancellationRequested) break; else continue; }
-
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
-            _packetsReceived++;
-            _lastRecvTime = NowSeconds();
-#endif
 
             string message;
             try { message = Encoding.UTF8.GetString(result.Buffer); }

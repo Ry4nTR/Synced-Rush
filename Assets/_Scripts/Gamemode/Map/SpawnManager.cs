@@ -5,6 +5,20 @@ public class SpawnManager : MonoBehaviour
 {
     private MapSpawnPoints spawnPoints;
 
+    // ---------------------------------------------------------------------
+    // Spawn point rotation per team
+    //
+    // To ensure that players on the same team do not spawn on the same
+    // position and to allow rotation across rounds, we maintain a shuffled
+    // list of spawn points per team and track an index into each list.  Each
+    // call to GetNextSpawn() will return the next spawn in the list and
+    // increment the index.  At the start of a match and before each round
+    // reset, the lists are shuffled and indices reset to zero.
+    //
+    // Key: teamId (0 = Team A, 1 = Team B)
+    private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<Transform>> _teamSpawnOrder = new();
+    private readonly System.Collections.Generic.Dictionary<int, int> _teamSpawnIndex = new();
+
     [Header("Prefabs")]
     [Tooltip("Networked player prefab to spawn for each lobby member")]
     public GameObject playerPrefab;
@@ -27,6 +41,84 @@ public class SpawnManager : MonoBehaviour
                 return;
             }
         }
+
+        // Setup shuffled spawn order per team on initialization
+        SetupTeamSpawnOrder();
+    }
+
+    /// <summary>
+    /// Populates and shuffles the spawn lists per team.  This should be
+    /// called once at match start.  The lists are re‑shuffled for each
+    /// round via ShuffleSpawnOrderForNewRound().
+    /// </summary>
+    private void SetupTeamSpawnOrder()
+    {
+        _teamSpawnOrder.Clear();
+        _teamSpawnIndex.Clear();
+
+        if (spawnPoints != null)
+        {
+            // Copy spawn points for Team A
+            var aList = new System.Collections.Generic.List<Transform>(spawnPoints.teamASpawns);
+            _teamSpawnOrder[0] = aList;
+            _teamSpawnIndex[0] = 0;
+
+            // Copy spawn points for Team B
+            var bList = new System.Collections.Generic.List<Transform>(spawnPoints.teamBSpawns);
+            _teamSpawnOrder[1] = bList;
+            _teamSpawnIndex[1] = 0;
+
+            // Shuffle initial order
+            ShuffleSpawnList(aList);
+            ShuffleSpawnList(bList);
+        }
+    }
+
+    /// <summary>
+    /// Randomly shuffles the given list of spawn transforms in place. Uses
+    /// UnityEngine.Random to ensure deterministic behaviour across clients.
+    /// </summary>
+    private void ShuffleSpawnList(System.Collections.Generic.List<Transform> list)
+    {
+        for (int i = list.Count - 1; i > 0; i--)
+        {
+            int j = Random.Range(0, i + 1);
+            (list[i], list[j]) = (list[j], list[i]);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves the next spawn position for the given team.  The order
+    /// advances on each call and wraps around to the beginning.  Returns
+    /// null if no spawn points exist for the team.
+    /// </summary>
+    private Transform GetNextSpawn(int teamId)
+    {
+        if (!_teamSpawnOrder.TryGetValue(teamId, out var list) || list == null || list.Count == 0)
+            return null;
+        if (!_teamSpawnIndex.TryGetValue(teamId, out var idx)) idx = 0;
+        // Clamp index within range
+        if (idx >= list.Count) idx = 0;
+        var spawn = list[idx];
+        _teamSpawnIndex[teamId] = (idx + 1) % list.Count;
+        return spawn;
+    }
+
+    /// <summary>
+    /// Reshuffles the spawn order for each team and resets indices. Call this
+    /// before starting a new round to ensure a fresh spawn order.
+    /// </summary>
+    private void ShuffleSpawnOrderForNewRound()
+    {
+        foreach (var kvp in _teamSpawnOrder)
+        {
+            var list = kvp.Value;
+            if (list != null && list.Count > 0)
+            {
+                ShuffleSpawnList(list);
+                _teamSpawnIndex[kvp.Key] = 0;
+            }
+        }
     }
 
     // =========================
@@ -38,14 +130,17 @@ public class SpawnManager : MonoBehaviour
 
         if (lobbyState == null) { Debug.LogError("NetworkLobbyState missing"); return; }
 
+        // Shuffle spawn order before assigning spawns this round
+        ShuffleSpawnOrderForNewRound();
+
         var players = lobbyState.Players;
 
         for (int i = 0; i < players.Count; i++)
         {
             var p = players[i];
             if (p.teamId < 0) p.teamId = 0;
-
-            Transform spawn = spawnPoints.GetRandomSpawn(p.teamId);
+            // Use the rotated spawn order instead of random selection
+            Transform spawn = GetNextSpawn(p.teamId);
             if (spawn == null) continue;
 
             var client = NetworkManager.Singleton.ConnectedClients[p.clientId];
@@ -114,8 +209,8 @@ public class SpawnManager : MonoBehaviour
                 // Optional: you can also reposition here if you want.
                 continue;
             }
-
-            Transform spawn = spawnPoints.GetRandomSpawn(p.teamId);
+            // Use the rotated spawn order instead of random selection
+            Transform spawn = GetNextSpawn(p.teamId);
             if (spawn == null)
             {
                 Debug.LogError($"No spawn point for team {p.teamId}");

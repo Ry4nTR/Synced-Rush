@@ -38,31 +38,6 @@ public class JoinMatchPanelController : MonoBehaviour
 
     private Coroutine refreshRoutine;
 
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
-    [SerializeField] private TextMeshProUGUI debugText;
-    private float _nextDebugUpdate;
-#endif
-
-    private void Update()
-    {
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
-        if (debugText == null) return;
-        if (Time.unscaledTime < _nextDebugUpdate) return;
-        _nextDebugUpdate = Time.unscaledTime + 0.5f;
-
-        var d = LobbyDiscoveryService.Instance;
-        int lobbyCount = d != null ? d.DebugLobbyCount : -1;
-
-        debugText.text =
-            $"DISCOVERY\n" +
-            $"Listening: {(d != null && d.DebugIsListening ? "YES" : "NO")}\n" +
-            $"Bound: {d?.DebugBoundEndpoint ?? "n/a"}\n" +
-            $"Packets: {d?.DebugPacketsReceived ?? 0}\n" +
-            $"LastRecvAgo: {d?.DebugLastRecvAgoSeconds.ToString("0.0") ?? "n/a"}\n" +
-            $"Lobbies: {lobbyCount}\n";
-#endif
-    }
-
     private void Awake()
     {
         if (matchmakingManager == null)

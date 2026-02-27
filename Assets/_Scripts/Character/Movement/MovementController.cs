@@ -395,6 +395,20 @@ public class MovementController : NetworkBehaviour
             return;
         }
 
+        // ---------------------------------------------------------------------
+        // Gameplay gating for owner prediction
+        // ---------------------------------------------------------------------
+        // When gameplay is disabled (e.g. during pre‑round or pause), the owner
+        // should not simulate movement locally. Previously, only the network
+        // input system prevented sending inputs to the server, but the local
+        // MovementController continued to simulate based on the last known
+        // input, which could cause the owner to drift ahead of the server and
+        // then snap back when the server resumed.  By gating owner‑side
+        // simulation here, we ensure that client prediction pauses until the
+        // server re‑enables gameplay.  The _gameplayEnabledNet flag is
+        // replicated from the server via ServerSetGameplayEnabled().
+        bool gameplayEnabled = _gameplayEnabledNet.Value;
+
         // Owner prediction ONLY after initial server snapshot on client-owner
         if (IsOwner)
         {
@@ -403,7 +417,9 @@ public class MovementController : NetworkBehaviour
                 Debug.LogWarning($"[MC] OWNER SIM BLOCKED. ownerId={OwnerClientId} hasInitSnap={_hasInitialSnapshot}");
             }
 
-            if (IsServer || _hasInitialSnapshot)
+            // Only run local prediction if gameplay is enabled.  When disabled,
+            // inputs are ignored and we freeze the owner to avoid desync.
+            if (gameplayEnabled && (IsServer || _hasInitialSnapshot))
                 SimulateOwnerTick();
         }
 

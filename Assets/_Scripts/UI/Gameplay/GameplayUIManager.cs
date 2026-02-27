@@ -50,14 +50,48 @@ public class GameplayUIManager : MonoBehaviour
     private ScorePanel scoreController;
 
     // ================================
-    // Pause input binding (Global)
+    // Pause / UI State management
     // ================================
     [Header("Input Binding")]
     [SerializeField] private InputActionReference togglePauseActionRef;
 
     private PlayerInput _playerInput;
     private ClientComponentSwitcher _switcher;
-    private bool _pauseOpen;
+
+    /// <summary>
+    /// Enumeration of the high‑level UI state.  This replaces relying on CanvasGroup alpha
+    /// values to determine what is visible.  The possible states are:
+    ///  - Gameplay: normal HUD/gameplay state.
+    ///  - Loadout: loadout selection is visible (pre‑round or mid‑match).
+    ///  - Pause: the pause menu is open.
+    ///  - Options: the options sub‑panel is open.
+    /// </summary>
+    private enum UiMode
+    {
+        Gameplay,
+        Loadout,
+        Pause,
+        Options
+    }
+
+    // Tracks the current UI mode.  Defaults to Gameplay.
+    private UiMode _currentMode = UiMode.Gameplay;
+
+    // Remembers the mode we were in before opening the pause menu.  This allows
+    // restoring the correct mode when unpausing (e.g. returning to loadout if the
+    // pre‑round is still active).
+    private UiMode _lastNonPauseMode = UiMode.Gameplay;
+
+    // Indicates whether the game is currently in a pre‑round countdown.  When
+    // true, the loadout panel should be considered a pre‑round panel and
+    // gameplay input should remain disabled.
+    private bool _preRoundActive = false;
+
+    /// <summary>
+    /// Returns true when the pause menu is currently the topmost UI.  This
+    /// property should be used instead of inspecting panel alpha.
+    /// </summary>
+    public bool IsPauseOpen => _currentMode == UiMode.Pause;
 
     // ================================
     // Scene Management
@@ -227,7 +261,7 @@ public class GameplayUIManager : MonoBehaviour
     }
 
     // ================================
-    // Public UI API (RESTORED)
+    // Public UI API
     // ================================
     #region Panels API
 
@@ -253,38 +287,125 @@ public class GameplayUIManager : MonoBehaviour
     }
 
     /// <summary>
-    /// ESC / Global pause toggle.
+    /// Sets the visibility of the loadout panel outside of the pre‑round
+    /// countdown.  When <paramref name="visible"/> is true the UI mode
+    /// switches to Loadout and the HUD is hidden; otherwise the mode
+    /// reverts to Gameplay (unless a pre‑round countdown is still active).
+    /// Input locks are updated automatically.
+    /// </summary>
+    public void SetLoadoutVisibility(bool visible)
+    {
+        if (visible)
+        {
+            // Show loadout and hide HUD
+            ShowLoadoutPanel();
+            HideHUD();
+
+            // When opening the loadout outside of pause we switch to loadout mode
+            if (_currentMode != UiMode.Pause && _currentMode != UiMode.Options)
+                _currentMode = UiMode.Loadout;
+        }
+        else
+        {
+            // Hide the panel.  If we are still in a pre‑round countdown,
+            // keep the mode as Loadout (so movement stays disabled) but
+            // allow the HUD to show so players can see the timer.  Otherwise
+            // revert to Gameplay.
+            HideLoadoutPanel();
+            if (_preRoundActive)
+            {
+                // Keep loadout mode but allow the HUD to be visible
+                ShowHUD();
+            }
+            else
+            {
+                // Transition back to gameplay
+                _currentMode = UiMode.Gameplay;
+                ShowHUD();
+            }
+        }
+
+        UpdateInputLocks();
+    }
+
+    /// <summary>
+    /// ESC / Global pause toggle.  Uses the current UI mode and pre‑round flag
+    /// to determine how to transition in and out of pause.  When opening the
+    /// pause menu, we remember the previous mode so that unpausing can
+    /// restore the correct state.  When unpausing we either return to
+    /// loadout (if still in pre‑round) or to the last non‑pause mode.
     /// </summary>
     public void ToggleExitMenu()
     {
         if (pausePanel.cg == null) return;
 
-        // Determine next state from alpha
-        _pauseOpen = pausePanel.cg.alpha <= 0.5f;
-
-        if (_switcher == null)
-            _switcher = ClientComponentSwitcher.ClientComponentSwitcherLocal.Local;
-
-        if (_pauseOpen)
+        // If the pause menu or options menu are currently open, closing the pause
+        // should restore the appropriate mode (loadout or gameplay).
+        if (_currentMode == UiMode.Pause || _currentMode == UiMode.Options)
         {
-            HideHUD();
-            HideOptionsPanel();
-            ShowExitMenu();
-
-            // IMPORTANT: disable gameplay
-            _switcher?.SetState_UIMenu();
-            _switcher?.SetWeaponGameplayEnabled(false);
-        }
-        else
-        {
+            // Hide pause and options panels
             HideExitMenu();
             HideOptionsPanel();
-            ShowHUD();
 
-            // Re-enable gameplay
-            _switcher?.SetState_Gameplay();
-            _switcher?.SetWeaponGameplayEnabled(true);
+            // Determine which mode to return to
+            if (_preRoundActive)
+            {
+                // During the pre‑round countdown we are still in loadout mode.
+                // If the loadout panel is still open (i.e. the player did not
+                // manually close it), restore the panel; otherwise keep the
+                // panel hidden but remain in loadout mode so inputs stay
+                // disabled.
+                _currentMode = UiMode.Loadout;
+                if (weaponSelector != null && weaponSelector.IsOpen)
+                {
+                    ShowLoadoutPanel();
+                    HideHUD();
+                }
+                else
+                {
+                    HideLoadoutPanel();
+                    ShowHUD();
+                }
+            }
+            else
+            {
+                bool canRestoreLoadout =
+                    (_lastNonPauseMode == UiMode.Loadout) &&
+                    (weaponSelector != null) &&
+                    (weaponSelector.IsOpen || weaponSelector.InPreRound); // only if actually intended
+
+                if (canRestoreLoadout)
+                {
+                    _currentMode = UiMode.Loadout;
+                    ShowLoadoutPanel();
+                    HideHUD();
+                }
+                else
+                {
+                    _currentMode = UiMode.Gameplay;
+                    HideLoadoutPanel();
+                    ShowHUD();
+                }
+            }
+
+            // Update input locks for the new mode
+            UpdateInputLocks();
+            return;
         }
+
+        // Opening the pause menu.  Remember the current mode so we can
+        // restore it later when unpausing.
+        _lastNonPauseMode = _currentMode;
+        _currentMode = UiMode.Pause;
+
+        // Hide other panels and show pause
+        HideHUD();
+        HideLoadoutPanel();
+        HideOptionsPanel();
+        ShowExitMenu();
+
+        // Apply input locks
+        UpdateInputLocks();
     }
 
     // ----- BUTTON METHODS (wire these in Inspector) -----
@@ -293,16 +414,22 @@ public class GameplayUIManager : MonoBehaviour
     public void OpenOptionsFromPauseButton()
     {
         Debug.Log("[GameplayUIManager] OpenOptionsFromPauseButton()", this);
+        // Transition from pause to options.  Keep the input lock the same as pause.
         HideExitMenu();
         ShowOptionsPanel();
+        _currentMode = UiMode.Options;
+        UpdateInputLocks();
     }
 
     /// <summary>OptionsPanel -> Back button.</summary>
     public void BackToPauseFromOptionsButton()
     {
         Debug.Log("[GameplayUIManager] BackToPauseFromOptionsButton()", this);
+        // Return from options to pause.  Input lock remains in pause state.
         HideOptionsPanel();
         ShowExitMenu();
+        _currentMode = UiMode.Pause;
+        UpdateInputLocks();
     }
 
     /// <summary>PausePanel -> Exit button.</summary>
@@ -320,7 +447,7 @@ public class GameplayUIManager : MonoBehaviour
     #endregion
 
     // ================================
-    // Score / Round end (RESTORED)
+    // Score / Round end
     // ================================
     public void PlayRoundEndPresentation(int teamAScore, int teamBScore, bool matchOver, float showScoreSeconds)
     {
@@ -344,10 +471,11 @@ public class GameplayUIManager : MonoBehaviour
     }
 
     // ================================
-    // Countdown (RESTORED)
+    // Countdown
     // ================================
     public void StartCountdown(float seconds, System.Action onFinished = null)
     {
+        // Sanity check for required components
         if (countdownPanel.cg == null || countdownController == null)
         {
             Debug.LogError("[GameplayUIManager] Cannot StartCountdown: countdown panel/controller missing.", this);
@@ -355,17 +483,61 @@ public class GameplayUIManager : MonoBehaviour
             return;
         }
 
+        // Show the countdown panel
         ShowCanvasGroup(countdownPanel.cg);
 
+        // Pre‑round begins: mark that a countdown is active.  If we are not already
+        // paused or in options, switch the mode to Loadout.  Remember that the
+        // loadout UI is visible during the countdown.
+        _preRoundActive = true;
+        if (_currentMode != UiMode.Pause && _currentMode != UiMode.Options)
+        {
+            _currentMode = UiMode.Loadout;
+        }
+
+        // Show the loadout panel and hide the HUD.  The LoadoutSelectorPanel
+        // may contain additional logic (e.g. weapon preselection) but UI
+        // visibility and input state are handled here.
+        ShowLoadoutPanel();
+        HideHUD();
+
+        // Inform the loadout selector that pre‑round is starting so it can
+        // initialize selections.  Do not change UI visibility here; we handle it above.
         if (weaponSelector != null)
             weaponSelector.OpenPreRound();
         else
             Debug.LogError("[GameplayUIManager] LoadoutSelectorPanel missing (cannot OpenPreRound).", this);
 
+        // Apply the updated input locks now that we've entered the loadout mode
+        UpdateInputLocks();
+
+        // Begin the countdown.  When it finishes, we will end the pre‑round.
         countdownController.StartCountdown(seconds, () =>
         {
+            // Hide the countdown panel
             HideCanvasGroup(countdownPanel.cg);
+
+            // Tell the loadout selector that the countdown finished so it can
+            // apply the selected weapon/ability.  It should not modify UI state.
             weaponSelector?.OnCountdownFinished();
+
+            // The pre-round has ended
+            _preRoundActive = false;
+
+            // If pre-round ended while we are paused/options, never restore Loadout on unpause.
+            if (_currentMode == UiMode.Pause || _currentMode == UiMode.Options)
+            {
+                _lastNonPauseMode = UiMode.Gameplay;
+            }
+
+            if (_currentMode != UiMode.Pause && _currentMode != UiMode.Options)
+            {
+                _currentMode = UiMode.Gameplay;
+                HideLoadoutPanel();
+                ShowHUD();
+            }
+
+            UpdateInputLocks();
             onFinished?.Invoke();
         });
     }
@@ -377,7 +549,7 @@ public class GameplayUIManager : MonoBehaviour
     }
 
     // ================================
-    // Binding API (RESTORED)
+    // Binding API
     // ================================
     public void RegisterPlayer(GameObject player)
     {
@@ -404,7 +576,7 @@ public class GameplayUIManager : MonoBehaviour
     }
 
     // ================================
-    // HUD Proxies (RESTORED)
+    // HUD Proxies
     // ================================
     public void SetJetpackUIVisible(bool value)
     {
@@ -469,5 +641,54 @@ public class GameplayUIManager : MonoBehaviour
 
         if (!string.IsNullOrEmpty(mainMenuSceneName))
             SceneManager.LoadScene(mainMenuSceneName);
+    }
+
+    // ================================
+    // Input Locking
+    // ================================
+    /// <summary>
+    /// Applies the appropriate input state based on the current UI mode.
+    /// Gameplay is enabled only when the mode is Gameplay; for Loadout,
+    /// Pause and Options, all movement and weapon input is disabled.
+    /// </summary>
+    private void UpdateInputLocks()
+    {
+        if (_switcher == null)
+            _switcher = ClientComponentSwitcher.ClientComponentSwitcherLocal.Local;
+        if (_switcher == null)
+            return;
+
+        switch (_currentMode)
+        {
+            case UiMode.Pause:
+            case UiMode.Options:
+                // Pause and options menus fully block gameplay input
+                _switcher.SetState_UIMenu();
+                _switcher.SetMovementGameplayEnabled(false);
+                _switcher.SetWeaponGameplayEnabled(false);
+                break;
+            case UiMode.Loadout:
+                // Loadout selection blocks gameplay input but keeps UI action map
+                _switcher.SetState_Loadout();
+                _switcher.SetMovementGameplayEnabled(false);
+                _switcher.SetWeaponGameplayEnabled(false);
+                break;
+            default:
+                // Gameplay: enable everything
+                _switcher.SetState_Gameplay();
+                _switcher.SetMovementGameplayEnabled(true);
+                _switcher.SetWeaponGameplayEnabled(true);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Backwards‑compatibility wrapper that applies the new UI state based
+    /// locking.  This method remains public for other systems that expect
+    /// to call EnforceInputLockForCurrentUI().
+    /// </summary>
+    public void EnforceInputLockForCurrentUI()
+    {
+        UpdateInputLocks();
     }
 }
