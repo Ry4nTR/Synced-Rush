@@ -69,6 +69,7 @@ public class PlayerRoundActor : NetworkBehaviour
 
                     _switcher.SetState_UIMenu();
                     _switcher.SetWeaponGameplayEnabled(false);
+                    _switcher.SetMovementGameplayEnabled(false);
                 }
                 else
                 {

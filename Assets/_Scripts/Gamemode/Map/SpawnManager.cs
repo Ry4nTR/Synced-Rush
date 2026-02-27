@@ -194,6 +194,28 @@ public class SpawnManager : MonoBehaviour
         }
     }
 
+    public void ServerHardStopAllPlayers()
+    {
+        if (!NetworkManager.Singleton.IsServer) return;
+        if (lobbyState == null) return;
+
+        var players = lobbyState.Players;
+        for (int i = 0; i < players.Count; i++)
+        {
+            var p = players[i];
+            if (!NetworkManager.Singleton.ConnectedClients.TryGetValue(p.clientId, out var client)) continue;
+            var po = client.PlayerObject;
+            if (po == null) continue;
+
+            var mc = po.GetComponent<MovementController>();
+            if (mc != null)
+            {
+                // This is PER-PLAYER and server-only; it doesn't replace MatchFlowState gating.
+                mc.ServerSetGameplayEnabled(false);
+            }
+        }
+    }
+
     // =========================
     // Internal
     // =========================

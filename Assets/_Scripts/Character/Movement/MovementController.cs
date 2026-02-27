@@ -52,6 +52,7 @@ public class MovementController : NetworkBehaviour
     private PlayerInputHandler _inputHandler;
     private PlayerAnimationController _animController;
     private GameplayUIManager _ui;
+    private RoundManager _roundManager;
 
     // =========================
     // Netcode State
@@ -71,9 +72,6 @@ public class MovementController : NetworkBehaviour
 
     private readonly NetworkVariable<GrappleNetState> _serverGrappleState =
         new(new GrappleNetState(), NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-
-    private readonly NetworkVariable<bool> _gameplayEnabledNet = new NetworkVariable<bool>(true,
-        NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     // =========================
     // Runtime State
@@ -220,7 +218,20 @@ public class MovementController : NetworkBehaviour
     // Gameplay enable/disable
     public bool ServerGameplayEnabled { get; private set; } = true;
 
-    public bool GameplayEnabledNet => _gameplayEnabledNet.Value;
+    public bool IsGameplayPhase
+    {
+        get
+        {
+            if (_roundManager == null)
+            {
+                var services = SessionServices.Current;
+                if (services != null)
+                    _roundManager = services.RoundManager;
+            }
+            return _roundManager != null ? _roundManager.IsGameplayPhase : false;
+        }
+    }
+
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
     // Used by ServerGhostRuntimeDebug
@@ -249,6 +260,9 @@ public class MovementController : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
+
+        if (_roundManager == null && SessionServices.Current != null)
+            _roundManager = SessionServices.Current.RoundManager;
 
         _hasInitialSnapshot = IsServer;
         _hasValidSnapshot = false;
@@ -388,50 +402,43 @@ public class MovementController : NetworkBehaviour
     {
         if (!IsSpawned) return;
 
-        if (IsServer && !ServerGameplayEnabled)
+        // === SERVER GATE ===
+        // The server should only simulate when both:
+        //   1) ServerGameplayEnabled is true (for per-player freezes/respawns)
+        //   2) The match flow state is InRound
+        // When either is false, skip sim and just publish snapshots.
+        if (IsServer && (!ServerGameplayEnabled || !IsGameplayPhase))
         {
             PublishServerAbilityVars();
             PublishServerSnapshot(GetServerAckSequence());
             return;
         }
 
-        // ---------------------------------------------------------------------
-        // Gameplay gating for owner prediction
-        // ---------------------------------------------------------------------
-        // When gameplay is disabled (e.g. during pre‑round or pause), the owner
-        // should not simulate movement locally. Previously, only the network
-        // input system prevented sending inputs to the server, but the local
-        // MovementController continued to simulate based on the last known
-        // input, which could cause the owner to drift ahead of the server and
-        // then snap back when the server resumed.  By gating owner‑side
-        // simulation here, we ensure that client prediction pauses until the
-        // server re‑enables gameplay.  The _gameplayEnabledNet flag is
-        // replicated from the server via ServerSetGameplayEnabled().
-        bool gameplayEnabled = _gameplayEnabledNet.Value;
+        bool matchGameplay = IsGameplayPhase;
 
-        // Owner prediction ONLY after initial server snapshot on client-owner
+        // === OWNER PREDICTION GATE ===
+        // Only run prediction when we have a baseline from the server and the match is InRound.
         if (IsOwner)
         {
-            if (IsOwner && !(IsServer || _hasInitialSnapshot))
+            bool hasBaseline = IsServer || _hasInitialSnapshot;
+            if (hasBaseline && matchGameplay)
             {
-                Debug.LogWarning($"[MC] OWNER SIM BLOCKED. ownerId={OwnerClientId} hasInitSnap={_hasInitialSnapshot}");
-            }
-
-            // Only run local prediction if gameplay is enabled.  When disabled,
-            // inputs are ignored and we freeze the owner to avoid desync.
-            if (gameplayEnabled && (IsServer || _hasInitialSnapshot))
                 SimulateOwnerTick();
+            }
         }
 
+        // === SERVER SIMULATION FOR REMOTES ===
         if (IsServer && !IsOwner)
+        {
             SimulateServerRemoteTick();
+        }
 
+        // Always publish snapshot/ability vars from the server
         if (IsServer)
         {
             PublishServerAbilityVars();
             PublishServerSnapshot(GetServerAckSequence());
         }
-
     }
 
     // =========================
@@ -1012,11 +1019,6 @@ public class MovementController : NetworkBehaviour
         _netInput?.ClearPendingInputs();
         _netInput?.ForceSequence(ackSeq + 1);
 
-        // Reset the internal ability counters for the new round. Without this
-        // reset the last grappling ability count can persist across respawns,
-        // causing the first press after respawn to immediately toggle. This
-        // mirrors the reset performed on the server and keeps the client in
-        // sync.
         if (Ability != null)
         {
             Ability.GrappleSim.ResetRuntime();
@@ -1039,8 +1041,6 @@ public class MovementController : NetworkBehaviour
 
         // Update the server-only flag
         ServerGameplayEnabled = enabled;
-        // Update the networked flag so clients know whether to send inputs
-        _gameplayEnabledNet.Value = enabled;
 
         // When disabling gameplay we also want to clear the server input
         // stream so that old inputs don't accumulate while simulation is paused.
@@ -1050,10 +1050,6 @@ public class MovementController : NetworkBehaviour
             HorizontalVelocity = Vector2.zero;
             VerticalVelocity = 0f;
 
-            // Reset the input timeline on the server to the next sequence
-            // after the last processed one. This helps avoid trimming of a
-            // full buffer when gameplay is re-enabled. Also update the
-            // _serverLastProcessedSequence to ensure the next ack is correct.
             if (_netInput != null)
             {
                 int nextSeq = _serverLastProcessedSequence + 1;

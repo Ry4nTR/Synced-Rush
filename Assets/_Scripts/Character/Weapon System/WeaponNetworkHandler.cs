@@ -1,4 +1,5 @@
-﻿using Unity.Netcode;
+﻿using SyncedRush.Gamemode;
+using Unity.Netcode;
 using UnityEngine;
 
 public class WeaponNetworkHandler : NetworkBehaviour
@@ -86,6 +87,10 @@ public class WeaponNetworkHandler : NetworkBehaviour
     [ServerRpc]
     private void ReportHitServerRpc(ulong targetNetId, Vector3 origin, Vector3 direction)
     {
+        var rm = SessionServices.Current != null ? SessionServices.Current.RoundManager : FindFirstObjectByType<RoundManager>();
+        if (rm == null || rm.CurrentFlowState.Value != MatchFlowState.InRound)
+            return;
+
         if (targetNetId == NetworkObjectId)
             return;
 

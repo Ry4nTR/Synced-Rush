@@ -7,16 +7,11 @@ using UnityEngine;
 [DefaultExecutionOrder(-100)]
 public class NetworkPlayerInput : NetworkBehaviour
 {
-    // =========================
-    // Components
-    // =========================
     private PlayerInputHandler _inputHandler;
     private LookController _look;
     private MovementController _character;
+    private ClientComponentSwitcher _switcher;
 
-    // =========================
-    // Owner-side
-    // =========================
     private int _sequenceNumber = 0;
     private readonly List<SimulationTickData> _pendingInputs = new();
     public IReadOnlyList<SimulationTickData> PendingInputs => _pendingInputs;
@@ -26,31 +21,23 @@ public class NetworkPlayerInput : NetworkBehaviour
 
     private const int MaxPendingInputs = 256;
 
-    // =========================
-    // Server-side buffer
-    // =========================
     private readonly SortedDictionary<int, SimulationTickData> _serverBufferedInputs = new();
     private int _serverNextExpectedSequence = 0;
 
-    // Last REAL input that was actually consumed in-order (used for HOLD)
     private SimulationTickData _lastRealServerInput;
     private bool _hasLastRealServerInput = false;
 
-    // Option A: stall a bit, then HOLD last real
     private int _stallTicks = 0;
-    [SerializeField] private int maxStallTicks = 2; // 1-3 is typical
+    [SerializeField] private int maxStallTicks = 2;
 
     private const int MaxBufferedInputs = 256;
 
     public int ServerBufferedCount => _serverBufferedInputs.Count;
     public int ServerNextExpected => _serverNextExpectedSequence;
 
-    /// <summary>
-    /// Hard-reset the server-side input stream. Clears buffered inputs and resets
-    /// sequencing state to the specified next expected sequence.
-    /// Use on respawn / round reset / gameplay pause to prevent the server from
-    /// expecting old sequences.
-    /// </summary>
+    // ✅ Step 5: local gating state
+    private bool _wasGameplayAllowedLastTick = true;
+
     public void ServerHardResetInputTimeline(int nextExpectedSequence)
     {
         if (!IsServer) return;
@@ -63,9 +50,6 @@ public class NetworkPlayerInput : NetworkBehaviour
         _lastRealServerInput = default;
     }
 
-    // =========================
-    // Grapple state (unchanged)
-    // =========================
     private GrappleNetState _localGrappleState;
     private bool _pendingDetachRequest;
 
@@ -81,6 +65,9 @@ public class NetworkPlayerInput : NetworkBehaviour
             _hasLastRealServerInput = false;
             _lastRealServerInput = default;
         }
+
+        // reset local gate
+        _wasGameplayAllowedLastTick = true;
     }
 
     private void Awake()
@@ -88,6 +75,7 @@ public class NetworkPlayerInput : NetworkBehaviour
         _inputHandler = GetComponent<PlayerInputHandler>();
         _look = GetComponentInChildren<LookController>();
         _character = GetComponent<MovementController>();
+        _switcher = GetComponent<ClientComponentSwitcher>();
     }
 
     private void FixedUpdate()
@@ -95,38 +83,53 @@ public class NetworkPlayerInput : NetworkBehaviour
         if (!IsOwner || !IsClient)
             return;
 
+        if (_switcher != null && !_switcher.IsGameplayInputAllowed)
+            return;
+
         // Wait until MovementController is aligned to server spawn
         if (_character != null && !_character.HasInitialServerState)
             return;
 
-        // NEW: if gameplay is disabled, do not send or record inputs. This prevents
-        // the server buffer from filling up when the game is paused or in UI.
-        // GameplayEnabledNet is a networked bool exposed by MovementController and
-        // updated via ServerSetGameplayEnabled().  Log when skipping so issues
-        // around early input capture can be traced.
-        if (_character != null && !_character.GameplayEnabledNet)
+        var rm = SessionServices.Current?.RoundManager;
+        bool matchGameplay = (rm == null) ? true : rm.IsGameplayPhase;
+
+        var sw = ClientComponentSwitcher.ClientComponentSwitcherLocal.Local;
+        bool uiAllowsGameplay = (sw == null) ? true : sw.IsGameplayInputAllowed;
+
+        bool gameplayAllowedNow = matchGameplay && uiAllowsGameplay;
+
+        // ✅ If we just LOST permission: send ONE neutral tick to stop server sim
+        if (_wasGameplayAllowedLastTick && !gameplayAllowedNow)
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            Debug.Log($"[NPI] Gameplay disabled; skipping input tick. Owner={OwnerClientId}");
-#endif
+            var neutral = BuildNeutralTick();
+            LocalPredictedInput = neutral;
+
+            // do NOT enqueue neutral into prediction history (but it’s okay to put into pending for ack consistency)
+            _pendingInputs.Add(neutral);
+            TrimPending();
+
+            if (IsServer)
+                ReceiveInputOnServer(neutral, default);
+            else
+                SendInputServerRpc(neutral);
+
+            _wasGameplayAllowedLastTick = false;
             return;
         }
 
-        var input = BuildOwnerTickInput();
-
-        LocalPredictedInput = input;
-
-        _pendingInputs.Add(input);
-        // Cap pending input queue to avoid unbounded growth.  If we have to
-        // drop the oldest input, log a warning in development builds so we
-        // know that the local prediction is falling behind the network.
-        if (_pendingInputs.Count > MaxPendingInputs)
+        // ✅ If not allowed, stop sending entirely
+        if (!gameplayAllowedNow)
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            Debug.LogWarning($"[NPI] Pending input queue exceeded {MaxPendingInputs}, dropping oldest input. Owner={OwnerClientId}");
-#endif
-            _pendingInputs.RemoveAt(0);
+            _wasGameplayAllowedLastTick = false;
+            return;
         }
+
+        _wasGameplayAllowedLastTick = true;
+
+        var input = BuildOwnerTickInput();
+        LocalPredictedInput = input;
+        _pendingInputs.Add(input);
+        TrimPending();
 
         if (IsServer)
             ReceiveInputOnServer(input, default);
@@ -134,9 +137,47 @@ public class NetworkPlayerInput : NetworkBehaviour
             SendInputServerRpc(input);
     }
 
-    // =========================
-    // Owner: build input
-    // =========================
+    private void TrimPending()
+    {
+        if (_pendingInputs.Count > MaxPendingInputs)
+            _pendingInputs.RemoveAt(0);
+    }
+
+    private SimulationTickData BuildNeutralTick()
+    {
+        // keep aim stable so server doesn’t jerk camera-related stuff
+        float yaw = (_look != null) ? _look.SimYaw : 0f;
+        float pitch = (_look != null) ? _look.SimPitch : 0f;
+
+        return new SimulationTickData
+        {
+            Move = Vector2.zero,
+            Look = Vector2.zero,
+
+            AimYaw = yaw,
+            AimPitch = pitch,
+
+            GrappleOrigin = (_character != null) ? _character.CenterPosition : Vector3.zero,
+            RequestDetach = false,
+            GrappleAimPoint = Vector3.zero,
+            GrappleAimValid = false,
+
+            AbilityCount = _inputHandler != null ? _inputHandler.AbilityCount : 0,
+            JumpCount = _inputHandler != null ? _inputHandler.JumpCount : 0,
+            ReloadCount = _inputHandler != null ? _inputHandler.ReloadCount : 0,
+
+            Sprint = false,
+            Crouch = false,
+            Fire = false,
+            Aim = false,
+
+            JetHeld = false,
+            JetpackCount = _inputHandler != null ? _inputHandler.JetpackCount : 0,
+
+            Sequence = _sequenceNumber++,
+        };
+    }
+
     private SimulationTickData BuildOwnerTickInput()
     {
         ComputeGrappleAim(out Vector3 aimPoint, out bool aimValid);
@@ -199,9 +240,6 @@ public class NetworkPlayerInput : NetworkBehaviour
         aimPoint = aimValid ? hit.point : camPos + camDir * _character.Stats.HookMaxDistance;
     }
 
-    // =========================
-    // Owner: ack
-    // =========================
     public void ConfirmInputUpTo(int lastSequence)
     {
         int removeCount = 0;
@@ -215,12 +253,8 @@ public class NetworkPlayerInput : NetworkBehaviour
     }
 
     public void ClearPendingInputs() => _pendingInputs.Clear();
-
     public void ForceSequence(int nextSeq) => _sequenceNumber = nextSeq;
 
-    // =========================
-    // Server: receive
-    // =========================
     [ServerRpc(Delivery = RpcDelivery.Reliable)]
     private void SendInputServerRpc(SimulationTickData inputData, ServerRpcParams rpcParams = default)
     {
@@ -229,66 +263,39 @@ public class NetworkPlayerInput : NetworkBehaviour
 
     private void ReceiveInputOnServer(SimulationTickData inputData, ServerRpcParams rpcParams)
     {
-
-        // If expected is behind what we actually have buffered (common after respawn / ForceSequence),
-        // snap expected forward to the minimum buffered key.
         if (_serverBufferedInputs.Count > 0)
         {
             int minKey = System.Linq.Enumerable.First(_serverBufferedInputs.Keys);
             if (_serverNextExpectedSequence < minKey)
-            {
                 ResyncExpectedToMinBuffered("expected < minBuffered");
-            }
         }
 
-        // If first-ever packet (or after a hard reset) starts far ahead, jump expected to that first seq
-        // (prevents waiting forever for 0..N that will never come).
         if (_serverBufferedInputs.Count == 0 && !_hasLastRealServerInput && inputData.Sequence > _serverNextExpectedSequence)
         {
             _serverNextExpectedSequence = inputData.Sequence;
             _stallTicks = 0;
         }
 
-        // Drop already-processed
         if (inputData.Sequence < _serverNextExpectedSequence)
-        {
             return;
-        }
 
-        // Insert/update in buffer
         _serverBufferedInputs[inputData.Sequence] = inputData;
 
-        // Cap buffer and self-heal if we are forced to drop old keys
         while (_serverBufferedInputs.Count > MaxBufferedInputs)
         {
             int firstKey = System.Linq.Enumerable.First(_serverBufferedInputs.Keys);
             _serverBufferedInputs.Remove(firstKey);
         }
 
-        // After trimming, ensure expected is not behind min key
         if (_serverBufferedInputs.Count > 0)
         {
             int minKey = System.Linq.Enumerable.First(_serverBufferedInputs.Keys);
             if (_serverNextExpectedSequence < minKey)
-            {
                 ResyncExpectedToMinBuffered("after-trim expected < minBuffered");
-            }
         }
 
-        // Server-owner: as host, we don't need to maintain a pending input queue for
-        // local prediction because the host is the authoritative server.  As soon
-        // as the input is received on the server, we can drop it from the
-        // pending list.  Without this, the host's pending queue grows without
-        // ever being cleared because snapshots do not trigger reconciliation on
-        // the host.
         if (IsServer && IsOwner)
-        {
-            // Drop all inputs up to and including this sequence on the host.
             ConfirmInputUpTo(inputData.Sequence);
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            Debug.Log($"[NPI] Host confirm pending inputs up to seq={inputData.Sequence} owner={OwnerClientId}");
-#endif
-        }
     }
 
     private void ResyncExpectedToMinBuffered(string reason)
@@ -297,23 +304,17 @@ public class NetworkPlayerInput : NetworkBehaviour
             return;
 
         int minKey = System.Linq.Enumerable.First(_serverBufferedInputs.Keys);
-
         _serverNextExpectedSequence = minKey;
 
-        // Reset stall and last-real because we’re changing the timeline.
         _stallTicks = 0;
         _hasLastRealServerInput = false;
         _lastRealServerInput = default;
     }
 
-    // =========================
-    // Server: consume (Option A)
-    // =========================
     public void ServerSetCurrentInput(SimulationTickData data) => ServerInput = data;
 
     public bool TryConsumeNextServerInput(out SimulationTickData data, out bool usedReal)
     {
-        // 1) Expected input exists -> consume REAL
         if (_serverBufferedInputs.TryGetValue(_serverNextExpectedSequence, out data))
         {
             _serverBufferedInputs.Remove(_serverNextExpectedSequence);
@@ -324,19 +325,11 @@ public class NetworkPlayerInput : NetworkBehaviour
 
             _stallTicks = 0;
             usedReal = true;
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            Debug.Log($"[NPI] Consume real input seq={data.Sequence} expected={_serverNextExpectedSequence - 1} owner={OwnerClientId}");
-#endif
-
             return true;
         }
 
-        // 2) Missing expected
         usedReal = false;
 
-        // If we have buffered inputs but not the expected one, we might be behind (packet loss / reorder / reset).
-        // If expected is behind min buffered key, resync.
         if (_serverBufferedInputs.Count > 0)
         {
             int minKey = System.Linq.Enumerable.First(_serverBufferedInputs.Keys);
@@ -344,7 +337,6 @@ public class NetworkPlayerInput : NetworkBehaviour
             {
                 ResyncExpectedToMinBuffered("consume expected < minBuffered");
 
-                // Try again immediately after resync
                 if (_serverBufferedInputs.TryGetValue(_serverNextExpectedSequence, out data))
                 {
                     _serverBufferedInputs.Remove(_serverNextExpectedSequence);
@@ -355,55 +347,35 @@ public class NetworkPlayerInput : NetworkBehaviour
 
                     _stallTicks = 0;
                     usedReal = true;
-
                     return true;
                 }
             }
         }
 
-        // If we never got any real input yet, we cannot HOLD.
         if (!_hasLastRealServerInput)
         {
             _stallTicks++;
-
             data = default;
             return false;
         }
 
-        // Normal tiny jitter: stall a couple of ticks, then HOLD
         _stallTicks++;
 
-        // Stall briefly to allow packet to arrive.  Log the stall count so we
-        // can detect if clients are frequently stalling (packet loss or low
-        // send rate).
         if (_stallTicks <= maxStallTicks)
         {
             data = default;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            Debug.Log($"[NPI] Stall tick {_stallTicks} waiting for seq={_serverNextExpectedSequence} owner={OwnerClientId}");
-#endif
             return false;
         }
 
-        // HOLD last real input for one simulated tick (keeps server moving smoothly)
         data = _lastRealServerInput;
         data.Sequence = _serverNextExpectedSequence;
         _serverNextExpectedSequence++;
 
         _stallTicks = 0;
         usedReal = false;
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        Debug.Log($"[NPI] HOLD last real input for seq={data.Sequence} owner={OwnerClientId}");
-#endif
-
         return true;
     }
 
-
-    // =========================
-    // Grapple state (unchanged)
-    // =========================
     public void UpdateGrappleState(GrappleNetState newState)
     {
         if (_character == null) return;

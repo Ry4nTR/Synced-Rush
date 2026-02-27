@@ -279,8 +279,12 @@ public class DeathCamController : MonoBehaviour
 
         if (nm.ConnectedClients.TryGetValue(killerClientId, out var client) && client.PlayerObject != null)
         {
-            var look = client.PlayerObject.GetComponentInChildren<LookController>(true);
-            return look != null ? look.CameraTransform : null;
+            // ✅ Don’t rely on LookController (owner-only)
+            // Prefer a dedicated spectator target if present, else use player root.
+            var target = client.PlayerObject.GetComponentInChildren<LookController>(true);
+            if (target != null) return target.transform;
+
+            return client.PlayerObject.transform;
         }
 
         return null;
@@ -315,8 +319,10 @@ public class DeathCamController : MonoBehaviour
             if (NetworkManager.Singleton.ConnectedClients.TryGetValue(p.clientId, out var client)
                 && client.PlayerObject != null)
             {
-                var look = client.PlayerObject.GetComponentInChildren<LookController>(true);
-                return look != null ? look.CameraTransform : null;
+                var target = client.PlayerObject.GetComponentInChildren<LookController>(true);
+                if (target != null) return target.transform;
+
+                return client.PlayerObject.transform;
             }
         }
 

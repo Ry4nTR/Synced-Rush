@@ -1,4 +1,5 @@
 ﻿using SyncedRush.Character.Movement;
+using SyncedRush.Gamemode;
 using Unity.Cinemachine;
 using Unity.Netcode;
 using UnityEngine;
@@ -14,9 +15,7 @@ public class ClientComponentSwitcher : NetworkBehaviour
     [SerializeField] private PlayerInputHandler inputHandler;
 
     [Header("Action Map Names")]
-    [Tooltip("Name of the action map used for gameplay (movement/shooting). This should match the map name in the Input Action asset.")]
     [SerializeField] private string gameplayMapName = "Player";
-    [Tooltip("Name of the action map used for UI interactions (menus/loadout). This should match the map name in the Input Action asset.")]
     [SerializeField] private string uiMapName = "UI";
 
     [Header("Character Components (Owner Only)")]
@@ -51,32 +50,47 @@ public class ClientComponentSwitcher : NetworkBehaviour
 
     public void SetClientSystems(ClientSystems systems) => clientSystems = systems;
 
+    // ✅ runtime flags for gating input generation/sending
+    public bool IsMovementGameplayEnabled { get; private set; } = true;
+    public bool IsWeaponGameplayEnabled { get; private set; } = true;
+
+    /// <summary>
+    /// True only when gameplay is intended to be active (movement+weapon).
+    /// Used by NetworkPlayerInput to decide whether to send real inputs.
+    /// </summary>
+    public bool IsGameplayInputAllowed => IsMovementGameplayEnabled && IsWeaponGameplayEnabled;
+
     private void Awake()
     {
-        // INPUT components
         if (playerInput != null) playerInput.enabled = false;
         if (inputHandler != null) inputHandler.enabled = false;
 
-        // LOOK components
         if (lookController != null) lookController.enabled = false;
         if (mainCamera != null) mainCamera.enabled = false;
         if (brain != null) brain.enabled = false;
         if (cineCam != null) cineCam.enabled = false;
         if (audioListener != null) audioListener.enabled = false;
 
-        // MOVEMENT components
+        // ✅ MovementController must stay enabled (it replicates snapshots / handles teleports)
         if (moveController != null) moveController.enabled = true;
         if (movementFSM != null) movementFSM.enabled = false;
 
-        // WEAPON components
         if (weaponController != null) weaponController.enabled = false;
         if (shootingSystem != null) shootingSystem.enabled = false;
 
-        // HEALTH component
         if (healthSystem != null) healthSystem.enabled = false;
 
-        // SERVICES component
         if (services == null) services = FindFirstObjectByType<GameplayServicesRef>();
+    }
+
+    private void OnEnable()
+    {
+        RoundManager.OnMatchFlowStateChanged += HandleMatchFlowChange;
+    }
+
+    private void OnDisable()
+    {
+        RoundManager.OnMatchFlowStateChanged -= HandleMatchFlowChange;
     }
 
     public override void OnNetworkSpawn()
@@ -86,66 +100,67 @@ public class ClientComponentSwitcher : NetworkBehaviour
         bool isOwner = IsOwner;
         bool isServer = IsServer;
 
-        // INPUT components (owner only)
         if (playerInput != null) playerInput.enabled = isOwner;
         if (inputHandler != null) inputHandler.enabled = isOwner;
 
-        // LOOK components (owner only)
         if (lookController != null) lookController.enabled = isOwner;
 
-        // CAMERA components (owner only)
         if (mainCamera != null) mainCamera.enabled = isOwner;
         if (brain != null) brain.enabled = isOwner;
         if (cineCam != null) cineCam.enabled = isOwner;
         if (audioListener != null) audioListener.enabled = isOwner;
 
-        // MOVEMENT components (server + owner)
+        // ✅ keep MC enabled always, but FSM only on (server || owner)
         if (moveController != null) moveController.enabled = true;
         if (movementFSM != null) movementFSM.enabled = isServer || isOwner;
 
-        // WEAPON components
         UpdateWeaponComponentState();
 
-        // HEALTH component (server only)
         if (healthSystem != null) healthSystem.enabled = isServer;
-
 
         if (isOwner)
         {
             ClientComponentSwitcherLocal.Local = this;
-
-            // Prefer the new GameplayUIManager if present; fallback to the legacy UIManager.
             clientSystems?.UI?.RegisterPlayer(gameObject);
 
             if (uiManager != null)
-            {
                 uiManager.UIRegisterPlayer(gameObject);
-            }
         }
 
-        // --- Enable GLOBAL MAP (always on) ---
         EnsureGlobalMapEnabled();
+
+        // initialize flags to "whatever components are currently enabled"
+        IsMovementGameplayEnabled = (movementFSM != null) ? movementFSM.enabled : true;
+        IsWeaponGameplayEnabled = (weaponController != null) ? weaponController.enabled : true;
+
+        // ✅ force apply current flow state immediately (no waiting for event)
+        var rm = SessionServices.Current != null ? SessionServices.Current.RoundManager : FindFirstObjectByType<RoundManager>();
+        if (rm != null)
+        {
+            var state = rm.CurrentFlowState.Value;
+            HandleMatchFlowChange(state, state); // call with same old/new to apply gates
+        }
+        else
+        {
+            // conservative default: block gameplay until flow arrives
+            SetMovementGameplayEnabled(false);
+            SetWeaponGameplayEnabled(false);
+        }
     }
 
     public override void OnNetworkDespawn()
     {
         base.OnNetworkDespawn();
 
-        // Clear the local pointer when the object despawns on the owner.
-        if (IsOwner)
-        {
-            if (ClientComponentSwitcherLocal.Local == this)
-                ClientComponentSwitcherLocal.Local = null;
-        }
+        if (IsOwner && ClientComponentSwitcherLocal.Local == this)
+            ClientComponentSwitcherLocal.Local = null;
     }
 
-    // Holds a static reference to the local client's component switcher.
     public static class ClientComponentSwitcherLocal
     {
         public static ClientComponentSwitcher Local;
     }
 
-    // Registers weapon components it's spawned + Registers it to the UI Manager
     public void RegisterWeapon(WeaponController wc, ShootingSystem ss, WeaponNetworkHandler wh)
     {
         weaponController = wc;
@@ -165,35 +180,28 @@ public class ClientComponentSwitcher : NetworkBehaviour
 
         if (IsOwner)
         {
-            // When owned, register the weapon with whichever UI manager is available.
             clientSystems?.UI?.RegisterWeapon(wc);
             if (uiManager != null)
-            {
-                // Fallback: register with the old UIManager so ammo displays update
                 uiManager.UIRegisterWeapon(wc);
-            }
         }
     }
 
-    // Manages weapon component states based on ownership and server authority.
     private void UpdateWeaponComponentState()
     {
         bool isOwner = IsOwner;
         bool isServer = IsServer;
+
         if (weaponController != null) weaponController.enabled = isOwner;
         if (shootingSystem != null) shootingSystem.enabled = isOwner;
+
         if (weaponNetworkHandler != null) weaponNetworkHandler.enabled = isServer || isOwner;
     }
 
-    /// <summary>
-    /// SETS INPUT STATE TO UI MENU
-    /// </summary>
     public void SetState_UIMenu()
     {
-        // Ensure input is enabled before switching maps
         if (playerInput != null && !playerInput.enabled)
             playerInput.enabled = true;
-        // Switch to UI map
+
         if (playerInput != null)
             playerInput.SwitchCurrentActionMap(uiMapName);
 
@@ -204,17 +212,19 @@ public class ClientComponentSwitcher : NetworkBehaviour
             inputHandler.ClearAllInputs();
             inputHandler.enabled = false;
         }
+
         if (lookController != null)
             lookController.enabled = false;
+
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
 
     public void SetState_Loadout()
     {
-        // UI mode but keep ability to select weapons/abilities
         if (playerInput != null && !playerInput.enabled)
             playerInput.enabled = true;
+
         if (playerInput != null)
             playerInput.SwitchCurrentActionMap(uiMapName);
 
@@ -225,18 +235,19 @@ public class ClientComponentSwitcher : NetworkBehaviour
             inputHandler.ClearAllInputs();
             inputHandler.enabled = false;
         }
+
         if (lookController != null)
             lookController.enabled = false;
+
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
 
     public void SetState_Gameplay()
     {
-        // Ensure input is enabled before switching maps
         if (playerInput != null && !playerInput.enabled)
             playerInput.enabled = true;
-        // Switch to gameplay map
+
         if (playerInput != null)
             playerInput.SwitchCurrentActionMap(gameplayMapName);
 
@@ -247,15 +258,14 @@ public class ClientComponentSwitcher : NetworkBehaviour
             inputHandler.ClearAllInputs();
             inputHandler.enabled = true;
         }
+
         if (lookController != null)
             lookController.enabled = true;
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
-    /// <summary>
-    /// Helpers
-    /// </summary>
     private void EnsureGlobalMapEnabled()
     {
         if (playerInput == null || playerInput.actions == null)
@@ -268,19 +278,38 @@ public class ClientComponentSwitcher : NetworkBehaviour
 
     public void SetWeaponGameplayEnabled(bool enabled)
     {
+        IsWeaponGameplayEnabled = enabled;
+
         if (weaponController != null) weaponController.enabled = enabled && IsOwner;
         if (shootingSystem != null) shootingSystem.enabled = enabled && IsOwner;
 
-        // Keep server weapon handler running even if local owner paused (important for host)
+        // never gate this by "enabled"
         if (weaponNetworkHandler != null)
-            weaponNetworkHandler.enabled = (IsServer || IsOwner); // don't gate it by "enabled"
+            weaponNetworkHandler.enabled = (IsServer || IsOwner);
     }
 
     public void SetMovementGameplayEnabled(bool enabled)
     {
-        // inputHandler and look are already toggled by SetState_Gameplay/Loadout,
-        // but this is a hard kill-switch for gameplay simulation.
+        IsMovementGameplayEnabled = enabled;
+
+        // ✅ do NOT disable MovementController
         if (movementFSM != null) movementFSM.enabled = enabled && (IsServer || IsOwner);
-        if (moveController != null) moveController.enabled = enabled; // your MC is always enabled; keep if you want
+        if (moveController != null) moveController.enabled = true;
+    }
+
+    private void HandleMatchFlowChange(MatchFlowState oldState, MatchFlowState newState)
+    {
+        if (newState == MatchFlowState.PreRoundFrozen ||
+            newState == MatchFlowState.RoundEnd ||
+            newState == MatchFlowState.MatchEnd)
+        {
+            SetMovementGameplayEnabled(false);
+            SetWeaponGameplayEnabled(false);
+        }
+        else if (newState == MatchFlowState.InRound)
+        {
+            SetMovementGameplayEnabled(true);
+            SetWeaponGameplayEnabled(true);
+        }
     }
 }
