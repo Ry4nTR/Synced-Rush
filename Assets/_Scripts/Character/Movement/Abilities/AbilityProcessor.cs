@@ -2,8 +2,8 @@ using UnityEngine;
 
 namespace SyncedRush.Character.Movement
 {
-	public class AbilityProcessor
-	{
+    public class AbilityProcessor
+    {
         private readonly MovementController _character;
 
         private CharacterAbility _currentAbility = CharacterAbility.None;
@@ -86,12 +86,25 @@ namespace SyncedRush.Character.Movement
 
         public void ActivateGrappleHook()
         {
+            // Base the grapple origin on the current input. On the server we override
+            // this origin with the authoritative character position to avoid
+            // discrepancies when the local prediction drifts. This keeps the server
+            // and client using the same starting point for the grapple.
             Vector3 origin = _character.CurrentInput.GrappleOrigin;
+            if (_character.IsServer)
+            {
+                origin = _character.CenterPosition;
+            }
 
-            // This is now authoritative from the input tick (owner computed it)
-            Vector3 aimPoint = _character.CurrentInput.GrappleAimPoint;
-
-            Vector3 dir = (aimPoint - origin).normalized;
+            // Compute the grapple direction from the aim yaw and pitch angles. Using
+            // the angles directly instead of a world-space aim point avoids
+            // client/server mismatches that can occur when raycasting hits are
+            // slightly different on each side. The calculated direction is
+            // normalised for safety.
+            float yaw = _character.CurrentInput.AimYaw;
+            float pitch = _character.CurrentInput.AimPitch;
+            Vector3 dir = Quaternion.Euler(pitch, yaw, 0f) * Vector3.forward;
+            dir.Normalize();
 
             GrappleNetState s = new()
             {
@@ -103,29 +116,22 @@ namespace SyncedRush.Character.Movement
                 HookPoint = Vector3.zero
             };
 
-            // Apply Anti-Cheat (Server Only)
+            // Optional: on the server we can perform a simple sanity check to ensure
+            // the reported origin isn't too far from the actual character centre.
             if (_character.IsServer)
             {
-                // Clamp origin
                 float distOrigin = Vector3.Distance(origin, _character.CenterPosition);
                 if (distOrigin > 2.0f)
                 {
-                    origin = _character.CenterPosition;
-                    s.Origin = origin;
-                    s.TipPosition = origin;
-                }
-
-                // Clamp aim point to max distance from origin (prevents fake far target)
-                Vector3 toAim = _character.CurrentInput.GrappleAimPoint - origin;
-                float max = _character.Stats.HookMaxDistance;
-                if (toAim.sqrMagnitude > max * max)
-                {
-                    aimPoint = origin + toAim.normalized * max;
-                    s.Direction = (aimPoint - origin).normalized;
+                    s.Origin = _character.CenterPosition;
+                    s.TipPosition = _character.CenterPosition;
                 }
             }
 
-            // Save to Simulation
+            // Persist the new grapple state. On the server this writes to the
+            // network variable so all clients (including the owner) see the change.
+            // On the owner client it updates the local predicted state for
+            // immediate responsiveness.
             _character.NetInput.UpdateGrappleState(s);
         }
 

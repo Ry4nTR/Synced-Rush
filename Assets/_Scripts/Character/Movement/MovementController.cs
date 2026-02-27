@@ -601,30 +601,95 @@ public class MovementController : NetworkBehaviour
 
         float error = Vector3.Distance(predictedAtAck.Position, snap.Position);
 
+        // No reconcile if error is within tolerance
         if (error < reconcilePosEpsilon)
         {
             _netInput.ConfirmInputUpTo(snap.LastProcessedSequence);
             return;
         }
 
-        // Hard snap on big error
+        // Hard snap on very large errors (e.g. teleport or cheating).  In this
+        // scenario we simply teleport the character to the server snapshot and
+        // discard any pending inputs.  No smoothing is applied because the
+        // error is too large to interpolate cleanly.
         if (error > reconcileHardSnap)
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log($"[MC] Hard reconcile (error={error:F3}). PredPos={predictedAtAck.Position} SnapPos={snap.Position}");
+#endif
             ApplyServerSnapshot(snap);
             _netInput.ConfirmInputUpTo(snap.LastProcessedSequence);
             _netInput.SyncLocalGrappleFromServer();
             return;
         }
 
-        // Rewind
+        // Compute the positional error BEFORE applying the snapshot.  We will
+        // apply this as a local visual offset after snapping so that the
+        // predicted position appears smoothly to converge to the server
+        // position instead of flickering back and forth.  Convert the error
+        // into local space using the snapshot's yaw so it aligns with the
+        // player's orientation.
+        Vector3 worldError = predictedAtAck.Position - snap.Position;
+
+        // Snap the simulation to the authoritative snapshot.  This moves the
+        // transform immediately to the server position and resets velocity
+        // and yaw.
         ApplyServerSnapshot(snap);
 
-        // Replay pending inputs after ack
+        // Apply a local visual offset to represent the predicted error.  This
+        // offset will be gradually reduced to zero in Update() via
+        // visualErrorSmoothing.  Without this, the character would appear to
+        // teleport or flicker between predicted and server positions.
+        if (_visualRoot != null)
+        {
+            // Convert world error into local coordinates based on the current
+            // orientation/yaw.  We use the yaw from the snapshot (already
+            // applied in ApplyServerSnapshot) to rotate the error into local
+            // space.  If orientation is null, fallback to identity.
+            Quaternion invYaw = Quaternion.identity;
+            if (_orientation != null)
+            {
+                invYaw = Quaternion.Inverse(_orientation.transform.rotation);
+            }
+            Vector3 localError = invYaw * worldError;
+            _visualRoot.localPosition = localError;
+        }
+
+        // Force the look controller to rebase its yaw onto the snapshot yaw.
+        // Without rebasing, the camera may continue using the old yaw which
+        // can cause a brief flick when the snapshot yaw differs from the
+        // locally predicted yaw.  We preserve the current pitch to avoid
+        // jumping the view up or down unexpectedly.
+        if (IsOwner && !IsServer)
+        {
+            var look = GetComponentInChildren<LookController>();
+            if (look != null)
+            {
+                float currentPitch = look.CurrentPitch;
+                look.ForceAimYawPitch(snap.Yaw, currentPitch);
+            }
+        }
+
+        // Reset ability input counters (e.g. grapple toggle counters) before
+        // replaying.  Without resetting, the last ability count from the old
+        // timeline can incorrectly influence the replay and result in
+        // mismatched toggles.  This helps prevent client desync when using
+        // abilities that depend on discrete button press counts.
+        if (Ability != null)
+        {
+            Ability.GrappleSim.ResetRuntime();
+            Ability.DashSim.ResetRuntime();
+            Ability.JetpackSim.ResetRuntime();
+        }
+
+        // Replay pending inputs from the tick after the acknowledged one.
         ReplayPendingInputsFrom(snap.LastProcessedSequence + 1);
 
-        // Drop acked
+        // Drop acknowledged inputs to keep the local queue healthy.
         _netInput.ConfirmInputUpTo(snap.LastProcessedSequence);
 
+        // Sync the local predicted grapple state from the authoritative server
+        // state.  This prevents mismatches in grapple phase and origin.
         _netInput.SyncLocalGrappleFromServer();
     }
 
@@ -946,6 +1011,16 @@ public class MovementController : NetworkBehaviour
         ClearHistory();
         _netInput?.ClearPendingInputs();
         _netInput?.ForceSequence(ackSeq + 1);
+
+        // Reset the internal ability counters for the new round. Without this
+        // reset the last grappling ability count can persist across respawns,
+        // causing the first press after respawn to immediately toggle. This
+        // mirrors the reset performed on the server and keeps the client in
+        // sync.
+        if (Ability != null)
+        {
+            Ability.GrappleSim.ResetRuntime();
+        }
 
         // REBASE LOOK COMPLETELY (yaw + pitch)
         var look = GetComponentInChildren<LookController>();

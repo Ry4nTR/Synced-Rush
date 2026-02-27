@@ -102,17 +102,31 @@ public class NetworkPlayerInput : NetworkBehaviour
         // NEW: if gameplay is disabled, do not send or record inputs. This prevents
         // the server buffer from filling up when the game is paused or in UI.
         // GameplayEnabledNet is a networked bool exposed by MovementController and
-        // updated via ServerSetGameplayEnabled().
+        // updated via ServerSetGameplayEnabled().  Log when skipping so issues
+        // around early input capture can be traced.
         if (_character != null && !_character.GameplayEnabledNet)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log($"[NPI] Gameplay disabled; skipping input tick. Owner={OwnerClientId}");
+#endif
             return;
+        }
 
         var input = BuildOwnerTickInput();
 
         LocalPredictedInput = input;
 
         _pendingInputs.Add(input);
+        // Cap pending input queue to avoid unbounded growth.  If we have to
+        // drop the oldest input, log a warning in development builds so we
+        // know that the local prediction is falling behind the network.
         if (_pendingInputs.Count > MaxPendingInputs)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.LogWarning($"[NPI] Pending input queue exceeded {MaxPendingInputs}, dropping oldest input. Owner={OwnerClientId}");
+#endif
             _pendingInputs.RemoveAt(0);
+        }
 
         if (IsServer)
             ReceiveInputOnServer(input, default);
@@ -260,6 +274,21 @@ public class NetworkPlayerInput : NetworkBehaviour
                 ResyncExpectedToMinBuffered("after-trim expected < minBuffered");
             }
         }
+
+        // Server-owner: as host, we don't need to maintain a pending input queue for
+        // local prediction because the host is the authoritative server.  As soon
+        // as the input is received on the server, we can drop it from the
+        // pending list.  Without this, the host's pending queue grows without
+        // ever being cleared because snapshots do not trigger reconciliation on
+        // the host.
+        if (IsServer && IsOwner)
+        {
+            // Drop all inputs up to and including this sequence on the host.
+            ConfirmInputUpTo(inputData.Sequence);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log($"[NPI] Host confirm pending inputs up to seq={inputData.Sequence} owner={OwnerClientId}");
+#endif
+        }
     }
 
     private void ResyncExpectedToMinBuffered(string reason)
@@ -295,6 +324,10 @@ public class NetworkPlayerInput : NetworkBehaviour
 
             _stallTicks = 0;
             usedReal = true;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log($"[NPI] Consume real input seq={data.Sequence} expected={_serverNextExpectedSequence - 1} owner={OwnerClientId}");
+#endif
 
             return true;
         }
@@ -340,10 +373,15 @@ public class NetworkPlayerInput : NetworkBehaviour
         // Normal tiny jitter: stall a couple of ticks, then HOLD
         _stallTicks++;
 
-        // Stall briefly to allow packet to arrive
+        // Stall briefly to allow packet to arrive.  Log the stall count so we
+        // can detect if clients are frequently stalling (packet loss or low
+        // send rate).
         if (_stallTicks <= maxStallTicks)
         {
             data = default;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log($"[NPI] Stall tick {_stallTicks} waiting for seq={_serverNextExpectedSequence} owner={OwnerClientId}");
+#endif
             return false;
         }
 
@@ -354,6 +392,10 @@ public class NetworkPlayerInput : NetworkBehaviour
 
         _stallTicks = 0;
         usedReal = false;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Debug.Log($"[NPI] HOLD last real input for seq={data.Sequence} owner={OwnerClientId}");
+#endif
 
         return true;
     }
