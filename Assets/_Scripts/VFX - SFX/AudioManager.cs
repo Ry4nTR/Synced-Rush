@@ -13,7 +13,7 @@ namespace SyncedRush.Generics
         [SerializeField] private AudioMixerGroup sfxMixerGroup;
 
         [Header("Pool Settings")]
-        [SerializeField] private int poolSize = 200;
+        [SerializeField] private int sfxPoolSize = 200;
         private Queue<AudioSource> sfxPool = new Queue<AudioSource>();
 
         [Header("UI Audio Source")]
@@ -81,7 +81,7 @@ namespace SyncedRush.Generics
                     Debug.LogError("Mixer non trovato!");
             }
 
-            for (int i = 0; i < poolSize; i++)
+            for (int i = 0; i < sfxPoolSize; i++)
             {
                 GameObject go = new($"SFX_Pool_{i}");
                 go.transform.SetParent(transform);
@@ -104,6 +104,32 @@ namespace SyncedRush.Generics
             uiSource.PlayOneShot(clip, volume);
         }
 
+        public void PlaySFX(AudioClip clip, Vector3 position, float volume = 1f, float pitch = 1f)
+        {
+            if (clip == null) return;
+
+            if (sfxPool.Count > 0)
+            {
+                AudioSource source = sfxPool.Dequeue();
+                source.gameObject.transform.position = position;
+                source.gameObject.SetActive(true);
+
+                source.clip = clip;
+                source.volume = volume;
+                source.pitch = pitch;
+
+                source.spatialBlend = 0f;
+
+                source.Play();
+
+                StartCoroutine(ReturnToPool(source, clip.length));
+            }
+            else
+            {
+                Debug.LogWarning("AudioManager: Pool esaurito!");
+            }
+        }
+
         public void PlaySFXAt(AudioClip clip, Vector3 position, float volume = 1f, float pitch = 1f)
         {
             if (clip == null) return;
@@ -118,6 +144,8 @@ namespace SyncedRush.Generics
                 source.volume = volume;
                 source.pitch = pitch;
                 source.Play();
+
+                source.spatialBlend = 1f;
 
                 StartCoroutine(ReturnToPool(source, clip.length));
             }
