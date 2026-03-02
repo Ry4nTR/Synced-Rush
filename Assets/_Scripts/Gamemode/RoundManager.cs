@@ -1,34 +1,36 @@
-﻿using System;
+﻿// ================================
+// RoundManager (MODIFIED) ✅
+// - Removed client-freeze RPC usage (pause must NOT freeze physics)
+// - Match flow state is now the ONLY authority gate for gameplay sim
+// - Deathcam keeps flow InRound, then switches to RoundEnd before scoreboard
+// ================================
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using SyncedRush.Gamemode;
 
 public class RoundManager : NetworkBehaviour
 {
-    // =========================================================
-    // NETWORK STATE
-    // =========================================================
-
-    public NetworkVariable<MatchState> CurrentState =
-        new NetworkVariable<MatchState>(
-            MatchState.Lobby,
+    public NetworkVariable<MatchFlowState> CurrentFlowState =
+        new NetworkVariable<MatchFlowState>(
+            MatchFlowState.Lobby,
             NetworkVariableReadPermission.Everyone,
-            NetworkVariableWritePermission.Server
-        );
+            NetworkVariableWritePermission.Server);
 
-    // Replicated baseline for UI countdown (server time)
+    public static event Action<MatchFlowState, MatchFlowState> OnMatchFlowStateChanged;
+
     private NetworkVariable<double> _preRoundEndServerTime = new NetworkVariable<double>(
         0d,
         NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server
-    );
+        NetworkVariableWritePermission.Server);
 
     // =========================================================
     // EVENTS (CLIENT SIDE)
     // =========================================================
-
     public static event Action<bool> OnLoadingScreen;
     public static event Action<int, int, bool, float> OnRoundEndPresentation;
     public static event Action<float> OnPreRoundStarted;
@@ -38,7 +40,6 @@ public class RoundManager : NetworkBehaviour
     // =========================================================
     // SCORE / MATCH RULES
     // =========================================================
-
     [Header("Score")]
     public int TeamAScore { get; private set; }
     public int TeamBScore { get; private set; }
@@ -57,18 +58,16 @@ public class RoundManager : NetworkBehaviour
     // =========================================================
     // READY HANDSHAKE
     // =========================================================
-
     private int _roundId = 0;
     private readonly HashSet<ulong> _readyClients = new HashSet<ulong>();
     private Coroutine _startRoundRoutine;
 
     [Header("Ready Handshake")]
-    [SerializeField] private float readyTimeoutSeconds = 3.0f; // keep low: start ASAP, avoid 5s delays
+    [SerializeField] private float readyTimeoutSeconds = 3.0f;
 
     // =========================================================
     // RUNTIME REFERENCES
     // =========================================================
-
     private bool isFirstRound = true;
 
     private GamemodeDefinition gamemode;
@@ -77,6 +76,37 @@ public class RoundManager : NetworkBehaviour
     private RoundDeathTracker deathTracker;
     private MapDefinition currentMap;
     private NetworkLobbyState lobbyState;
+
+    private SessionServices _sessionServices;
+
+    // =========================================================
+    // PROPERTIES
+    // =========================================================
+    public bool IsGameplayPhase => CurrentFlowState.Value == MatchFlowState.InRound;
+    public bool IsPreRound => CurrentFlowState.Value == MatchFlowState.PreRoundFrozen;
+
+    private void Awake()
+    {
+        _sessionServices = SessionServices.Current;
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+
+        CurrentFlowState.OnValueChanged += HandleFlowStateChanged;
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        CurrentFlowState.OnValueChanged -= HandleFlowStateChanged;
+        base.OnNetworkDespawn();
+    }
+
+    private void HandleFlowStateChanged(MatchFlowState oldState, MatchFlowState newState)
+    {
+        OnMatchFlowStateChanged?.Invoke(oldState, newState);
+    }
 
     // =========================================================
     // MATCH START / SCENE LOAD
@@ -87,7 +117,7 @@ public class RoundManager : NetworkBehaviour
 
         if (lobby == null || mode == null || map == null || string.IsNullOrEmpty(map.sceneName))
         {
-            Debug.LogError($"[RoundManager] StartMatch invalid args. lobby={lobby} mode={mode} map={map} sceneName={(map != null ? map.sceneName : "null")}");
+            Debug.LogError($"[RoundManager] StartMatch invalid args. lobby={lobby} mode={mode} map={map} sceneName={(map != null ? map.sceneName : "null")} ");
             SetLoadingScreenClientRpc(false);
             return;
         }
@@ -95,6 +125,8 @@ public class RoundManager : NetworkBehaviour
         lobbyManager = lobby;
         gamemode = mode;
         currentMap = map;
+
+        SetFlowState(MatchFlowState.Loading);
 
         NetworkManager.SceneManager.OnSceneEvent -= OnSceneEvent;
         NetworkManager.SceneManager.OnSceneEvent += OnSceneEvent;
@@ -107,6 +139,7 @@ public class RoundManager : NetworkBehaviour
             Debug.LogWarning($"[RoundManager] Failed to load scene {currentMap.sceneName} with status {status}");
             NetworkManager.SceneManager.OnSceneEvent -= OnSceneEvent;
             SetLoadingScreenClientRpc(false);
+            SetFlowState(MatchFlowState.Lobby);
         }
     }
 
@@ -133,7 +166,6 @@ public class RoundManager : NetworkBehaviour
             lobbyState = FindAnyObjectByType<NetworkLobbyState>();
             deathTracker.Initialize(this, lobbyState);
 
-            // Reset match
             TeamAScore = 0;
             TeamBScore = 0;
             isOvertime = false;
@@ -144,15 +176,10 @@ public class RoundManager : NetworkBehaviour
             SetLoadingScreenClientRpc(false);
 
             spawnManager.SpawnAllPlayers();
-
-            // server hard-freeze simulation so nobody falls
-            spawnManager.ServerSetAllGameplayEnabled(false);
-
-            // also snap once right away (optional but good)
             spawnManager.ServerSnapAllToGround();
 
-            SetFrozenClientRpc(true);
-            SetPreRoundInputStateClientRpc();
+            SetFlowState(MatchFlowState.Spawning);
+            SetFlowState(MatchFlowState.PreRoundFrozen);
 
             StartNextRound();
         }
@@ -160,6 +187,7 @@ public class RoundManager : NetworkBehaviour
         {
             Debug.LogException(e);
             SetLoadingScreenClientRpc(false);
+            SetFlowState(MatchFlowState.Lobby);
         }
     }
 
@@ -176,9 +204,7 @@ public class RoundManager : NetworkBehaviour
         _roundId++;
         _readyClients.Clear();
 
-        // Ensure everyone is frozen before countdown starts
-        SetFrozenClientRpc(true);
-        SetPreRoundInputStateClientRpc();
+        SetFlowState(MatchFlowState.PreRoundFrozen);
 
         if (_startRoundRoutine != null)
             StopCoroutine(_startRoundRoutine);
@@ -189,9 +215,7 @@ public class RoundManager : NetworkBehaviour
     public void EndRound(int winningTeamId, ulong killerClientId)
     {
         if (!IsServer) return;
-        if (CurrentState.Value != MatchState.InRound) return;
-
-        CurrentState.Value = MatchState.RoundEnd;
+        if (CurrentFlowState.Value != MatchFlowState.InRound) return;
 
         if (winningTeamId == 0) TeamAScore++;
         else if (winningTeamId == 1) TeamBScore++;
@@ -201,30 +225,28 @@ public class RoundManager : NetworkBehaviour
 
     private IEnumerator RoundEndSequence(ulong killerClientId)
     {
-        // 1) Victim-only killcam while winners still move
+        // 1) deathcam time while winners still move (state remains InRound)
         yield return new WaitForSeconds(deathCamSeconds);
 
-        // 2) Freeze everyone before scoreboard
-        SetFrozenClientRpc(true);
+        // 2) now lock the round
+        SetFlowState(MatchFlowState.RoundEnd);
 
-        // 3) Scoreboard
+        // 3) scoreboard
         PlayRoundEndPresentationClientRpc(TeamAScore, TeamBScore, matchOver: false, scoreboardSeconds);
         yield return new WaitForSeconds(scoreboardSeconds);
 
-        // 4) Reset players for next round (still frozen)
+        // 4) reset players for next round (still not InRound)
         spawnManager.ResetAllPlayersForRound();
 
-        // 5) Continue or end match
+        // 5) continue/end match (StartNextRound will set PreRoundFrozen)
         CheckMatchEnd();
     }
 
     // =========================================================
-    // READY HANDSHAKE + COUNTDOWN (SERVER TIME BASELINE)
+    // READY HANDSHAKE + COUNTDOWN
     // =========================================================
-
     private IEnumerator ServerStartRoundWhenAllReady(float duration, int roundId)
     {
-        // Ask clients to report ready for this round
         RequestClientReadyForRoundClientRpc(roundId);
 
         float t = 0f;
@@ -244,27 +266,17 @@ public class RoundManager : NetworkBehaviour
             Debug.LogWarning($"[RoundManager] Ready timeout. ready={_readyClients.Count}/{expectedFinal}. Starting anyway.");
         }
 
-        // Shared baseline end time (server time)
         double endTime = NetworkManager.ServerTime.Time + duration;
         _preRoundEndServerTime.Value = endTime;
 
-        // Tell clients to start countdown based on server time
         StartPreRoundClientRpc(endTime, roundId);
 
-        // Wait using server time (not WaitForSeconds)
         while (NetworkManager.ServerTime.Time < endTime)
             yield return null;
 
-        // final snap so everyone starts “on ground”
         spawnManager.ServerSnapAllToGround();
 
-        // enable server simulation
-        spawnManager.ServerSetAllGameplayEnabled(true);
-
-        // now let clients play
-        SetFrozenClientRpc(false);
-        SetGameplayInputStateClientRpc();
-        CurrentState.Value = MatchState.InRound;
+        SetFlowState(MatchFlowState.InRound);
     }
 
     [ClientRpc]
@@ -275,7 +287,6 @@ public class RoundManager : NetworkBehaviour
 
     private IEnumerator ClientReportReadyWhenLocalPlayerExists(int roundId)
     {
-        // We want “ready” to mean: local player spawned + switcher exists
         const float timeout = 8f;
         float t = 0f;
 
@@ -302,12 +313,11 @@ public class RoundManager : NetworkBehaviour
         ReportClientReadyRpc(roundId);
     }
 
-    // IMPORTANT FIX: RoundManager is server-owned, so clients must be allowed to call this.
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     private void ReportClientReadyRpc(int roundId, RpcParams rpcParams = default)
     {
         if (!IsServer) return;
-        if (roundId != _roundId) return; // ignore stale ready reports
+        if (roundId != _roundId) return;
 
         ulong sender = rpcParams.Receive.SenderClientId;
         _readyClients.Add(sender);
@@ -316,14 +326,9 @@ public class RoundManager : NetworkBehaviour
     // =========================================================
     // PRE-ROUND UI (CLIENT)
     // =========================================================
-
     [ClientRpc]
     private void StartPreRoundClientRpc(double preRoundEndServerTime, int roundId)
     {
-        // Keep client in loadout state until countdown ends
-        SetPreRoundInputStateClientRpc();
-
-        // UI is local-only, use ClientSystems (NO Instances)
         var clientSystems = FindFirstObjectByType<ClientSystems>();
         var ui = clientSystems != null ? clientSystems.UI : null;
         if (ui == null) return;
@@ -331,122 +336,13 @@ public class RoundManager : NetworkBehaviour
         double now = NetworkManager.Singleton.ServerTime.Time;
         float remaining = Mathf.Max(0f, (float)(preRoundEndServerTime - now));
 
-        // For any other systems that want it
         OnPreRoundStarted?.Invoke(remaining);
-
-        // Start the countdown via the GameplayUIManager.  The UI manager will
-        // handle displaying the loadout panel, hiding the HUD and restoring
-        // the appropriate state when the countdown finishes.  Do not
-        // manually show/hide panels here.
         ui.StartCountdown(remaining);
-    }
-
-    // =========================================================
-    // INPUT STATE CONTROL (CLIENT)
-    // =========================================================
-
-    [ClientRpc]
-    private void SetPreRoundInputStateClientRpc()
-    {
-        StartCoroutine(WaitLocalSwitcherThen(s => s.SetState_Loadout(), "PreRound"));
-    }
-
-    [ClientRpc]
-    private void SetGameplayInputStateClientRpc()
-    {
-        StartCoroutine(WaitLocalSwitcherThen(s => s.SetState_Gameplay(), "Gameplay"));
-    }
-
-    private IEnumerator WaitLocalSwitcherThen(Action<ClientComponentSwitcher> apply, string label)
-    {
-        const float timeout = 3f;
-        float t = 0f;
-
-        while (t < timeout)
-        {
-            var s = GetLocalSwitcherSafe();
-            if (s != null)
-            {
-                // Apply the state change (e.g. SetState_Loadout or SetState_Gameplay)
-                apply(s);
-
-                // After switching the action map, update the UI input locks based on the
-                // current UI state.  This ensures that if the pause menu or
-                // loadout UI are visible, gameplay input remains disabled even
-                // when the server tells us to switch to gameplay.
-                try
-                {
-                    var clientSystems = FindFirstObjectByType<ClientSystems>();
-                    var ui = clientSystems != null ? clientSystems.UI : null;
-                    if (ui != null)
-                    {
-                        // Call the public wrapper rather than the private method for safety
-                        ui.EnforceInputLockForCurrentUI();
-                    }
-                }
-                catch { /* ignore: optional enforcement */ }
-
-                yield break;
-            }
-
-            t += Time.unscaledDeltaTime;
-            yield return null;
-        }
-
-        Debug.LogWarning($"[CLIENT] {label} input state failed: switcher still NULL after {timeout}s");
-    }
-
-    private ClientComponentSwitcher GetLocalSwitcherSafe()
-    {
-        var nm = NetworkManager.Singleton;
-        if (nm != null)
-        {
-            var po = nm.LocalClient?.PlayerObject;
-            if (po != null)
-            {
-                var c = po.GetComponent<ClientComponentSwitcher>();
-                if (c != null) return c;
-            }
-        }
-        return ClientComponentSwitcher.ClientComponentSwitcherLocal.Local;
-    }
-
-    [ClientRpc]
-    private void SetFrozenClientRpc(bool frozen)
-    {
-        var sw = GetLocalSwitcherSafe();
-        if (sw == null) return;
-
-        if (frozen)
-        {
-            sw.SetState_UIMenu(); // blocks gameplay maps
-            sw.SetMovementGameplayEnabled(false);
-            sw.SetWeaponGameplayEnabled(false);
-        }
-        else
-        {
-            // Allow movement and weapons again, but the UI manager will
-            // enforce its own locks if pause or loadout are active.
-            sw.SetMovementGameplayEnabled(true);
-            sw.SetWeaponGameplayEnabled(true);
-        }
-
-        // After adjusting frozen state, update UI locks to ensure that if
-        // the pause menu or loadout panel are still active, gameplay
-        // remains disabled.
-        try
-        {
-            var clientSystems = FindFirstObjectByType<ClientSystems>();
-            var ui = clientSystems != null ? clientSystems.UI : null;
-            ui?.EnforceInputLockForCurrentUI();
-        }
-        catch { /* ignore optional enforcement */ }
     }
 
     // =========================================================
     // MATCH MANAGEMENT
     // =========================================================
-
     private void CheckMatchEnd()
     {
         if (!IsServer) return;
@@ -483,7 +379,7 @@ public class RoundManager : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        CurrentState.Value = MatchState.MatchEnd;
+        SetFlowState(MatchFlowState.MatchEnd);
 
         int winningTeam;
         if (TeamAScore > TeamBScore) winningTeam = 0;
@@ -504,7 +400,6 @@ public class RoundManager : NetworkBehaviour
     // =========================================================
     // KILLCAM + SCORE UI
     // =========================================================
-
     public void ServerNotifyVictimDeathForKillCam(ulong victimClientId, ulong killerClientId)
     {
         if (!IsServer) return;
@@ -540,10 +435,17 @@ public class RoundManager : NetworkBehaviour
     // =========================================================
     // LOADING SCREEN
     // =========================================================
-
     [ClientRpc]
     private void SetLoadingScreenClientRpc(bool show)
     {
         OnLoadingScreen?.Invoke(show);
+    }
+
+    private void SetFlowState(MatchFlowState newState)
+    {
+        if (!IsServer) return;
+
+        if (CurrentFlowState.Value == newState) return;
+        CurrentFlowState.Value = newState;
     }
 }

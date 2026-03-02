@@ -433,7 +433,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkPlayerInput
   ShowTopMostFoldoutHeaderGroup: 1
-  maxStallTicks: 2
+  debugNetInput: 1
+  debugEveryNTicks: 10
+  maxStallTicks: 10
 --- !u!114 &-2986967647247276543
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -459,7 +461,9 @@ MonoBehaviour:
   reconcilePosEpsilon: 0.03
   reconcileHardSnap: 1
   visualErrorSmoothing: 12
-  serverMaxStepsPerFixedUpdate: 6
+  serverMaxStepsPerFixedUpdate: 10
+  debugMovementNet: 1
+  debugEveryNFixed: 10
 --- !u!114 &245510072461140579
 MonoBehaviour:
   m_ObjectHideFlags: 0
