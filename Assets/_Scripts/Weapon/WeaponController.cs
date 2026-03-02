@@ -143,6 +143,7 @@ public class WeaponController : MonoBehaviour
 
         // Play reload animation if available
         playerAnimationController.Reload();
+        audioService?.Play(weaponData, WeaponSfxEvent.Reload, transform.position, isOwner: true);
 
         StartCoroutine(ReloadCoroutine());
     }
