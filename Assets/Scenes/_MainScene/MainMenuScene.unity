@@ -1027,10 +1027,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1296484102}
-  - component: {fileID: 1296484101}
-  - component: {fileID: 1296484100}
   - component: {fileID: 1296484099}
   - component: {fileID: 1296484103}
+  - component: {fileID: 1296484101}
+  - component: {fileID: 1296484100}
   - component: {fileID: 1296484104}
   m_Layer: 0
   m_Name: AppBootstrap

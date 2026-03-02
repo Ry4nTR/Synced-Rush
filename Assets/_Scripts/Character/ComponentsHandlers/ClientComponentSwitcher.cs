@@ -50,7 +50,7 @@ public class ClientComponentSwitcher : NetworkBehaviour
 
     public void SetClientSystems(ClientSystems systems) => clientSystems = systems;
 
-    // ✅ runtime flags for gating input generation/sending
+    // runtime flags for gating input generation/sending
     public bool IsMovementGameplayEnabled { get; private set; } = true;
     public bool IsWeaponGameplayEnabled { get; private set; } = true;
 
@@ -71,7 +71,7 @@ public class ClientComponentSwitcher : NetworkBehaviour
         if (cineCam != null) cineCam.enabled = false;
         if (audioListener != null) audioListener.enabled = false;
 
-        // ✅ MovementController must stay enabled (it replicates snapshots / handles teleports)
+        // MovementController must stay enabled (it replicates snapshots / handles teleports)
         if (moveController != null) moveController.enabled = true;
         if (movementFSM != null) movementFSM.enabled = false;
 
@@ -110,10 +110,11 @@ public class ClientComponentSwitcher : NetworkBehaviour
         if (cineCam != null) cineCam.enabled = isOwner;
         if (audioListener != null) audioListener.enabled = isOwner;
 
-        // ✅ keep MC enabled always, but FSM only on (server || owner)
+        // keep MC enabled always, but FSM only on (server || owner)
         if (moveController != null) moveController.enabled = true;
         if (movementFSM != null) movementFSM.enabled = isServer || isOwner;
 
+        // Apply weapon gating using current flag state instead of blindly enabling
         UpdateWeaponComponentState();
 
         if (healthSystem != null) healthSystem.enabled = isServer;
@@ -133,7 +134,7 @@ public class ClientComponentSwitcher : NetworkBehaviour
         IsMovementGameplayEnabled = (movementFSM != null) ? movementFSM.enabled : true;
         IsWeaponGameplayEnabled = (weaponController != null) ? weaponController.enabled : true;
 
-        // ✅ force apply current flow state immediately (no waiting for event)
+        // force apply current flow state immediately (no waiting for event)
         var rm = SessionServices.Current != null ? SessionServices.Current.RoundManager : FindFirstObjectByType<RoundManager>();
         if (rm != null)
         {
@@ -161,6 +162,12 @@ public class ClientComponentSwitcher : NetworkBehaviour
         public static ClientComponentSwitcher Local;
     }
 
+    /// <summary>
+    /// Assigns references to the weapon components and reapplies the current gameplay
+    /// gating state.  Without this call the weapon would always be enabled on
+    /// the owner regardless of whether the match is in a gameplay phase, which
+    /// could prevent inputs from being sent when IsWeaponGameplayEnabled is false.
+    /// </summary>
     public void RegisterWeapon(WeaponController wc, ShootingSystem ss, WeaponNetworkHandler wh)
     {
         weaponController = wc;
@@ -176,7 +183,9 @@ public class ClientComponentSwitcher : NetworkBehaviour
                 shootingSystem.SetServices(services.weaponFx, services.WeaponAudio);
         }
 
+        // Apply gating rules based on current state
         UpdateWeaponComponentState();
+        SetWeaponGameplayEnabled(IsWeaponGameplayEnabled);
 
         if (IsOwner)
         {
@@ -191,8 +200,11 @@ public class ClientComponentSwitcher : NetworkBehaviour
         bool isOwner = IsOwner;
         bool isServer = IsServer;
 
-        if (weaponController != null) weaponController.enabled = isOwner;
-        if (shootingSystem != null) shootingSystem.enabled = isOwner;
+        // When updating weapon components, respect the current gameplay gating state.  If
+        // IsWeaponGameplayEnabled is false, the owner’s weapon systems should remain
+        // disabled until the match transitions into a gameplay phase.
+        if (weaponController != null) weaponController.enabled = isOwner && IsWeaponGameplayEnabled;
+        if (shootingSystem != null) shootingSystem.enabled = isOwner && IsWeaponGameplayEnabled;
 
         if (weaponNetworkHandler != null) weaponNetworkHandler.enabled = isServer || isOwner;
     }
@@ -292,7 +304,7 @@ public class ClientComponentSwitcher : NetworkBehaviour
     {
         IsMovementGameplayEnabled = enabled;
 
-        // ✅ do NOT disable MovementController
+        // do NOT disable MovementController
         if (movementFSM != null) movementFSM.enabled = enabled && (IsServer || IsOwner);
         if (moveController != null) moveController.enabled = true;
     }
