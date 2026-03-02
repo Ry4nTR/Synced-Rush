@@ -27,8 +27,20 @@ public class LoadingScreenManager : MonoBehaviour
 
     private void HandleLoading(bool show)
     {
-        if (show) Show();
-        else Hide();
+        if (show)
+        {
+            Show();
+            // Start the eager loading phase while the screen is visible
+            var eagerLoader = FindFirstObjectByType<EagerLoader>();
+            if (eagerLoader != null)
+            {
+                eagerLoader.StartPrewarm(this);
+            }
+        }
+        else
+        {
+            Hide();
+        }
     }
 
     public void Show()
@@ -39,8 +51,7 @@ public class LoadingScreenManager : MonoBehaviour
             loadingPanel.interactable = true;
             loadingPanel.blocksRaycasts = true;
         }
-        if (progressBar != null) progressBar.value = 0f;
-        if (statusLabel != null) statusLabel.text = string.Empty;
+        SetProgress(0f, "Loading Scene...");
     }
 
     public void Hide()

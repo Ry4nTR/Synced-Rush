@@ -6,6 +6,8 @@ public class WeaponDatabase : ScriptableObject
 {
     [SerializeField] private WeaponData[] weapons;
 
+    public WeaponData[] Weapons => weapons;
+
     private Dictionary<int, WeaponData> lookup;
 
     private void OnEnable()

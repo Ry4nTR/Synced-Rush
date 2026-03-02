@@ -51,6 +51,16 @@ public class WeaponFxService : MonoBehaviour
         StartCoroutine(ReleaseAfter(fx, lifetime));
     }
 
+    public void PrewarmWeapon(WeaponData data)
+    {
+        if (data == null) return;
+
+        // Force the lazy pools to build now
+        if (data.muzzleFlashPrefab != null) Get(data.muzzleFlashPrefab, 8);
+        if (data.bulletTracerPrefab != null) Get(data.bulletTracerPrefab, 32);
+        if (data.impactEffectPrefab != null) Get(data.impactEffectPrefab, 16);
+    }
+
     //========================
     // Internals
     //========================
