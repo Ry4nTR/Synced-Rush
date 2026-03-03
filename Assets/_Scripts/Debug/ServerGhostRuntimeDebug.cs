@@ -5,48 +5,31 @@ using UnityEngine.InputSystem;
 [DisallowMultipleComponent]
 public class ServerGhostRuntimeDebug : MonoBehaviour
 {
-    // =========================
-    // Inspector
-    // =========================
     [Header("References")]
     [SerializeField] private MovementController movement;
     [SerializeField] private PlayerInput playerInput;
-
     [Header("Input Action")]
     [SerializeField] private string debugActionName = "DebugServerPlayer";
-
     [Header("Toggle")]
     [SerializeField] private bool enabledByDefault = false;
-
     [Header("Server Vertical Line")]
     [SerializeField] private float serverLineWidth = 0.08f;
     [SerializeField] private Color serverLineColor = Color.magenta;
-
-    [Header("Error Line (Local → Server)")]
+    [Header("Error Line (Historical Prediction → Server)")]
     [SerializeField] private bool drawErrorLine = true;
     [SerializeField] private float errorLineWidth = 0.02f;
     [SerializeField] private Color errorLineColor = Color.red;
     [SerializeField] private float minErrorDistance = 0.05f;
 
-    // =========================
-    // Runtime
-    // =========================
     private InputAction _toggleAction;
     private bool _enabled;
-
     private LineRenderer _serverLine;
     private LineRenderer _errorLine;
 
-    // =========================
-    // Unity lifecycle
-    // =========================
     private void Awake()
     {
-        if (movement == null)
-            movement = GetComponent<MovementController>();
-
-        if (playerInput == null)
-            playerInput = GetComponent<PlayerInput>();
+        if (movement == null) movement = GetComponent<MovementController>();
+        if (playerInput == null) playerInput = GetComponent<PlayerInput>();
 
         if (movement == null || playerInput == null || playerInput.actions == null)
         {
@@ -55,29 +38,19 @@ public class ServerGhostRuntimeDebug : MonoBehaviour
         }
 
         _enabled = enabledByDefault;
-
         _toggleAction = playerInput.actions.FindAction(debugActionName, false);
-        if (_toggleAction == null)
-        {
-            Debug.LogWarning($"[ServerGhostRuntimeDebug] Action '{debugActionName}' not found.");
-            enabled = false;
-            return;
-        }
-        _toggleAction.Enable();
+        if (_toggleAction != null) _toggleAction.Enable();
 
         CreateServerLine();
-        if (drawErrorLine)
-            CreateErrorLine();
-
+        if (drawErrorLine) CreateErrorLine();
         ApplyVisibility();
     }
 
     private void Update()
     {
-        if (!movement.IsOwner || !movement.IsClient)
-            return;
+        if (!movement.IsOwner || !movement.IsClient) return;
 
-        if (_toggleAction.WasPressedThisFrame())
+        if (_toggleAction != null && _toggleAction.WasPressedThisFrame())
         {
             _enabled = !_enabled;
             ApplyVisibility();
@@ -89,44 +62,40 @@ public class ServerGhostRuntimeDebug : MonoBehaviour
         if (!_enabled) return;
         if (!movement.IsOwner || !movement.IsClient) return;
 
-        Vector3 serverPos = movement.DebugGetServerPosition();
+        var snap = movement.GetLatestSnapshot();
+        if (!snap.Valid) return;
+
+        Vector3 serverPos = snap.Position;
         UpdateServerLine(serverPos);
 
         if (drawErrorLine && _errorLine != null)
         {
-            Vector3 localPos = movement.transform.position;
-            float d = Vector3.Distance(localPos, serverPos);
-
-            if (d >= minErrorDistance)
+            // 🟢 CRITICAL FIX: Compare server position against the historical predicted position for THAT EXACT TICK
+            if (movement.TryGetHistoricalPosition(snap.LastProcessedSequence, out Vector3 historicalPos))
             {
-                _errorLine.enabled = true;
-                _errorLine.SetPosition(0, localPos);
-                _errorLine.SetPosition(1, serverPos);
+                float d = Vector3.Distance(historicalPos, serverPos);
+                if (d >= minErrorDistance)
+                {
+                    _errorLine.enabled = true;
+                    _errorLine.SetPosition(0, historicalPos);
+                    _errorLine.SetPosition(1, serverPos);
+                }
+                else _errorLine.enabled = false;
             }
-            else
-            {
-                _errorLine.enabled = false;
-            }
+            else _errorLine.enabled = false;
         }
     }
 
     private void OnDestroy()
     {
-        if (_serverLine != null)
-            Destroy(_serverLine.gameObject);
-
-        if (_errorLine != null)
-            Destroy(_errorLine.gameObject);
+        if (_serverLine != null) Destroy(_serverLine.gameObject);
+        if (_errorLine != null) Destroy(_errorLine.gameObject);
     }
 
-    // =========================
-    // Line creation
-    // =========================
     private void CreateServerLine()
     {
         GameObject go = new GameObject("ServerGhost_ServerLine");
-        go.transform.SetParent(null); // world-space
-
+        go.transform.SetParent(null);
         _serverLine = go.AddComponent<LineRenderer>();
         _serverLine.positionCount = 2;
         _serverLine.useWorldSpace = true;
@@ -140,8 +109,7 @@ public class ServerGhostRuntimeDebug : MonoBehaviour
     private void CreateErrorLine()
     {
         GameObject go = new GameObject("ServerGhost_ErrorLine");
-        go.transform.SetParent(null); // world-space
-
+        go.transform.SetParent(null);
         _errorLine = go.AddComponent<LineRenderer>();
         _errorLine.positionCount = 2;
         _errorLine.useWorldSpace = true;
@@ -152,18 +120,12 @@ public class ServerGhostRuntimeDebug : MonoBehaviour
         _errorLine.endWidth = errorLineWidth;
     }
 
-    // =========================
-    // Updates
-    // =========================
     private void UpdateServerLine(Vector3 serverPos)
     {
         var cc = movement.Controller;
         if (cc == null) return;
 
-        // World-space center of the character controller
-        Vector3 centerWorld =
-            serverPos + movement.transform.rotation * cc.center;
-
+        Vector3 centerWorld = serverPos + movement.transform.rotation * cc.center;
         float halfHeight = Mathf.Max(0f, (cc.height * 0.5f) - cc.radius);
 
         Vector3 bottom = centerWorld + Vector3.down * halfHeight;
@@ -175,11 +137,8 @@ public class ServerGhostRuntimeDebug : MonoBehaviour
 
     private void ApplyVisibility()
     {
-        if (_serverLine != null)
-            _serverLine.enabled = _enabled;
-
-        if (_errorLine != null)
-            _errorLine.enabled = _enabled && drawErrorLine;
+        if (_serverLine != null) _serverLine.enabled = _enabled;
+        if (_errorLine != null) _errorLine.enabled = _enabled && drawErrorLine;
     }
 }
 #endif

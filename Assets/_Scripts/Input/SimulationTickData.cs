@@ -45,6 +45,7 @@ public struct SimulationTickData : INetworkSerializable
     // -------------------------
     // Networking
     // -------------------------
+    public byte Epoch;
     public int Sequence;
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -76,6 +77,7 @@ public struct SimulationTickData : INetworkSerializable
         serializer.SerializeValue(ref JetpackCount);
 
         // Networking
+        serializer.SerializeValue(ref Epoch);
         serializer.SerializeValue(ref Sequence);
     }
 }

@@ -45,6 +45,26 @@ public class EagerLoader : MonoBehaviour
                 {
                     float progress = 0.3f + (0.6f * (i / (float)weaponDatabase.Weapons.Length));
                     ui.SetProgress(progress, $"Loading {weapon.weaponName}...");
+
+                    if (weapon.muzzleFlashPrefab != null)
+                    {
+                        var dummyMuzzle = Instantiate(weapon.muzzleFlashPrefab, new Vector3(0, -9000, 0), Quaternion.identity);
+                        yield return null; // Wait 1 frame so GPU processes it
+                        Destroy(dummyMuzzle);
+                    }
+                    if (weapon.bulletTracerPrefab != null)
+                    {
+                        var dummyTracer = Instantiate(weapon.bulletTracerPrefab, new Vector3(0, -9000, 0), Quaternion.identity);
+                        yield return null;
+                        Destroy(dummyTracer);
+                    }
+                    if (weapon.impactEffectPrefab != null)
+                    {
+                        var dummyImpact = Instantiate(weapon.impactEffectPrefab, new Vector3(0, -9000, 0), Quaternion.identity);
+                        yield return null;
+                        Destroy(dummyImpact);
+                    }
+
                     fxService.PrewarmWeapon(weapon);
                     yield return null;
                 }

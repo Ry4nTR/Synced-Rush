@@ -4,36 +4,17 @@ using UnityEngine;
 
 public class NetworkPlayerInput : NetworkBehaviour
 {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-    [Header("Debug - Net Input")]
-    [SerializeField] private bool debugClientHitches = true;
-    [Tooltip("Consider a hitch if Update deltaTime exceeds this (seconds)")]
-    [SerializeField] private float hitchThresholdSeconds = 0.12f;
-    [Tooltip("Minimum seconds between hitch logs")]
-    [SerializeField] private float hitchMinLogIntervalSeconds = 1.0f;
-
-    private float _lastHitchLogTime;
-    private float _lastUpdateRealtime;
-#endif
-
-    // =========================================================
-    // REFERENCES
-    // =========================================================
     private PlayerInputHandler _inputHandler;
     private LookController _look;
     private MovementController _character;
 
-    // =========================================================
-    // CLIENT PREDICTION STATE
-    // =========================================================
+    public byte CurrentEpoch { get; set; }
     private int _sequenceNumber = 0;
+    public int CurrentSequence => _sequenceNumber;
     private readonly List<SimulationTickData> _pendingInputs = new();
     public IReadOnlyList<SimulationTickData> PendingInputs => _pendingInputs;
     public SimulationTickData LocalPredictedInput { get; private set; }
 
-    // =========================================================
-    // SERVER BUFFER STATE
-    // =========================================================
     public SimulationTickData ServerInput { get; private set; }
     private const int MaxPendingInputs = 256;
     private const int MaxBufferedInputs = 256;
@@ -43,47 +24,23 @@ public class NetworkPlayerInput : NetworkBehaviour
     private bool _hasLastRealServerInput = false;
     private int _stallTicks = 0;
 
+    public int ServerBufferCount => _serverBufferedInputs.Count;
+
     [Header("Server Input Stall Handling")]
     [SerializeField] private int maxStallTicks = 6;
 
-    // =========================================================
-    // GAMEPLAY GATING & ABILITY STATE
-    // =========================================================
     private bool _wasMovementAllowedLastTick = true;
     private GrappleNetState _localGrappleState;
     private bool _pendingDetachRequest;
 
-    // =========================================================
-    // INITIALIZATION & LIFECYCLE
-    // =========================================================
+    public bool IsMovementAllowed { get; private set; }
+
     private void Awake()
     {
         _inputHandler = GetComponent<PlayerInputHandler>();
         _look = GetComponentInChildren<LookController>();
         _character = GetComponent<MovementController>();
     }
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-    private void Update()
-    {
-        if (!IsOwner || !IsClient) return;
-
-        float now = Time.realtimeSinceStartup;
-        if (_lastUpdateRealtime > 0f && debugClientHitches)
-        {
-            float dt = now - _lastUpdateRealtime;
-            if (dt > hitchThresholdSeconds)
-            {
-                if (now - _lastHitchLogTime > hitchMinLogIntervalSeconds)
-                {
-                    Debug.LogWarning($"[NetInput] HITCH DETECTED! dt={dt:F3}s. Seq={_sequenceNumber}, Pending={_pendingInputs.Count}");
-                    _lastHitchLogTime = now;
-                }
-            }
-        }
-        _lastUpdateRealtime = now;
-    }
-#endif
 
     public override void OnNetworkSpawn()
     {
@@ -102,24 +59,19 @@ public class NetworkPlayerInput : NetworkBehaviour
         _lastRealServerInput = default;
     }
 
-
-    // =========================================================
-    // TICK GENERATION (CLIENT)
-    // =========================================================
     private void FixedUpdate()
     {
         if (!IsOwner || !IsClient) return;
         if (_character != null && !_character.HasInitialServerState) return;
 
-        // Check if gameplay is paused or frozen
-        var rm = SessionServices.Current?.RoundManager;
-        bool matchGameplay = (rm == null) || rm.IsGameplayPhase;
-        bool movementAllowed = matchGameplay;
+        bool movementAllowed = true;
+        if (_character != null) movementAllowed &= _character.GameplayEnabledNet;
 
         var sw = ClientComponentSwitcher.ClientComponentSwitcherLocal.Local;
         if (sw != null) movementAllowed &= sw.IsMovementGameplayEnabled;
 
-        // If movement was just disabled, send ONE neutral tick to stop the server from interpolating old inputs
+        IsMovementAllowed = movementAllowed;
+
         if (_wasMovementAllowedLastTick && !movementAllowed)
         {
             var neutral = BuildNeutralTick();
@@ -131,7 +83,6 @@ public class NetworkPlayerInput : NetworkBehaviour
             return;
         }
 
-        // If completely disabled, halt processing
         if (!movementAllowed)
         {
             _wasMovementAllowedLastTick = false;
@@ -139,7 +90,6 @@ public class NetworkPlayerInput : NetworkBehaviour
             return;
         }
 
-        // Normal Gameplay processing
         _wasMovementAllowedLastTick = true;
         var input = BuildOwnerTickInput();
         LocalPredictedInput = input;
@@ -150,23 +100,18 @@ public class NetworkPlayerInput : NetworkBehaviour
         SendToServer();
     }
 
-
-    // =========================================================
-    // NETWORK SEND (REDUNDANCY)
-    // =========================================================
-    /// <summary>
-    /// Sends the current tick AND the previous 2 ticks. 
-    /// This ensures that if a UDP packet is lost, the server still gets the inputs in the next frame.
-    /// </summary>
     private void SendToServer()
     {
-        if (IsServer && IsOwner) return; // Host bypasses network
+        if (IsServer && IsOwner)
+        {
+            ReceiveInputOnServer(_pendingInputs[_pendingInputs.Count - 1]);
+            return;
+        }
 
         int count = Mathf.Min(_pendingInputs.Count, 3);
         SimulationTickData[] redundancyArray = new SimulationTickData[count];
         for (int i = 0; i < count; i++)
         {
-            // Package the newest elements at the end of the pending list
             redundancyArray[i] = _pendingInputs[_pendingInputs.Count - 1 - i];
         }
         SendInputServerRpc(redundancyArray);
@@ -178,10 +123,6 @@ public class NetworkPlayerInput : NetworkBehaviour
         foreach (var input in redundantInputs) ReceiveInputOnServer(input);
     }
 
-
-    // =========================================================
-    // SERVER PROCESSING
-    // =========================================================
     private void ReceiveInputOnServer(SimulationTickData inputData)
     {
         if (IsServer && IsOwner)
@@ -190,7 +131,8 @@ public class NetworkPlayerInput : NetworkBehaviour
             return;
         }
 
-        // Jump sequence forward if this is the very first packet
+        if (inputData.Epoch != CurrentEpoch) return;
+
         if (_serverBufferedInputs.Count == 0 && !_hasLastRealServerInput && inputData.Sequence > _serverNextExpectedSequence)
         {
             _serverNextExpectedSequence = inputData.Sequence;
@@ -201,7 +143,6 @@ public class NetworkPlayerInput : NetworkBehaviour
 
         _serverBufferedInputs[inputData.Sequence] = inputData;
 
-        // Prevent memory overflow by trimming old unused packets
         while (_serverBufferedInputs.Count > MaxBufferedInputs)
         {
             using var it = _serverBufferedInputs.Keys.GetEnumerator();
@@ -209,12 +150,19 @@ public class NetworkPlayerInput : NetworkBehaviour
         }
     }
 
-    /// <summary>
-    /// Called by the MovementController on the Server. Tries to grab the exact input tick expected.
-    /// If missing, it stalls briefly before synthesizing a "HOLD" tick.
-    /// </summary>
     public bool TryConsumeNextServerInput(out SimulationTickData data, out bool usedReal)
     {
+        if (IsServer && IsOwner)
+        {
+            data = ServerInput;
+            usedReal = true;
+            _serverNextExpectedSequence = data.Sequence + 1;
+            _lastRealServerInput = data;
+            _hasLastRealServerInput = true;
+            _stallTicks = 0;
+            return true;
+        }
+
         if (_serverBufferedInputs.TryGetValue(_serverNextExpectedSequence, out data))
         {
             _serverBufferedInputs.Remove(_serverNextExpectedSequence);
@@ -236,26 +184,38 @@ public class NetworkPlayerInput : NetworkBehaviour
         }
 
         _stallTicks++;
-        if (_stallTicks <= maxStallTicks)
+        if (_stallTicks < maxStallTicks)
         {
             data = default;
-            return false; // Stalling, wait for packet to arrive
+            return false;
         }
 
-        // Stall limit reached, duplicate the last known input to prevent physics hanging
+        if (_serverBufferedInputs.Count > 0)
+        {
+            using var enumerator = _serverBufferedInputs.Keys.GetEnumerator();
+            enumerator.MoveNext();
+            int oldestAvailableSequence = enumerator.Current;
+
+            _serverNextExpectedSequence = oldestAvailableSequence;
+            data = _serverBufferedInputs[oldestAvailableSequence];
+            _serverBufferedInputs.Remove(oldestAvailableSequence);
+            _serverNextExpectedSequence++;
+
+            _lastRealServerInput = data;
+            _hasLastRealServerInput = true;
+            usedReal = true;
+            return true;
+        }
+
+        // Buffer completely empty: Synthesize HOLD tick smoothly
         data = _lastRealServerInput;
         data.Sequence = _serverNextExpectedSequence++;
-        _stallTicks = 0;
         return true;
     }
 
-
-    // =========================================================
-    // TICK BUILDERS
-    // =========================================================
     private SimulationTickData BuildNeutralTick()
     {
-        return new SimulationTickData { Sequence = _sequenceNumber++, GrappleOrigin = _character.CenterPosition };
+        return new SimulationTickData { Sequence = _sequenceNumber++, GrappleOrigin = _character.CenterPosition, Epoch = CurrentEpoch };
     }
 
     private SimulationTickData BuildOwnerTickInput()
@@ -283,7 +243,8 @@ public class NetworkPlayerInput : NetworkBehaviour
             Aim = _inputHandler.Aim,
             JetHeld = _inputHandler.JetHeld,
             JetpackCount = _inputHandler.JetpackCount,
-            Sequence = _sequenceNumber++
+            Sequence = _sequenceNumber++,
+            Epoch = CurrentEpoch
         };
     }
 
@@ -296,10 +257,6 @@ public class NetworkPlayerInput : NetworkBehaviour
         aimPoint = aimValid ? hit.point : _character.CameraPosition + camDir * _character.Stats.HookMaxDistance;
     }
 
-
-    // =========================================================
-    // RECONCILIATION HELPERS
-    // =========================================================
     public void ConfirmInputUpTo(int lastSequence) => _pendingInputs.RemoveAll(i => i.Sequence <= lastSequence);
     public void ClearPendingInputs() => _pendingInputs.Clear();
     public void ForceSequence(int nextSeq) => _sequenceNumber = nextSeq;

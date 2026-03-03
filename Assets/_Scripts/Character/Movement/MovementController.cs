@@ -17,9 +17,6 @@ namespace SyncedRush.Character.Movement
 [RequireComponent(typeof(CharacterMovementFSM))]
 public class MovementController : NetworkBehaviour
 {
-    // =========================
-    // Inspector
-    // =========================
     [Header("Config")]
     [SerializeField] private MovementData _characterStats;
     [SerializeField] private GameObject _orientation;
@@ -34,17 +31,10 @@ public class MovementController : NetworkBehaviour
     [SerializeField] private float remoteLerpTime = 0.08f;
 
     [Header("Networking - Owner Reconcile (Snap+Replay)")]
-    [SerializeField] private float reconcilePosEpsilon = 0.03f; // 3cm
-    [SerializeField] private float reconcileHardSnap = 1.0f;    // 1m
-    [SerializeField] private float visualErrorSmoothing = 12f;  // visualRoot smoothing
+    [SerializeField] private float reconcilePosEpsilon = 0.03f;
+    [SerializeField] private float reconcileHardSnap = 1.0f;
+    [SerializeField] private float visualErrorSmoothing = 12f;
 
-    [Header("Server Simulation Catch-up")]
-    [SerializeField, Range(1, 16)]
-    private int serverMaxStepsPerFixedUpdate = 6;
-
-    // =========================
-    // Components / Systems
-    // =========================
     private CharacterController _characterController;
     private CharacterMovementFSM _characterFSM;
     private AbilityProcessor _ability;
@@ -53,49 +43,26 @@ public class MovementController : NetworkBehaviour
     private PlayerAnimationController _animController;
     private GameplayUIManager _ui;
 
-    // =========================
-    // Netcode State
-    // =========================
-    private readonly NetworkVariable<ServerSnapshot> _serverSnapshot =
-        new NetworkVariable<ServerSnapshot>(writePerm: NetworkVariableWritePermission.Server);
-
-    private readonly NetworkVariable<CharacterAbility> _syncedAbility =
-        new NetworkVariable<CharacterAbility>(
-            CharacterAbility.None,
-            NetworkVariableReadPermission.Everyone,
-            NetworkVariableWritePermission.Server
-        );
-
+    private readonly NetworkVariable<ServerSnapshot> _serverSnapshot = new NetworkVariable<ServerSnapshot>(writePerm: NetworkVariableWritePermission.Server);
+    private readonly NetworkVariable<CharacterAbility> _syncedAbility = new NetworkVariable<CharacterAbility>(CharacterAbility.None, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     private readonly NetworkVariable<float> _serverJetpackCharge = new(0f);
     private readonly NetworkVariable<bool> _serverUsingJetpack = new(false);
+    private readonly NetworkVariable<GrappleNetState> _serverGrappleState = new(new GrappleNetState(), NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    private readonly NetworkVariable<bool> _gameplayEnabledNet = new NetworkVariable<bool>(true, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
-    private readonly NetworkVariable<GrappleNetState> _serverGrappleState =
-        new(new GrappleNetState(), NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-
-    private readonly NetworkVariable<bool> _gameplayEnabledNet = new NetworkVariable<bool>(true,
-        NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-
-    // =========================
-    // Runtime State
-    // =========================
     private bool _hasInitialSnapshot;
+    private int _lastReconciledSequence = -1;
     private float _yawAngle;
     private RaycastHit _groundInfo;
     private int _lastJumpCount = -1;
-
-    // Snapshot gating (prevents 0,0,0 teleport)
     private bool _hasValidSnapshot = false;
     private ServerSnapshot _lastSnapshot;
 
-    // Remote proxy interpolation
     private Vector3 _remoteFrom;
     private Vector3 _remoteTo;
     private float _remoteT;
-
-    // Server-side ack for remote players
     private int _serverLastProcessedSequence = 0;
 
-    // Owner prediction history (for snap+replay)
     private struct PredictedFrame
     {
         public int Sequence;
@@ -109,30 +76,15 @@ public class MovementController : NetworkBehaviour
     private readonly PredictedFrame[] _history = new PredictedFrame[MaxHistory];
     private int _historyHead = 0;
 
-    // =========================
-    // Tick Flags
-    // =========================
     public bool JumpPressedThisTick { get; private set; }
-
-    // =========================
-    // Velocity (simulation-facing)
-    // =========================
     public Vector2 HorizontalVelocity { get; set; }
     public float VerticalVelocity { get; set; }
-
     public Vector3 TotalVelocity
     {
         get => new(HorizontalVelocity.x, VerticalVelocity, HorizontalVelocity.y);
-        set
-        {
-            HorizontalVelocity = new(value.x, value.z);
-            VerticalVelocity = value.y;
-        }
+        set { HorizontalVelocity = new(value.x, value.z); VerticalVelocity = value.y; }
     }
 
-    // =========================
-    // Core Accessors (USED BY OTHER SCRIPTS)
-    // =========================
     public CharacterController Controller => _characterController;
     public MovementData Stats => _characterStats;
     public AbilityProcessor Ability => _ability;
@@ -149,24 +101,9 @@ public class MovementController : NetworkBehaviour
     public PlayerAnimationController AnimController => _animController;
     public SimulationTickData InputData => _netInput != null ? _netInput.ServerInput : default;
 
-    public SimulationTickData CurrentInput
-    {
-        get
-        {
-            if (_netInput == null) return default;
-            if (IsOwner) return _netInput.LocalPredictedInput;
-            return _netInput.ServerInput;
-        }
-    }
-
     public Vector2 MoveInputDirection
     {
-        get
-        {
-            Vector2 input = CurrentInput.Move;
-            input.Normalize();
-            return input;
-        }
+        get { Vector2 input = CurrentInput.Move; input.Normalize(); return input; }
     }
 
     public Vector3 MoveDirection
@@ -174,10 +111,7 @@ public class MovementController : NetworkBehaviour
         get
         {
             SimulationTickData input = CurrentInput;
-            Vector3 motion =
-                Orientation.transform.forward * input.Move.y +
-                Orientation.transform.right * input.Move.x;
-
+            Vector3 motion = Orientation.transform.forward * input.Move.y + Orientation.transform.right * input.Move.x;
             motion.y = 0f;
             motion.Normalize();
             return motion;
@@ -186,42 +120,20 @@ public class MovementController : NetworkBehaviour
 
     public Vector3 AimDirection
     {
-        get
-        {
-            float yaw = CurrentInput.AimYaw;
-            float pitch = CurrentInput.AimPitch;
-            return Quaternion.Euler(pitch, yaw, 0f) * Vector3.forward;
-        }
+        get { float yaw = CurrentInput.AimYaw; float pitch = CurrentInput.AimPitch; return Quaternion.Euler(pitch, yaw, 0f) * Vector3.forward; }
     }
 
     public Vector3 LookDirection => _cameraTransform != null ? _cameraTransform.forward : Vector3.forward;
-
     public bool HasWallRunStartInfo { get; set; }
     public RaycastHit WallRunStartInfo { get; set; }
 
-    public GrappleNetState GrappleForSim
-    {
-        get
-        {
-            if (_netInput == null) return _serverGrappleState.Value;
-            return _netInput.GetGrappleForSim();
-        }
-    }
-
+    public GrappleNetState GrappleForSim => _netInput == null ? _serverGrappleState.Value : _netInput.GetGrappleForSim();
     public bool ServerGameplayEnabled { get; private set; } = true;
     public bool GameplayEnabledNet => _gameplayEnabledNet.Value;
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-    public Vector3 DebugGetServerPosition()
-    {
-        var s = _serverSnapshot.Value;
-        return s.Valid ? s.Position : transform.position;
-    }
-#endif
+    private SimulationTickData _activeSimInput;
+    public SimulationTickData CurrentInput => _activeSimInput;
 
-    // =========================
-    // Unity Lifecycle
-    // =========================
     private void Awake()
     {
         _characterController = GetComponent<CharacterController>();
@@ -246,15 +158,7 @@ public class MovementController : NetworkBehaviour
         _remoteT = 1f;
 
         _serverSnapshot.OnValueChanged += OnServerSnapshotChanged;
-
-        _syncedAbility.OnValueChanged += (oldVal, newVal) =>
-        {
-            if (_ability != null)
-                _ability.CurrentAbility = newVal;
-
-            if (IsOwner)
-                UpdateAbilityUIVisibility();
-        };
+        _syncedAbility.OnValueChanged += (oldVal, newVal) => { if (_ability != null) _ability.CurrentAbility = newVal; if (IsOwner) UpdateAbilityUIVisibility(); };
 
         if (IsServer)
         {
@@ -284,22 +188,13 @@ public class MovementController : NetworkBehaviour
             }
         }
 
-        if (IsOwner)
-        {
-            RequestSetAbilityServerRpc(LocalAbilitySelection.SelectedAbility);
-        }
-        else
-        {
-            if (_ability != null)
-                _ability.CurrentAbility = _syncedAbility.Value;
-        }
+        if (IsOwner) RequestSetAbilityServerRpc(LocalAbilitySelection.SelectedAbility);
+        else if (_ability != null) _ability.CurrentAbility = _syncedAbility.Value;
 
         if (IsOwner)
         {
             var clientSystems = FindFirstObjectByType<ClientSystems>();
-            if (clientSystems != null)
-                _ui = clientSystems.UI;
-
+            if (clientSystems != null) _ui = clientSystems.UI;
             UpdateAbilityUIVisibility();
             UpdateAbilityChargesUI();
         }
@@ -317,8 +212,7 @@ public class MovementController : NetworkBehaviour
 
         if (wasEnabled) _characterController.enabled = true;
 
-        if (_visualRoot != null)
-            _visualRoot.localPosition = Vector3.zero;
+        if (_visualRoot != null) _visualRoot.localPosition = Vector3.zero;
     }
 
     public override void OnNetworkDespawn()
@@ -338,11 +232,8 @@ public class MovementController : NetworkBehaviour
             {
                 _remoteT += Time.deltaTime / Mathf.Max(0.001f, remoteLerpTime);
                 float t = Mathf.Clamp01(_remoteT);
-
                 transform.position = Vector3.Lerp(_remoteFrom, _remoteTo, t);
-
-                if (_orientation != null)
-                    _orientation.transform.rotation = Quaternion.Euler(0f, _lastSnapshot.Yaw, 0f);
+                if (_orientation != null) _orientation.transform.rotation = Quaternion.Euler(0f, _lastSnapshot.Yaw, 0f);
             }
 
             if (_visualRoot != null && _visualRoot.localPosition != Vector3.zero)
@@ -369,16 +260,15 @@ public class MovementController : NetworkBehaviour
             return;
         }
 
-        bool gameplayEnabled = _gameplayEnabledNet.Value;
-
         if (IsOwner)
         {
-            if (gameplayEnabled && (IsServer || _hasInitialSnapshot))
+            if (_netInput != null && _netInput.IsMovementAllowed && (IsServer || _hasInitialSnapshot))
+            {
                 SimulateOwnerTick();
+            }
         }
 
-        if (IsServer && !IsOwner)
-            SimulateServerRemoteTick();
+        if (IsServer && !IsOwner) SimulateServerRemoteTick();
 
         if (IsServer)
         {
@@ -387,9 +277,6 @@ public class MovementController : NetworkBehaviour
         }
     }
 
-    // =========================
-    // Snapshot Replication
-    // =========================
     private void OnServerSnapshotChanged(ServerSnapshot oldSnap, ServerSnapshot newSnap)
     {
         _lastSnapshot = newSnap;
@@ -413,17 +300,16 @@ public class MovementController : NetworkBehaviour
             ClearHistory();
             _netInput?.ClearPendingInputs();
             _netInput?.ForceSequence(newSnap.LastProcessedSequence + 1);
+            _lastReconciledSequence = newSnap.LastProcessedSequence;
             return;
         }
 
-        if (IsOwner && !IsServer)
-            ReconcileOwnerWithSnapshot(newSnap);
+        if (IsOwner && !IsServer) ReconcileOwnerWithSnapshot(newSnap);
     }
 
     private int GetServerAckSequence()
     {
-        if (IsOwner)
-            return CurrentInput.Sequence;
+        if (IsOwner) return CurrentInput.Sequence;
         return _serverLastProcessedSequence;
     }
 
@@ -449,11 +335,10 @@ public class MovementController : NetworkBehaviour
         _serverUsingJetpack.Value = Ability.UsingJetpack;
     }
 
-    // =========================
-    // Simulation Ticks
-    // =========================
     private void SimulateOwnerTick()
     {
+        _activeSimInput = _netInput.LocalPredictedInput;
+
         ApplyAimYaw(CurrentInput.AimYaw);
         PreSim();
         TickDashRequest(CurrentInput);
@@ -467,8 +352,7 @@ public class MovementController : NetworkBehaviour
         if (!IsServer)
         {
             Ability.JetpackCharge = Mathf.Min(Ability.JetpackCharge, _serverJetpackCharge.Value);
-            if (Ability.JetpackCharge <= 0f)
-                Ability.StopJetpack();
+            if (Ability.JetpackCharge <= 0f) Ability.StopJetpack();
         }
 
         StorePredictedFrame(CurrentInput.Sequence);
@@ -477,22 +361,18 @@ public class MovementController : NetworkBehaviour
 
     private void SimulateServerRemoteTick()
     {
-        int steps = 0;
+        int ticksToProcess = 1;
+        int bufferCount = _netInput.ServerBufferCount;
 
-        while (steps < serverMaxStepsPerFixedUpdate)
+        if (bufferCount > 10) ticksToProcess = 3;
+        else if (bufferCount > 4) ticksToProcess = 2;
+
+        for (int i = 0; i < ticksToProcess; i++)
         {
-            if (!_netInput.TryConsumeNextServerInput(out var nextInput, out bool usedReal))
-            {
-                PublishServerAbilityVars();
-                return;
-            }
+            if (!_netInput.TryConsumeNextServerInput(out var nextInput, out bool usedReal)) break;
 
             SimulateOneServerTick(nextInput);
             _serverLastProcessedSequence = nextInput.Sequence;
-            steps++;
-
-            if (!usedReal)
-                break;
         }
 
         _serverJetpackCharge.Value = Ability.JetpackCharge;
@@ -501,6 +381,7 @@ public class MovementController : NetworkBehaviour
 
     private void SimulateOneServerTick(in SimulationTickData input)
     {
+        _activeSimInput = input;
         _netInput.ServerSetCurrentInput(input);
 
         ApplyAimYaw(input.AimYaw);
@@ -514,17 +395,27 @@ public class MovementController : NetworkBehaviour
         Ability.ProcessUpdate();
     }
 
-    // =========================
-    // Owner Reconciliation (Snap + Replay)
-    // =========================
     private void ReconcileOwnerWithSnapshot(ServerSnapshot snap)
     {
         if (!snap.Valid || _netInput == null) return;
 
-        // ✅ THE VITAL FIX: Force a hard snap if the predicted history is lost
+        if (snap.LastProcessedSequence <= _lastReconciledSequence) return;
+        _lastReconciledSequence = snap.LastProcessedSequence;
+
         if (!TryGetHistory(snap.LastProcessedSequence, out var predictedAtAck))
         {
             ApplyServerSnapshot(snap);
+
+            if (snap.LastProcessedSequence >= _netInput.CurrentSequence)
+            {
+                _netInput.ForceSequence(snap.LastProcessedSequence + 1);
+                _netInput.ClearPendingInputs();
+            }
+            else
+            {
+                ReplayPendingInputsFrom(snap.LastProcessedSequence + 1);
+            }
+
             _netInput.ConfirmInputUpTo(snap.LastProcessedSequence);
             _netInput.SyncLocalGrappleFromServer();
             return;
@@ -541,12 +432,12 @@ public class MovementController : NetworkBehaviour
         if (error > reconcileHardSnap)
         {
             ApplyServerSnapshot(snap);
+            ReplayPendingInputsFrom(snap.LastProcessedSequence + 1);
             _netInput.ConfirmInputUpTo(snap.LastProcessedSequence);
             _netInput.SyncLocalGrappleFromServer();
             return;
         }
 
-        // Medium Error -> Snap, smooth visuals, and Replay pending inputs
         Vector3 worldError = predictedAtAck.Position - snap.Position;
         ApplyServerSnapshot(snap);
 
@@ -580,52 +471,79 @@ public class MovementController : NetworkBehaviour
         VerticalVelocity = snap.VerticalVel;
         ApplyAimYaw(snap.Yaw);
 
-        if (_visualRoot != null)
-            _visualRoot.localPosition = Vector3.zero;
+        if (_visualRoot != null) _visualRoot.localPosition = Vector3.zero;
     }
 
-    private void ReplayPendingInputsFrom(int startSeq)
+    private void ReplayPendingInputsFrom(int startSequence)
     {
-        var pending = _netInput.PendingInputs;
-
-        for (int i = 0; i < pending.Count; i++)
+        int startIndex = -1;
+        for (int i = 0; i < _netInput.PendingInputs.Count; i++)
         {
-            var input = pending[i];
-            if (input.Sequence < startSeq)
-                continue;
-
-            ApplyAimYaw(input.AimYaw);
-            PreSim();
-            TickDashRequest(input);
-            TickGrappleRequest(input);
-            _characterFSM.ProcessUpdate();
-            TickJetpack(input);
-            Ability.ProcessUpdate();
-
-            StorePredictedFrame(input.Sequence);
+            if (_netInput.PendingInputs[i].Sequence == startSequence)
+            {
+                startIndex = i;
+                break;
+            }
         }
+
+        if (startIndex == -1) return;
+
+        // 🟢 AAA FIX: THE REPLAY CAP SAFETY NET
+        // If we drop network for 1.5 seconds, do NOT replay 75 frames in one engine step.
+        // That crashes Unity physics and causes the Death Loop!
+        int framesToReplay = _netInput.PendingInputs.Count - startIndex;
+        if (framesToReplay > 45) // Cap at ~0.9 seconds of lag prediction
+        {
+            Debug.LogWarning("[DESYNC] Replay Cap exceeded. Wiping history and Hard Snapping.");
+            _netInput.ClearPendingInputs();
+            _netInput.ForceSequence(startSequence);
+            return;
+        }
+
+        SimulationTickData liveInputCache = _activeSimInput;
+
+        for (int i = startIndex; i < _netInput.PendingInputs.Count; i++)
+        {
+            SimulationTickData historicalTick = _netInput.PendingInputs[i];
+            _activeSimInput = historicalTick;
+            SimulateOwnerTick_ReplayStep();
+        }
+
+        _activeSimInput = liveInputCache;
     }
 
-    // =========================
-    // Tick Helpers
-    // =========================
+    private void SimulateOwnerTick_ReplayStep()
+    {
+        ApplyAimYaw(CurrentInput.AimYaw);
+        PreSim();
+        TickDashRequest(CurrentInput);
+        TickGrappleRequest(CurrentInput);
+
+        _characterFSM.ProcessUpdate();
+
+        TickJetpack(CurrentInput);
+        Ability.ProcessUpdate();
+
+        if (!IsServer)
+        {
+            Ability.JetpackCharge = Mathf.Min(Ability.JetpackCharge, _serverJetpackCharge.Value);
+            if (Ability.JetpackCharge <= 0f) Ability.StopJetpack();
+        }
+
+        StorePredictedFrame(CurrentInput.Sequence);
+    }
+
     private void ApplyAimYaw(float yaw)
     {
         _yawAngle = yaw;
-        if (_orientation != null)
-            _orientation.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+        if (_orientation != null) _orientation.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
     }
 
-    private void PreSim()
-    {
-        CheckGround();
-        UpdateDiscretePresses();
-    }
+    private void PreSim() { CheckGround(); UpdateDiscretePresses(); }
 
     private void TickDashRequest(SimulationTickData input)
     {
         Ability.DashSim.Tick(this, Ability, input);
-
         if (Ability.DashSim.WantsDashThisTick && State != MovementState.Dash)
             _characterFSM.ChangeState(MovementState.Dash, false, false, true);
     }
@@ -639,50 +557,32 @@ public class MovementController : NetworkBehaviour
     private void TickGrappleRequest(SimulationTickData input)
     {
         Ability.GrappleSim.Tick(this, Ability, input);
-
-        if (Ability.GrappleSim.WantsToggleThisTick)
-            Ability.ToggleGrappleHook();
+        if (Ability.GrappleSim.WantsToggleThisTick) Ability.ToggleGrappleHook();
     }
 
     private void ClearHistory()
     {
-        for (int i = 0; i < MaxHistory; i++)
-            _history[i] = default;
+        for (int i = 0; i < MaxHistory; i++) _history[i] = default;
         _historyHead = 0;
     }
 
-    // =========================
-    // Ground / Jump Edge
-    // =========================
     public void CheckGround()
     {
         float skinWidth = _characterController.skinWidth;
         float rayLength = 0.1f + skinWidth;
         Vector3 startPosition = CenterPosition + Vector3.down * (_characterController.height / 2f);
 
-        bool hasHit = Physics.Raycast(
-            startPosition,
-            Vector3.down,
-            out RaycastHit hit,
-            rayLength,
-            _groundLayerMask
-        );
-
+        bool hasHit = Physics.Raycast(startPosition, Vector3.down, out RaycastHit hit, rayLength, _groundLayerMask);
         _groundInfo = hit;
         IsOnGround = hasHit;
     }
 
-    public bool TryGetGroundInfo(out RaycastHit info)
-    {
-        info = _groundInfo;
-        return IsOnGround;
-    }
+    public bool TryGetGroundInfo(out RaycastHit info) { info = _groundInfo; return IsOnGround; }
 
     public bool ConsumeJumpPressedIfAllowed()
     {
         if (!IsOnGround) return false;
         if (!JumpPressedThisTick) return false;
-
         JumpPressedThisTick = false;
         return true;
     }
@@ -691,71 +591,33 @@ public class MovementController : NetworkBehaviour
     {
         JumpPressedThisTick = false;
         int jumpCount = CurrentInput.JumpCount;
-
-        if (_lastJumpCount < 0)
-        {
-            _lastJumpCount = jumpCount;
-            return;
-        }
-
-        if (jumpCount > _lastJumpCount)
-            JumpPressedThisTick = true;
-
+        if (_lastJumpCount < 0) { _lastJumpCount = jumpCount; return; }
+        if (jumpCount > _lastJumpCount) JumpPressedThisTick = true;
         _lastJumpCount = jumpCount;
     }
 
-    private void OnControllerColliderHit(ControllerColliderHit hit)
-    {
-        _characterFSM.ProcessCollision(hit);
-    }
+    private void OnControllerColliderHit(ControllerColliderHit hit) { _characterFSM.ProcessCollision(hit); }
 
-    // =========================
-    // Ability Sync
-    // =========================
-    public void ChangeAbility(CharacterAbility newAbility)
-    {
-        if (IsOwner)
-            RequestSetAbilityServerRpc(newAbility);
-    }
+    public void ChangeAbility(CharacterAbility newAbility) { if (IsOwner) RequestSetAbilityServerRpc(newAbility); }
 
     [ServerRpc]
     private void RequestSetAbilityServerRpc(CharacterAbility ability)
     {
-        if (ability == CharacterAbility.None)
-            ability = CharacterAbility.Jetpack;
-
+        if (ability == CharacterAbility.None) ability = CharacterAbility.Jetpack;
         _syncedAbility.Value = ability;
-
-        if (_ability != null)
-            _ability.CurrentAbility = ability;
+        if (_ability != null) _ability.CurrentAbility = ability;
     }
 
-    // =========================
-    // Grapple Server State Accessors
-    // =========================
     public GrappleNetState GetServerGrappleState() => _serverGrappleState.Value;
 
-    public void SetServerGrappleState(GrappleNetState s)
-    {
-        if (IsServer)
-            _serverGrappleState.Value = s;
-    }
+    public void SetServerGrappleState(GrappleNetState s) { if (IsServer) _serverGrappleState.Value = s; }
 
-    // =========================
-    // Hook Spawn/Cleanup
-    // =========================
     private HookController SpawnHook()
     {
-        if (_hook == null)
-        {
-            Debug.LogError("Hook prefab is not set on the Character! (null reference)");
-            return null;
-        }
-
+        if (_hook == null) return null;
         var instance = Instantiate(_hook);
         instance.transform.localPosition = Vector3.zero;
         instance.transform.localRotation = Quaternion.identity;
-
         _hook = instance;
         return instance.GetComponent<HookController>();
     }
@@ -763,35 +625,19 @@ public class MovementController : NetworkBehaviour
     private void CleanupHook()
     {
         if (_hook == null) return;
-
         var hookNetObj = _hook.GetComponent<NetworkObject>();
         if (hookNetObj != null && hookNetObj.IsSpawned)
         {
             if (IsServer) hookNetObj.Despawn(true);
             else Destroy(_hook.gameObject);
         }
-        else
-        {
-            Destroy(_hook.gameObject);
-        }
-
+        else Destroy(_hook.gameObject);
         _hook = null;
     }
 
-    // =========================
-    // Prediction History
-    // =========================
     private void StorePredictedFrame(int seq)
     {
-        _history[_historyHead] = new PredictedFrame
-        {
-            Sequence = seq,
-            Position = transform.position,
-            HVel = HorizontalVelocity,
-            VVel = VerticalVelocity,
-            Yaw = _yawAngle
-        };
-
+        _history[_historyHead] = new PredictedFrame { Sequence = seq, Position = transform.position, HVel = HorizontalVelocity, VVel = VerticalVelocity, Yaw = _yawAngle };
         _historyHead = (_historyHead + 1) % MaxHistory;
     }
 
@@ -799,21 +645,12 @@ public class MovementController : NetworkBehaviour
     {
         for (int i = 0; i < MaxHistory; i++)
         {
-            var f = _history[i];
-            if (f.Sequence == seq)
-            {
-                frame = f;
-                return true;
-            }
+            if (_history[i].Sequence == seq) { frame = _history[i]; return true; }
         }
-
         frame = default;
         return false;
     }
 
-    // =========================
-    // Helper
-    // =========================
     public void ServerResetForNewRound(Vector3 pos, Quaternion rot)
     {
         if (!IsServer) return;
@@ -830,34 +667,28 @@ public class MovementController : NetworkBehaviour
         ApplyAimYaw(yaw);
 
         _characterController.enabled = wasEnabled;
-
-        if (_visualRoot != null)
-            _visualRoot.localPosition = Vector3.zero;
-
-        if (Ability != null)
-            Ability.ServerResetRuntimeStateForNewRound();
+        if (_visualRoot != null) _visualRoot.localPosition = Vector3.zero;
+        if (Ability != null) Ability.ServerResetRuntimeStateForNewRound();
 
         int ack = GetServerAckSequence();
         int nextExpected = ack + 1;
 
+        byte newEpoch = 0;
         if (_netInput != null)
+        {
+            newEpoch = (byte)((_netInput.CurrentEpoch + 1) % 255);
+            _netInput.CurrentEpoch = newEpoch;
             _netInput.ServerHardResetInputTimeline(nextExpected);
+        }
 
         PublishServerSnapshot(ack);
 
-        var rpcParams = new ClientRpcParams
-        {
-            Send = new ClientRpcSendParams
-            {
-                TargetClientIds = new[] { OwnerClientId }
-            }
-        };
-
-        ApplyRespawnBaselineClientRpc(pos, yaw, pitch, ack, rpcParams);
+        var rpcParams = new ClientRpcParams { Send = new ClientRpcSendParams { TargetClientIds = new[] { OwnerClientId } } };
+        ApplyRespawnBaselineClientRpc(pos, yaw, pitch, ack, newEpoch, rpcParams);
     }
 
     [ClientRpc]
-    private void ApplyRespawnBaselineClientRpc(Vector3 pos, float yaw, float pitch, int ackSeq, ClientRpcParams rpcParams = default)
+    private void ApplyRespawnBaselineClientRpc(Vector3 pos, float yaw, float pitch, int ackSeq, byte newEpoch, ClientRpcParams rpcParams = default)
     {
         if (!IsOwner) return;
 
@@ -874,19 +705,26 @@ public class MovementController : NetworkBehaviour
         ApplyAimYaw(yaw);
 
         if (wasEnabled) _characterController.enabled = true;
-
-        if (_visualRoot != null)
-            _visualRoot.localPosition = Vector3.zero;
+        if (_visualRoot != null) _visualRoot.localPosition = Vector3.zero;
 
         ClearHistory();
-        _netInput?.ClearPendingInputs();
-        _netInput?.ForceSequence(ackSeq + 1);
+
+        if (_netInput != null)
+        {
+            _netInput.CurrentEpoch = newEpoch;
+            _netInput.ClearPendingInputs();
+            _netInput.ForceSequence(ackSeq + 1);
+        }
+
+        _lastReconciledSequence = ackSeq;
 
         var look = GetComponentInChildren<LookController>();
-        if (look != null)
-            look.ForceAimYawPitch(yaw, pitch);
+        if (look != null) look.ForceAimYawPitch(yaw, pitch);
 
         _inputHandler?.ClearAllInputs();
+
+        var wc = GetComponentInChildren<WeaponController>();
+        if (wc != null) wc.ResetForNewRound();
 
         UpdateAbilityUIVisibility();
         UpdateAbilityChargesUI();
@@ -915,7 +753,6 @@ public class MovementController : NetworkBehaviour
     private void UpdateAbilityUIVisibility()
     {
         if (!IsOwner || _ui == null) return;
-
         bool jetpackActive = Ability.CurrentAbility == CharacterAbility.Jetpack;
         _ui.SetJetpackUIVisible(jetpackActive);
     }
@@ -923,12 +760,8 @@ public class MovementController : NetworkBehaviour
     private void UpdateAbilityChargesUI()
     {
         if (!IsOwner || _ui == null) return;
-
-        float jetpackMax = Stats.JetpackMaxCharge;
-        float dashMax = Stats.DashMaxCharge;
-
-        _ui.SetJetpackCharge(Ability.JetpackCharge, jetpackMax);
-        _ui.SetDashCharge(Ability.DashCharge, dashMax);
+        _ui.SetJetpackCharge(Ability.JetpackCharge, Stats.JetpackMaxCharge);
+        _ui.SetDashCharge(Ability.DashCharge, Stats.DashMaxCharge);
     }
 
     public void ServerSnapToGround(float extraUp = 0.25f, float maxDown = 5f)
@@ -946,7 +779,6 @@ public class MovementController : NetworkBehaviour
         {
             float feetOffset = (_characterController.height * 0.5f) - _characterController.center.y;
             float y = hit.point.y + feetOffset + _characterController.skinWidth;
-
             transform.position = new Vector3(pos.x, y, pos.z);
         }
 
@@ -954,10 +786,20 @@ public class MovementController : NetworkBehaviour
         VerticalVelocity = 0f;
 
         if (wasEnabled) _characterController.enabled = true;
-
-        if (_visualRoot != null)
-            _visualRoot.localPosition = Vector3.zero;
+        if (_visualRoot != null) _visualRoot.localPosition = Vector3.zero;
 
         PublishServerSnapshot(GetServerAckSequence());
+    }
+
+    public ServerSnapshot GetLatestSnapshot() => _serverSnapshot.Value;
+
+    public bool TryGetHistoricalPosition(int seq, out Vector3 position)
+    {
+        for (int i = 0; i < MaxHistory; i++)
+        {
+            if (_history[i].Sequence == seq) { position = _history[i].Position; return true; }
+        }
+        position = Vector3.zero;
+        return false;
     }
 }

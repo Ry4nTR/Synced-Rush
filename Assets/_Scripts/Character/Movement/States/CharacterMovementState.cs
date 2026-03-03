@@ -3,13 +3,9 @@ using UnityEngine;
 
 namespace SyncedRush.Character.Movement
 {
-	public abstract class CharacterMovementState : BaseState<MovementState>
-	{
-		protected MovementController character;
-
-        /// <summary>
-        /// Shortcut to SERVER-SIDE input.
-        /// </summary>
+    public abstract class CharacterMovementState : BaseState<MovementState>
+    {
+        protected MovementController character;
         protected SimulationTickData Input => character.CurrentInput;
 
         private CharacterMovementFSM _parentStateMachine;
@@ -18,7 +14,6 @@ namespace SyncedRush.Character.Movement
         private int _lastAbilityCount = -1;
 
         protected bool ConsumeAbilityPressed() => ConsumePress(ref _lastAbilityCount, Input.AbilityCount);
-
         protected void FlushAbility() => FlushPress(ref _lastAbilityCount, Input.AbilityCount);
 
         protected CharacterMovementState(MovementController movementComponentReference)
@@ -51,16 +46,18 @@ namespace SyncedRush.Character.Movement
             // 2. Kill residual momentum if we hit a wall/ceiling/floor
             if (character.Controller.collisionFlags != CollisionFlags.None)
             {
-                // Calculate the exact velocity we actually achieved after Unity resolved the collision
                 Vector3 actualVelocity = (character.transform.position - startPos) / Time.fixedDeltaTime;
 
-                // If we hit a wall, bleed off the horizontal momentum we lost
+                if (actualVelocity.magnitude > attemptedVelocity.magnitude)
+                {
+                    actualVelocity = actualVelocity.normalized * attemptedVelocity.magnitude;
+                }
+
                 if ((character.Controller.collisionFlags & CollisionFlags.Sides) != 0)
                 {
                     character.HorizontalVelocity = new Vector2(actualVelocity.x, actualVelocity.z);
                 }
 
-                // If we hit a ceiling, kill the upward momentum so we don't float
                 if ((character.Controller.collisionFlags & CollisionFlags.Above) != 0 && character.VerticalVelocity > 0)
                 {
                     character.VerticalVelocity = 0f;
@@ -75,25 +72,20 @@ namespace SyncedRush.Character.Movement
                 lastCount = currentCount;
                 return false;
             }
-
             bool pressed = currentCount > lastCount;
-
-            if (currentCount != lastCount)
-                lastCount = currentCount;
-
+            if (currentCount != lastCount) lastCount = currentCount;
             return pressed;
         }
+
         protected void FlushPress(ref int lastCount, int currentCount)
         {
             if (lastCount < 0) lastCount = currentCount;
             else lastCount = currentCount;
         }
 
-
         public void SetParentStateMachine(CharacterMovementFSM parentStateMachine)
         {
-            if (_parentStateMachine == null)
-                _parentStateMachine = parentStateMachine;
+            if (_parentStateMachine == null) _parentStateMachine = parentStateMachine;
         }
     }
 }

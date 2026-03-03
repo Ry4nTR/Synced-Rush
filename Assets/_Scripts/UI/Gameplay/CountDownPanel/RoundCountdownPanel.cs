@@ -4,48 +4,48 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 
-/// <summary>
-/// Updates the countdown text for the pre‑round timer.  Does not handle
-/// showing or hiding the panel; that is managed by the UI manager.
-/// Attach this script to the countdown panel and assign the text field.
-/// </summary>
 public class RoundCountdownPanel : MonoBehaviour
 {
     [SerializeField] private TMP_Text countdownText;
     [SerializeField] private AudioClip countdownSound;
 
     private Coroutine routine;
+    private int _lastSoundInt = -1;
 
     public void StartCountdown(float seconds, Action onFinished = null)
     {
-        if (routine != null)
-        {
-            StopCoroutine(routine);
-            routine = null;
-        }
+        if (routine != null) StopCoroutine(routine);
         routine = StartCoroutine(CountdownCoroutine(seconds, onFinished));
     }
 
     private IEnumerator CountdownCoroutine(float seconds, Action onFinished)
     {
-        int remaining = Mathf.FloorToInt(seconds);
+        float endTime = Time.time + seconds;
+        _lastSoundInt = -1;
 
-        while (remaining > 0)
+        int lastRemainingInt = -1;
+
+        while (Time.time < endTime)
         {
-            if (countdownText != null)
-                countdownText.text = remaining.ToString();
+            int remainingInt = Mathf.CeilToInt(endTime - Time.time);
 
-            if (remaining < 4)
-                AudioManager.Instance.PlayUISound(countdownSound);
+            // Only manipulate the string and the UI Canvas if the second has changed
+            if (remainingInt != lastRemainingInt)
+            {
+                lastRemainingInt = remainingInt;
+                if (countdownText != null) countdownText.text = remainingInt.ToString();
 
-            yield return new WaitForSeconds(1f);
+                if (remainingInt <= 3 && remainingInt != _lastSoundInt)
+                {
+                    _lastSoundInt = remainingInt;
+                    AudioManager.Instance.PlayUISound(countdownSound);
+                }
+            }
 
-            remaining--;
+            yield return null;
         }
 
-        if (countdownText != null)
-            countdownText.text = string.Empty;
-
+        if (countdownText != null) countdownText.text = string.Empty;
         routine = null;
         onFinished?.Invoke();
     }
@@ -57,7 +57,6 @@ public class RoundCountdownPanel : MonoBehaviour
             StopCoroutine(routine);
             routine = null;
         }
-        if (countdownText != null)
-            countdownText.text = string.Empty;
+        if (countdownText != null) countdownText.text = string.Empty;
     }
 }

@@ -15,7 +15,6 @@ public class HookController : MonoBehaviour
     private void Awake()
     {
         _lineInitialScale = line != null ? line.localScale : Vector3.one;
-        gameObject.SetActive(false);
     }
 
     public void TickVisual(MovementController character, GrappleNetState state)

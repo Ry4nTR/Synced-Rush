@@ -154,14 +154,12 @@ public class RoundManager : NetworkBehaviour
         try
         {
             spawnManager = FindAnyObjectByType<SpawnManager>();
-            if (spawnManager == null)
-                throw new Exception("[RoundManager] SpawnManager not found in loaded scene.");
+            if (spawnManager == null) throw new Exception("[RoundManager] SpawnManager not found.");
 
             spawnManager.Initialize(lobbyManager);
 
             deathTracker = FindAnyObjectByType<RoundDeathTracker>();
-            if (deathTracker == null)
-                throw new Exception("[RoundManager] RoundDeathTracker not found in loaded scene.");
+            if (deathTracker == null) throw new Exception("[RoundManager] RoundDeathTracker not found.");
 
             lobbyState = FindAnyObjectByType<NetworkLobbyState>();
             deathTracker.Initialize(this, lobbyState);
@@ -177,6 +175,7 @@ public class RoundManager : NetworkBehaviour
 
             spawnManager.SpawnAllPlayers();
             spawnManager.ServerSnapAllToGround();
+            spawnManager.ServerSetAllGameplayEnabled(false);
 
             SetFlowState(MatchFlowState.Spawning);
             SetFlowState(MatchFlowState.PreRoundFrozen);
@@ -228,17 +227,19 @@ public class RoundManager : NetworkBehaviour
         // 1) deathcam time while winners still move (state remains InRound)
         yield return new WaitForSeconds(deathCamSeconds);
 
-        // 2) now lock the round
+        // 2) now lock the round flow
         SetFlowState(MatchFlowState.RoundEnd);
+
+        spawnManager.ServerSetAllGameplayEnabled(false);
 
         // 3) scoreboard
         PlayRoundEndPresentationClientRpc(TeamAScore, TeamBScore, matchOver: false, scoreboardSeconds);
         yield return new WaitForSeconds(scoreboardSeconds);
 
-        // 4) reset players for next round (still not InRound)
+        // 4) reset players for next round
         spawnManager.ResetAllPlayersForRound();
 
-        // 5) continue/end match (StartNextRound will set PreRoundFrozen)
+        // 5) continue/end match
         CheckMatchEnd();
     }
 
@@ -253,17 +254,10 @@ public class RoundManager : NetworkBehaviour
         while (t < readyTimeoutSeconds)
         {
             int expected = NetworkManager.Singleton.ConnectedClientsIds.Count;
-            if (_readyClients.Count >= expected)
-                break;
+            if (_readyClients.Count >= expected) break;
 
             t += Time.unscaledDeltaTime;
             yield return null;
-        }
-
-        int expectedFinal = NetworkManager.Singleton.ConnectedClientsIds.Count;
-        if (_readyClients.Count < expectedFinal)
-        {
-            Debug.LogWarning($"[RoundManager] Ready timeout. ready={_readyClients.Count}/{expectedFinal}. Starting anyway.");
         }
 
         double endTime = NetworkManager.ServerTime.Time + duration;
@@ -271,10 +265,15 @@ public class RoundManager : NetworkBehaviour
 
         StartPreRoundClientRpc(endTime, roundId);
 
+        spawnManager.ServerSetAllGameplayEnabled(false);
+
+        // Wait for the exact Server Time to hit the countdown end
         while (NetworkManager.ServerTime.Time < endTime)
             yield return null;
 
         spawnManager.ServerSnapAllToGround();
+
+        spawnManager.ServerSetAllGameplayEnabled(true);
 
         SetFlowState(MatchFlowState.InRound);
     }

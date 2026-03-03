@@ -241,15 +241,13 @@ public class WeaponController : MonoBehaviour
         StopAllCoroutines();     // cancels reload
         isReloading = false;
 
-        SetAiming(false);
-        aimWeight = 0f;
+        isAiming = false;
         aimTarget = 0f;
+        aimWeight = 0f;
 
-        // Optional: reset spread
         currentSpread = weaponData != null ? weaponData.baseSpread : 0f;
-
-        currentAmmo = weaponData.magazineSize;
-        reserveAmmo = weaponData.ammoReserve;
+        currentAmmo = weaponData != null ? weaponData.magazineSize : 0;
+        reserveAmmo = weaponData != null ? weaponData.ammoReserve : 0;
 
         playerAnimationController?.SetAimWeight(0f);
     }

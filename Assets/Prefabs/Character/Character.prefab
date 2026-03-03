@@ -433,6 +433,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkPlayerInput
   ShowTopMostFoldoutHeaderGroup: 1
+  debugClientHitches: 1
+  hitchThresholdSeconds: 0.12
+  hitchMinLogIntervalSeconds: 1
   maxStallTicks: 10
 --- !u!114 &-2986967647247276543
 MonoBehaviour:
@@ -459,7 +462,6 @@ MonoBehaviour:
   reconcilePosEpsilon: 0.03
   reconcileHardSnap: 1
   visualErrorSmoothing: 12
-  serverMaxStepsPerFixedUpdate: 10
 --- !u!114 &245510072461140579
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -622,8 +624,8 @@ CharacterController:
   m_Radius: 0.3
   m_SlopeLimit: 45
   m_StepOffset: 0.3
-  m_SkinWidth: 0.01
-  m_MinMoveDistance: 0.001
+  m_SkinWidth: 0.015
+  m_MinMoveDistance: 0
   m_Center: {x: 0, y: 0.87, z: 0}
 --- !u!114 &4314794800417626439
 MonoBehaviour:
