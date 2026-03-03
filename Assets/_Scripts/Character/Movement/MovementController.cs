@@ -488,9 +488,6 @@ public class MovementController : NetworkBehaviour
 
         if (startIndex == -1) return;
 
-        // 🟢 AAA FIX: THE REPLAY CAP SAFETY NET
-        // If we drop network for 1.5 seconds, do NOT replay 75 frames in one engine step.
-        // That crashes Unity physics and causes the Death Loop!
         int framesToReplay = _netInput.PendingInputs.Count - startIndex;
         if (framesToReplay > 45) // Cap at ~0.9 seconds of lag prediction
         {

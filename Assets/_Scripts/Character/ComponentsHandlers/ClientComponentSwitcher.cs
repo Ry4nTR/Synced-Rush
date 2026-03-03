@@ -48,7 +48,17 @@ public class ClientComponentSwitcher : NetworkBehaviour
     [Header("Client Systems")]
     [SerializeField] private ClientSystems clientSystems;
 
-    public void SetClientSystems(ClientSystems systems) => clientSystems = systems;
+    public void SetClientSystems(ClientSystems systems)
+    {
+        clientSystems = systems;
+
+        // If the network spawned us BEFORE the binder gave us the systems, 
+        // register the player UI right now!
+        if (IsSpawned && IsOwner)
+        {
+            clientSystems?.UI?.RegisterPlayer(gameObject);
+        }
+    }
 
     // runtime flags for gating input generation/sending
     public bool IsMovementGameplayEnabled { get; private set; } = true;
@@ -117,7 +127,7 @@ public class ClientComponentSwitcher : NetworkBehaviour
         // Apply weapon gating using current flag state instead of blindly enabling
         UpdateWeaponComponentState();
 
-        if (healthSystem != null) healthSystem.enabled = isServer;
+        if (healthSystem != null) healthSystem.enabled = true;
 
         if (isOwner)
         {

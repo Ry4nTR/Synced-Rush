@@ -20,6 +20,10 @@ public class PlayerHUD : MonoBehaviour
     [Header("UI Elements Controllers")]
     [SerializeField] private DamageIndicatorController damageIndicatorController;
 
+    [Header("Health Bar Animation")]
+    [SerializeField] private float hpLerpSpeed = 10f; // Adjust in inspector for slower/faster drain
+    private float _targetHpFill = 1f;
+
     // =====================================================
     // HITMARKER
     // =====================================================
@@ -66,7 +70,11 @@ public class PlayerHUD : MonoBehaviour
         }
     }
 
-    private void Update() => UpdateAmmo();
+    private void Update()
+    {
+        UpdateAmmo();
+        UpdateHealthBarAnimation();
+    }
 
     private void OnDestroy()
     {
@@ -79,6 +87,8 @@ public class PlayerHUD : MonoBehaviour
     // =========================
     public void BindPlayer(GameObject player)
     {
+        Debug.Log($"[PlayerHUD] BindPlayer called for player: {player.name}"); // <--- ADD THIS LINE
+
         if (health != null)
             health.currentHealth.OnValueChanged -= OnHealthChanged;
 
@@ -88,6 +98,8 @@ public class PlayerHUD : MonoBehaviour
             health.currentHealth.OnValueChanged += OnHealthChanged;
 
         UpdateHealth();
+
+        if (hpBar != null) hpBar.fillAmount = _targetHpFill;
     }
 
     public void BindWeapon(WeaponController weaponController)
@@ -213,14 +225,36 @@ public class PlayerHUD : MonoBehaviour
 
     private void UpdateHealth()
     {
-        healthText.text = health != null
-            ? $"HP {health.currentHealth.Value:F1}"
-            : "HP --";
+        if (health != null)
+        {
+            healthText.text = $"HP {health.CurrentHealth:F1}";
 
-        hpBar.fillAmount = (health != null && health.maxHealth > 0f)
-            ? (health.CurrentHealth / health.maxHealth)
-            : 0f;
+            if (health.maxHealth > 0f)
+            {
+                // Set the target fill, but don't apply it instantly
+                _targetHpFill = health.CurrentHealth / health.maxHealth;
+                Debug.Log($"[PlayerHUD] UpdateHealth called. CurrentHP: {health.CurrentHealth}, Target Fill is now: {_targetHpFill}");
+            }
+        }
+        else
+        {
+            healthText.text = "HP --";
+            _targetHpFill = 0f;
+            Debug.LogWarning("[PlayerHUD] UpdateHealth called, but health reference is NULL!");
+        }
     }
 
-    private void OnHealthChanged(float oldValue, float newValue) => UpdateHealth();
+    private void UpdateHealthBarAnimation()
+    {
+        if (hpBar != null)
+        {
+            hpBar.fillAmount = Mathf.Lerp(hpBar.fillAmount, _targetHpFill, Time.deltaTime * hpLerpSpeed);
+        }
+    }
+
+    private void OnHealthChanged(float oldValue, float newValue)
+    {
+        Debug.Log($"[PlayerHUD] OnHealthChanged Event Fired! Old: {oldValue}, New: {newValue}");
+        UpdateHealth();
+    }
 }
