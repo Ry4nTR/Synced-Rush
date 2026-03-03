@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b28d7918789ac04fa3024fa9b4b26ee, type: 3}
+  m_Name: MainAudioLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::SyncedRush.Generics.AudioLibrary
+  clips:
+  - key: 1
+    clip: {fileID: 8300000, guid: 6bdc873b793fd1e4698252322bdbf57f, type: 3}
+  - key: 2
+    clip: {fileID: 8300000, guid: 49676fdce4e0c934289011e973d1668c, type: 3}
+  - key: 3
+    clip: {fileID: 8300000, guid: c957d8d3244b45e41b7703b8c1887f13, type: 3}

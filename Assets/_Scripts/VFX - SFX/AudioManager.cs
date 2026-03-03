@@ -18,6 +18,8 @@ namespace SyncedRush.Generics
 
         [Header("UI Audio Source")]
         private AudioSource uiSource;
+        
+        private AudioLibrary audioLibrary;
 
         private static AudioManager _instance;
 
@@ -52,6 +54,7 @@ namespace SyncedRush.Generics
 
             InitializeUI();
             InitializePool();
+            audioLibrary = Resources.Load<AudioLibrary>("MainAudioLibrary");
         }
 
         private void InitializeUI()
@@ -153,6 +156,16 @@ namespace SyncedRush.Generics
             {
                 Debug.LogWarning("AudioManager: Pool esaurito!");
             }
+        }
+
+        public void PlaySFX(SoundID clipID, Vector3 position, float volume = 1f, float pitch = 1f)
+        {
+            PlaySFX(audioLibrary.GetClip(clipID), position, volume, pitch);
+        }
+
+        public void PlaySFXAt(SoundID clipID, Vector3 position, float volume = 1f, float pitch = 1f)
+        {
+            PlaySFXAt(audioLibrary.GetClip(clipID), position, volume, pitch);
         }
 
         private IEnumerator ReturnToPool(AudioSource source, float delay)
