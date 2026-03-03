@@ -1,4 +1,5 @@
 ﻿using SyncedRush.Gamemode;
+using SyncedRush.Generics;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -202,6 +203,7 @@ public class WeaponNetworkHandler : NetworkBehaviour
         if (_clientSystems == null || _clientSystems.UI == null) return;
 
         _clientSystems.UI.PlayHitmarker(isKill, isHeadshot);
+        AudioManager.Instance.PlaySFX(SoundID.HITMARKER, Vector3.zero);
     }
 
     [ClientRpc]

@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Unity.Netcode;
+using SyncedRush.Generics;
 
 /// <summary>
 /// Server-authoritative health system.
@@ -85,6 +86,11 @@ public class HealthSystem : NetworkBehaviour, IDamageable
             forwardRef = localPlayer.transform;
 
         hud.ShowDamageIndicator(attackerPosition, forwardRef);
+
+        float randomPitch = Random.Range(0.9f, 1.1f);
+
+        AudioManager.Instance.PlaySFX(SoundID.BULLET_FLY, localPlayer.transform.position, 1, randomPitch);
+        AudioManager.Instance.PlaySFX(SoundID.PLAYER_HURT, localPlayer.transform.position, 1, 1);
     }
 
     public void Die()
