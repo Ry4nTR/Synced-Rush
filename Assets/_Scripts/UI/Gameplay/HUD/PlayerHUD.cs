@@ -21,7 +21,8 @@ public class PlayerHUD : MonoBehaviour
     [SerializeField] private DamageIndicatorController damageIndicatorController;
 
     [Header("Health Bar Animation")]
-    [SerializeField] private float hpLerpSpeed = 10f; // Adjust in inspector for slower/faster drain
+    [SerializeField] private float hpLerpSpeed = 10f;
+    [SerializeField] private Gradient healthBarGradient;
     private float _targetHpFill = 1f;
 
     // =====================================================
@@ -87,7 +88,7 @@ public class PlayerHUD : MonoBehaviour
     // =========================
     public void BindPlayer(GameObject player)
     {
-        Debug.Log($"[PlayerHUD] BindPlayer called for player: {player.name}"); // <--- ADD THIS LINE
+        Debug.Log($"[PlayerHUD] BindPlayer called for player: {player.name}");
 
         if (health != null)
             health.currentHealth.OnValueChanged -= OnHealthChanged;
@@ -99,7 +100,11 @@ public class PlayerHUD : MonoBehaviour
 
         UpdateHealth();
 
-        if (hpBar != null) hpBar.fillAmount = _targetHpFill;
+        if (hpBar != null)
+        {
+            hpBar.fillAmount = _targetHpFill;
+            hpBar.color = healthBarGradient.Evaluate(_targetHpFill);
+        }
     }
 
     public void BindWeapon(WeaponController weaponController)
@@ -233,14 +238,12 @@ public class PlayerHUD : MonoBehaviour
             {
                 // Set the target fill, but don't apply it instantly
                 _targetHpFill = health.CurrentHealth / health.maxHealth;
-                Debug.Log($"[PlayerHUD] UpdateHealth called. CurrentHP: {health.CurrentHealth}, Target Fill is now: {_targetHpFill}");
             }
         }
         else
         {
             healthText.text = "HP --";
             _targetHpFill = 0f;
-            Debug.LogWarning("[PlayerHUD] UpdateHealth called, but health reference is NULL!");
         }
     }
 
@@ -248,7 +251,11 @@ public class PlayerHUD : MonoBehaviour
     {
         if (hpBar != null)
         {
+            // Smoothly move the bar
             hpBar.fillAmount = Mathf.Lerp(hpBar.fillAmount, _targetHpFill, Time.deltaTime * hpLerpSpeed);
+
+            // Update the color based on the current fill amount
+            hpBar.color = healthBarGradient.Evaluate(hpBar.fillAmount);
         }
     }
 
