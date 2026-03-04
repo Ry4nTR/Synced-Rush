@@ -342,7 +342,7 @@ GameObject:
   - component: {fileID: 3274540038268313366}
   - component: {fileID: 2934660626877861992}
   m_Layer: 0
-  m_Name: Passworld
+  m_Name: Password
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1778,7 +1778,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Passworld
+  m_text: Password
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 05cea8363a6e29b4f92b17b56cb1b265, type: 2}
   m_sharedMaterial: {fileID: 7392273772005895741, guid: 05cea8363a6e29b4f92b17b56cb1b265, type: 2}
@@ -2011,7 +2011,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 6039295572228579485, guid: 3381c10288e509943b7c30081f96b782, type: 3}
       propertyPath: m_Name
-      value: PassworldField
+      value: PasswordField
       objectReference: {fileID: 0}
     - target: {fileID: 6118357683108272448, guid: 3381c10288e509943b7c30081f96b782, type: 3}
       propertyPath: m_fontSize
@@ -2103,7 +2103,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9073349387899347685, guid: 3381c10288e509943b7c30081f96b782, type: 3}
       propertyPath: m_text
-      value: Passworld
+      value: Password
       objectReference: {fileID: 0}
     - target: {fileID: 9073349387899347685, guid: 3381c10288e509943b7c30081f96b782, type: 3}
       propertyPath: m_fontSize
