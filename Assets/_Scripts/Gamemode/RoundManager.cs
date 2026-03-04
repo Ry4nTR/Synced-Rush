@@ -28,6 +28,9 @@ public class RoundManager : NetworkBehaviour
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server);
 
+    [Header("Scene Management")]
+    [SerializeField] private string lobbySceneName = "MainMenu";
+
     // =========================================================
     // EVENTS (CLIENT SIDE)
     // =========================================================
@@ -219,6 +222,19 @@ public class RoundManager : NetworkBehaviour
         if (winningTeamId == 0) TeamAScore++;
         else if (winningTeamId == 1) TeamBScore++;
 
+        if (isOvertime)
+        {
+            if (winningTeamId == lastWinningTeamId)
+            {
+                consecutiveWins++;
+            }
+            else
+            {
+                lastWinningTeamId = winningTeamId;
+                consecutiveWins = 1;
+            }
+        }
+
         StartCoroutine(RoundEndSequence(killerClientId));
     }
 
@@ -229,18 +245,59 @@ public class RoundManager : NetworkBehaviour
 
         // 2) now lock the round flow
         SetFlowState(MatchFlowState.RoundEnd);
-
         spawnManager.ServerSetAllGameplayEnabled(false);
 
-        // 3) scoreboard
-        PlayRoundEndPresentationClientRpc(TeamAScore, TeamBScore, matchOver: false, scoreboardSeconds);
-        yield return new WaitForSeconds(scoreboardSeconds);
+        // 3) Evaluate if the match is over BEFORE resetting players
+        int target = gamemode.roundsToWin;
+        bool someoneReachedTarget = (TeamAScore >= target) || (TeamBScore >= target);
+        bool matchIsOver = false;
+        int matchWinner = -1;
 
-        // 4) reset players for next round
-        spawnManager.ResetAllPlayersForRound();
+        if (someoneReachedTarget && TeamAScore != TeamBScore)
+        {
+            matchIsOver = true;
+            matchWinner = TeamAScore > TeamBScore ? 0 : 1;
+        }
+        else if (someoneReachedTarget)
+        {
+            // Enter Overtime
+            if (!isOvertime)
+            {
+                isOvertime = true;
+                lastWinningTeamId = -1;
+                consecutiveWins = 0;
+            }
 
-        // 5) continue/end match
-        CheckMatchEnd();
+            if (consecutiveWins >= ConsecutiveWinsRequired)
+            {
+                matchIsOver = true;
+                matchWinner = lastWinningTeamId;
+            }
+        }
+
+        // 4) Execute Final Match Flow OR Next Round Flow
+        if (matchIsOver)
+        {
+            SetFlowState(MatchFlowState.MatchEnd);
+            Debug.Log($"[RoundManager] Match ended. Winning team: {matchWinner}");
+
+            // Show final scoreboard immediately and wait
+            ShowFinalResultsClientRpc(matchWinner, TeamAScore, TeamBScore);
+            yield return new WaitForSeconds(5f);
+
+            lobbyManager.OnMatchEnded(matchWinner);
+
+            NetworkManager.SceneManager.LoadScene(lobbySceneName, LoadSceneMode.Single);
+        }
+        else
+        {
+            // Match continues: show round scoreboard, wait, then reset
+            PlayRoundEndPresentationClientRpc(TeamAScore, TeamBScore, matchOver: false, scoreboardSeconds);
+            yield return new WaitForSeconds(scoreboardSeconds);
+
+            spawnManager.ResetAllPlayersForRound();
+            StartNextRound();
+        }
     }
 
     // =========================================================

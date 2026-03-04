@@ -74,7 +74,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkLobbyState
   ShowTopMostFoldoutHeaderGroup: 1
-  matchmaking: {fileID: 0}
   LobbyName:
     m_InternalValue:
       utf8LengthInBytes: 0
@@ -144,6 +143,8 @@ MonoBehaviour:
         byte0059: 0
         byte0060: 0
         byte0061: 0
+  MaxPlayers:
+    m_InternalValue: 2
 --- !u!114 &5985150509432381733
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -157,8 +158,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoundManager
   ShowTopMostFoldoutHeaderGroup: 1
-  CurrentState:
+  CurrentFlowState:
     m_InternalValue: 0
+  lobbySceneName: MainMenuScene
   firstRoundCountdown: 10
   subsequentRoundCountdown: 5
   scoreboardSeconds: 3

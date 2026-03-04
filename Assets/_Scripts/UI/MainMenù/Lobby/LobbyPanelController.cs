@@ -84,6 +84,11 @@ public class LobbyPanelController : MonoBehaviour
 
         Bind();
         RefreshUI();
+
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+        {
+            uiManager.ShowLobby();
+        }
     }
 
     private void SubscribeLobbyState()

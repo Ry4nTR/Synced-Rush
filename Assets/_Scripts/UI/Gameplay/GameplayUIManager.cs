@@ -425,6 +425,9 @@ public class GameplayUIManager : MonoBehaviour
     public void ShowScorePanel(int teamAScore, int teamBScore, bool matchOver)
     {
         if (scorePanel.cg == null || scoreController == null) return;
+
+        CancelInvoke(nameof(HideScorePanel));
+
         scoreController.ShowScores(teamAScore, teamBScore, matchOver);
         ShowCanvasGroup(scorePanel.cg);
     }

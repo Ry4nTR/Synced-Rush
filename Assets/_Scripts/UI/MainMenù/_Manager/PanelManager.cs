@@ -11,7 +11,14 @@ public class PanelManager : MonoBehaviour
 
     private void Start()
     {
-        ShowMainMenu();
+        if (Unity.Netcode.NetworkManager.Singleton != null && Unity.Netcode.NetworkManager.Singleton.IsListening)
+        {
+            ShowLobby();
+        }
+        else
+        {
+            ShowMainMenu();
+        }
     }
 
     // =========================
