@@ -82,7 +82,7 @@ public class WeaponNetworkHandler : NetworkBehaviour
     {
         if (hit.collider.TryGetComponent(out Hitbox hitbox))
         {
-            ReportHitServerRpc(hitbox.OwnerNetworkId, origin, direction);
+            ReportHitServerRpc(hitbox.OwnerNetworkId, origin, direction, hit.point, hitbox.bodyPart);
         }
         else
         {
@@ -99,8 +99,11 @@ public class WeaponNetworkHandler : NetworkBehaviour
     // ========================================================================
     // SERVER: VALIDATION & DAMAGE (authoritative headshot + kill)
     // ========================================================================
+    // ========================================================================
+    // SERVER: VALIDATION & DAMAGE
+    // ========================================================================
     [ServerRpc]
-    private void ReportHitServerRpc(ulong targetNetId, Vector3 origin, Vector3 direction)
+    private void ReportHitServerRpc(ulong targetNetId, Vector3 origin, Vector3 direction, Vector3 hitPoint, BodyPartType bodyPart)
     {
         var rm = SessionServices.Current != null ? SessionServices.Current.RoundManager : FindFirstObjectByType<RoundManager>();
         if (rm == null || rm.CurrentFlowState.Value != MatchFlowState.InRound)
@@ -122,20 +125,33 @@ public class WeaponNetworkHandler : NetworkBehaviour
             }
         }
 
-        // === FIX: Pass the targetNetId to the resolver so the server doesn't get confused by overlapping players ===
-        if (!TryResolveAuthoritativeHit(origin, direction, data, targetNetId, out RaycastHit hit, out Hitbox hitbox))
+        // 1. VERIFY NO WALLS: Check if the bullet passed through environment geometry
+        if (!IsValidHit(origin, hitPoint, direction, data))
             return;
 
-        // Basic anti-cheat validation (range + wall)
-        if (!IsValidHit(origin, hit.point, direction, data))
+        // 2. VERIFY PROXIMITY: Ensure the target is actually near the hit point (anti-cheat/lag tolerance)
+        // A generous 3.5 units accounts for player latency and animation offsets
+        if (Vector3.Distance(hitPoint, targetHealth.transform.position) > 3.5f)
             return;
 
-        bool isHeadshot = hitbox.bodyPart == BodyPartType.Head;
+        // 3. APPLY DAMAGE: Find the multiplier for the body part the client hit
+        float multiplier = 1f;
+        var hitboxes = targetHealth.GetComponentsInChildren<Hitbox>();
+        foreach (var hb in hitboxes)
+        {
+            if (hb.bodyPart == bodyPart)
+            {
+                multiplier = hb.damageMultiplier;
+                break;
+            }
+        }
 
-        float distance = Vector3.Distance(origin, hit.point);
+        bool isHeadshot = bodyPart == BodyPartType.Head;
+
+        float distance = Vector3.Distance(origin, hitPoint);
         float damage = data.CalculateDamageByDistance(distance);
 
-        damage *= Mathf.Max(0f, hitbox.damageMultiplier);
+        damage *= Mathf.Max(0f, multiplier);
 
         float preHealth = targetHealth.currentHealth.Value;
         bool willKill = preHealth > 0f && (preHealth - damage) <= 0f;
