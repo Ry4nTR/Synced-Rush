@@ -50,6 +50,12 @@ public class WeaponNetworkHandler : NetworkBehaviour
             {
                 if (hb.OwnerNetworkId == NetworkObjectId)
                     continue;
+
+                if (GetTarget(hb.OwnerNetworkId, out HealthSystem targetHealth) && GetTarget(NetworkObjectId, out HealthSystem myHealth))
+                {
+                    if (myHealth.playerTeam.Value == targetHealth.playerTeam.Value && myHealth.playerTeam.Value != Team.None)
+                        continue;
+                }
             }
             else
             {
@@ -99,6 +105,14 @@ public class WeaponNetworkHandler : NetworkBehaviour
         if (data == null) return;
 
         if (!GetTarget(targetNetId, out HealthSystem targetHealth)) return;
+
+        if (GetTarget(NetworkObjectId, out HealthSystem shooterHealth))
+        {
+            if (shooterHealth.playerTeam.Value == targetHealth.playerTeam.Value && targetHealth.playerTeam.Value != Team.None)
+            {
+                return; // Friendly fire blocked!
+            }
+        }
 
         // Server performs the authoritative raycast to see what was ACTUALLY hit
         if (!TryResolveAuthoritativeHit(origin, direction, data, out RaycastHit hit, out Hitbox hitbox))
@@ -164,6 +178,12 @@ public class WeaponNetworkHandler : NetworkBehaviour
             // ignore self
             if (hb.OwnerNetworkId == NetworkObjectId)
                 continue;
+
+            if (GetTarget(hb.OwnerNetworkId, out HealthSystem targetHealth) && GetTarget(NetworkObjectId, out HealthSystem shooterHealth))
+            {
+                if (shooterHealth.playerTeam.Value == targetHealth.playerTeam.Value && shooterHealth.playerTeam.Value != Team.None)
+                    continue;
+            }
 
             bestHit = h;
             bestHitbox = hb;

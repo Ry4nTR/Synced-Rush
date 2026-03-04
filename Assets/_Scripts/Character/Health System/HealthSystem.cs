@@ -11,6 +11,13 @@ public class HealthSystem : NetworkBehaviour, IDamageable
     public float maxHealth = 100f;
     public bool allowDamageFromOwner = false;
 
+    [Header("Team Settings")]
+    public NetworkVariable<Team> playerTeam = new NetworkVariable<Team>(
+        Team.None,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
+
     public NetworkVariable<float> currentHealth = new NetworkVariable<float>(
         0f,
         NetworkVariableReadPermission.Everyone,

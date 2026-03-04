@@ -98,10 +98,20 @@ public class ShootingSystem : MonoBehaviour
             // Skip self hitboxes
             if (col.TryGetComponent(out Hitbox hb))
             {
-                // If Hitbox stores NetworkObjectId, this works:
                 var myNet = selfRoot.GetComponentInParent<Unity.Netcode.NetworkObject>();
-                if (myNet != null && hb.OwnerNetworkId == myNet.NetworkObjectId)
-                    continue;
+                if (myNet != null)
+                {
+                    if (hb.OwnerNetworkId == myNet.NetworkObjectId)
+                        continue; // Self
+
+                    if (Unity.Netcode.NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(hb.OwnerNetworkId, out var targetObj) &&
+                        targetObj.TryGetComponent(out HealthSystem targetHealth))
+                    {
+                        var myHealth = selfRoot.GetComponentInParent<HealthSystem>();
+                        if (myHealth != null && myHealth.playerTeam.Value == targetHealth.playerTeam.Value && myHealth.playerTeam.Value != Team.None)
+                            continue; // Teammate
+                    }
+                }
             }
 
             // Fallback: hierarchy self-skip

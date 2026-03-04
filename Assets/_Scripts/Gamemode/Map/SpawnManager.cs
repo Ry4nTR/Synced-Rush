@@ -125,7 +125,12 @@ public class SpawnManager : MonoBehaviour
 
             // Reset gameplay state
             var health = playerObj.GetComponent<HealthSystem>();
-            if (health != null) health.Respawn();
+            if (health != null)
+            {
+                health.Respawn();
+
+                health.playerTeam.Value = p.teamId == 0 ? Team.TeamA : Team.TeamB;
+            }
 
             var actor = playerObj.GetComponent<PlayerRoundActor>();
             if (actor != null) actor.ServerSetAliveState(true);
@@ -236,6 +241,11 @@ public class SpawnManager : MonoBehaviour
         netObj.SpawnAsPlayerObject(player.clientId, true);
 
         player.isAlive = true;
+
+        if (instance.TryGetComponent(out HealthSystem health))
+        {
+            health.playerTeam.Value = player.teamId == 0 ? Team.TeamA : Team.TeamB;
+        }
 
         Debug.Log($"[SpawnManager] Spawned player clientId={player.clientId} netId={netObj.NetworkObjectId}");
     }
