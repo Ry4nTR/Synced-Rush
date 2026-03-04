@@ -45,7 +45,7 @@ public class WeaponNetworkHandler : NetworkBehaviour
             var col = h.collider;
             if (col == null) continue;
 
-            // self filter
+            // 1. Check if it's a Hitbox
             if (col.TryGetComponent(out Hitbox hb))
             {
                 if (hb.OwnerNetworkId == NetworkObjectId)
@@ -54,15 +54,23 @@ public class WeaponNetworkHandler : NetworkBehaviour
                 if (GetTarget(hb.OwnerNetworkId, out HealthSystem targetHealth) && GetTarget(NetworkObjectId, out HealthSystem myHealth))
                 {
                     if (myHealth.playerTeam.Value == targetHealth.playerTeam.Value && myHealth.playerTeam.Value != Team.None)
-                        continue;
+                        continue; // Pass through teammates
                 }
-            }
-            else
-            {
-                if (col.transform.IsChildOf(transform))
-                    continue;
+
+                HandleHit(h, origin, direction);
+                return;
             }
 
+            // 2. Ignore our own body
+            if (col.transform.IsChildOf(transform))
+                continue;
+
+            // === FIX: Ignore other players' movement capsules! ===
+            // This ensures bullets pass through the invisible capsule and hit the bone hitboxes inside.
+            if (col.GetComponentInParent<HealthSystem>() != null)
+                continue;
+
+            // 3. Must be a wall or the ground
             HandleHit(h, origin, direction);
             return;
         }
@@ -114,12 +122,8 @@ public class WeaponNetworkHandler : NetworkBehaviour
             }
         }
 
-        // Server performs the authoritative raycast to see what was ACTUALLY hit
-        if (!TryResolveAuthoritativeHit(origin, direction, data, out RaycastHit hit, out Hitbox hitbox))
-            return;
-
-        // Ensure the hitbox belongs to the claimed target
-        if (hitbox.OwnerNetworkId != targetNetId)
+        // === FIX: Pass the targetNetId to the resolver so the server doesn't get confused by overlapping players ===
+        if (!TryResolveAuthoritativeHit(origin, direction, data, targetNetId, out RaycastHit hit, out Hitbox hitbox))
             return;
 
         // Basic anti-cheat validation (range + wall)
@@ -131,32 +135,27 @@ public class WeaponNetworkHandler : NetworkBehaviour
         float distance = Vector3.Distance(origin, hit.point);
         float damage = data.CalculateDamageByDistance(distance);
 
-        // Apply per-hitbox multiplier (this is why hitbox exists)
         damage *= Mathf.Max(0f, hitbox.damageMultiplier);
 
-        // Determine kill BEFORE applying damage (clean & deterministic)
         float preHealth = targetHealth.currentHealth.Value;
         bool willKill = preHealth > 0f && (preHealth - damage) <= 0f;
 
         targetHealth.TakeDamage(damage, OwnerClientId);
 
-        // Shooter-only hitmarker
         var shooterOnly = new ClientRpcParams
         {
             Send = new ClientRpcSendParams { TargetClientIds = new[] { OwnerClientId } }
         };
         HitmarkerClientRpc(willKill, isHeadshot, shooterOnly);
-
-        // Optional: replicate world VFX for others
-        // NotifyHitClientRpc(hit.point, hit.normal, OwnerClientId);
     }
 
     private bool TryResolveAuthoritativeHit(
-        Vector3 origin,
-        Vector3 direction,
-        WeaponData data,
-        out RaycastHit bestHit,
-        out Hitbox bestHitbox)
+            Vector3 origin,
+            Vector3 direction,
+            WeaponData data,
+            ulong expectedTargetId,
+            out RaycastHit bestHit,
+            out Hitbox bestHitbox)
     {
         bestHit = default;
         bestHitbox = null;
@@ -172,22 +171,30 @@ public class WeaponNetworkHandler : NetworkBehaviour
             var h = hits[i];
             if (h.collider == null) continue;
 
-            if (!h.collider.TryGetComponent(out Hitbox hb))
-                continue; // for hitmarker we only accept hitboxes as "valid player hits"
-
-            // ignore self
-            if (hb.OwnerNetworkId == NetworkObjectId)
-                continue;
-
-            if (GetTarget(hb.OwnerNetworkId, out HealthSystem targetHealth) && GetTarget(NetworkObjectId, out HealthSystem shooterHealth))
+            if (h.collider.TryGetComponent(out Hitbox hb))
             {
-                if (shooterHealth.playerTeam.Value == targetHealth.playerTeam.Value && shooterHealth.playerTeam.Value != Team.None)
+                if (hb.OwnerNetworkId == NetworkObjectId)
                     continue;
+
+                // === FIX: Overlap resolution ===
+                // Only accept the hitbox if it belongs to the exact player the client shot at.
+                // If the ray hits a different player's overlapping arm, it passes right through!
+                if (hb.OwnerNetworkId == expectedTargetId)
+                {
+                    bestHit = h;
+                    bestHitbox = hb;
+                    return true;
+                }
+
+                continue;
             }
 
-            bestHit = h;
-            bestHitbox = hb;
-            return true;
+            // === FIX: Ignore player capsules on the server too ===
+            if (h.collider.GetComponentInParent<HealthSystem>() != null)
+                continue;
+
+            // Hit a wall, block the shot.
+            return false;
         }
 
         return false;

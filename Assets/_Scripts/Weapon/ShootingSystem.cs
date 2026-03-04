@@ -95,7 +95,7 @@ public class ShootingSystem : MonoBehaviour
             var col = h.collider;
             if (col == null) continue;
 
-            // Skip self hitboxes
+            // 1. Is it a Hitbox?
             if (col.TryGetComponent(out Hitbox hb))
             {
                 var myNet = selfRoot.GetComponentInParent<Unity.Netcode.NetworkObject>();
@@ -112,12 +112,21 @@ public class ShootingSystem : MonoBehaviour
                             continue; // Teammate
                     }
                 }
+
+                // VALID HIT!
+                bestHit = h;
+                return true;
             }
 
-            // Fallback: hierarchy self-skip
+            // 2. Fallback: hierarchy self-skip
             if (col.transform.IsChildOf(selfRoot))
                 continue;
 
+            // === NEW FIX: Ignore enemy capsule colliders for VFX ===
+            if (col.GetComponentInParent<HealthSystem>() != null)
+                continue;
+
+            // 3. Wall/Environment
             bestHit = h;
             return true;
         }

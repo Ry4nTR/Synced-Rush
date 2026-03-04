@@ -203,11 +203,14 @@ public class NetworkPlayerInput : NetworkBehaviour
 
             _lastRealServerInput = data;
             _hasLastRealServerInput = true;
+
+            // 🟢 AAA FIX: Prevent the Server from getting stuck in synthesis lock
+            _stallTicks = 0;
+
             usedReal = true;
             return true;
         }
 
-        // Buffer completely empty: Synthesize HOLD tick smoothly
         data = _lastRealServerInput;
         data.Sequence = _serverNextExpectedSequence++;
         return true;

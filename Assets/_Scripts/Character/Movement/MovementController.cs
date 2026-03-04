@@ -466,10 +466,19 @@ public class MovementController : NetworkBehaviour
 
     private void ApplyServerSnapshot(ServerSnapshot snap)
     {
+        // 🟢 AAA FIX: THE CHARACTER CONTROLLER TELEPORT BUG 🟢
+        // Unity explicitly ignores all transform modifications to the CharacterController
+        // unless you temporarily disable the component first! Without this, the rollback
+        // engine was failing to snap your physics back to reality.
+        bool wasEnabled = _characterController != null && _characterController.enabled;
+        if (wasEnabled) _characterController.enabled = false;
+
         transform.position = snap.Position;
         HorizontalVelocity = snap.HorizontalVel;
         VerticalVelocity = snap.VerticalVel;
         ApplyAimYaw(snap.Yaw);
+
+        if (wasEnabled) _characterController.enabled = true;
 
         if (_visualRoot != null) _visualRoot.localPosition = Vector3.zero;
     }
@@ -489,7 +498,7 @@ public class MovementController : NetworkBehaviour
         if (startIndex == -1) return;
 
         int framesToReplay = _netInput.PendingInputs.Count - startIndex;
-        if (framesToReplay > 45) // Cap at ~0.9 seconds of lag prediction
+        if (framesToReplay > 45)
         {
             Debug.LogWarning("[DESYNC] Replay Cap exceeded. Wiping history and Hard Snapping.");
             _netInput.ClearPendingInputs();
